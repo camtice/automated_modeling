@@ -11,6 +11,7 @@ from initial_generation import (
     parameter_fitting_solver,
     parameter_recovery_solver,
     bic_solver,
+    final_model_summary_solver,
     verify,
 )
 from inspect_ai.dataset import Sample
@@ -86,6 +87,7 @@ def design_model_local(
             parameter_fitting_solver(),
             parameter_recovery_solver(),
             bic_solver(),
+            final_model_summary_solver(),
         ],
         scorer=verify(),
     )
@@ -282,8 +284,16 @@ def run_multiple_evaluations(
                     previous_models_text += f"Model {idx}:\n"
                     previous_models_text += f"Specification: {model['specification']}\n"
                     previous_models_text += f"Summary: {model['summary']}\n"
-                    if config["experiment"].get("include_bic_in_summary", False):
+                    if (
+                        config["experiment"].get("include_bic_in_summary", False)
+                        and model.get("bic") is not None
+                    ):
                         previous_models_text += f"BIC: {model['bic']}\n"
+                    # Add recovery information if available
+                    if model.get("recovery_info") and config["experiment"].get(
+                        "include_recovery_in_summary", True
+                    ):
+                        previous_models_text += f"{model['recovery_info']}\n"
 
                 enhanced_output_description = (
                     MODEL_OUTPUT_DESCRIPTION.rstrip()
@@ -338,6 +348,7 @@ def run_multiple_evaluations(
                         "specification": model_spec,
                         "summary": model_summary,
                         "bic": bic_value,
+                        "recovery_info": md.get("recovery_summary", ""),
                     }
                 )
 

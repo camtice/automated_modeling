@@ -1,0 +1,962 @@
+{
+  "task_description": "In the  experiment, each participant is given 36 different proposals to respond to. Each is designated by a trial number in the data set This gives 36 instances for the learnable parameters to be trained. There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276",
+  "output_description": "Design a computational model for the given task. The model should obtain the utility, (not the probability of choosing an action).  Your goal is to eventually explore the entire space of possible explainations and mechanisms by which the observed behavior arises.\n\nYour model should use the given variables appropriately, but does not necessary need to use all or even most of the variables. Do not include the model for the utility of rejecting an offer. \n\nThe model should:\n1. Predict only responder behavior.\n2. Build on relevant psychological principles.\n3. Be considerate of high covariance between learnable parameters as the model will have to pass parameter recovery tests.\n4. Be applicable to the dataset given within the task description (i.e. the model should be able to be run using only the provided dataset structure).\n5. Not include parameters to simulate general stochasticity of behavior, because this will be handled later by a temperature parameter.\n6. Should have no more than two learnable parameters.\n7. This specific model should calculate the utility of an action, which will then be used to determine the probability of choosing that action. Negative values should represent a negative utility, and thus an unlikely action.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'. DO NOT USE 'lambda' AS A PARAMETER NAME.",
+  "dataset_info": "\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276",
+  "complete_model_interaction": [
+    {
+      "solver": "model_design_solver",
+      "input": "Task Description: In the  experiment, each participant is given 36 different proposals to respond to. Each is designated by a trial number in the data set This gives 36 instances for the learnable parameters to be trained. There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276\n\nDesired Output Specification: Design a computational model for the given task. The model should obtain the utility, (not the probability of choosing an action).  Your goal is to eventually explore the entire space of possible explainations and mechanisms by which the observed behavior arises.\n\nYour model should use the given variables appropriately, but does not necessary need to use all or even most of the variables. Do not include the model for the utility of rejecting an offer. \n\nThe model should:\n1. Predict only responder behavior.\n2. Build on relevant psychological principles.\n3. Be considerate of high covariance between learnable parameters as the model will have to pass parameter recovery tests.\n4. Be applicable to the dataset given within the task description (i.e. the model should be able to be run using only the provided dataset structure).\n5. Not include parameters to simulate general stochasticity of behavior, because this will be handled later by a temperature parameter.\n6. Should have no more than two learnable parameters.\n7. This specific model should calculate the utility of an action, which will then be used to determine the probability of choosing that action. Negative values should represent a negative utility, and thus an unlikely action.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'. DO NOT USE 'lambda' AS A PARAMETER NAME.\n\nPrevious Models:\n\nPlease think through this step by step, then provide your model specification and variable descriptions.",
+      "output": "<think>\nOkay, let's tackle this problem step by step. The goal is to design a computational model that predicts the utility of accepting an offer for the responder in this experiment. The model needs to be based on psychological principles, use the given dataset variables appropriately, and have no more than two learnable parameters. Also, it should avoid parameters for stochasticity since that's handled later by a temperature parameter.\n\nFirst, I need to focus on the responder's behavior. The responder decides whether to accept or reject a proposal. The utility of accepting should depend on factors that influence their decision. From the variables provided, key ones might be the fairness of the split, the contributions of both participants, and perhaps the total combined earnings.\n\nPsychological principles involved here could include fairness considerations, inequity aversion, and self-interest. For example, people might prefer fair splits, and feel aversion if the split is unfair. The model should capture how the responder perceives the fairness of the offer relative to their own contribution and the opponent's contribution.\n\nLooking at the variables, token_self and token_opp represent the contributions each made. The combined_earning is the total, which is 3*(token_self + token_opp). The split_self is the amount offered to the responder. The split percentage variables (splitperc_self) might also be relevant, but maybe the actual amounts are more directly tied to utility.\n\nA common approach in such models is to compare the proposed split to what's considered fair. The fair split could be proportional to each participant's contribution. For example, if the responder contributed token_self tokens, their fair share would be (token_self / (token_self + token_opp)) * combined_earning. The difference between the proposed split_self and this fair share could be a factor in the utility.\n\nAnother angle is inequity aversion, where the utility decreases if there's a disparity between the responder's share and the opponent's share. But since the model should only consider the utility of accepting (not rejecting), maybe the focus is on how much the responder gains compared to what they think is fair.\n\nSo, the utility could be a function of the monetary gain (split_self) adjusted by a fairness term. The fairness term could involve a parameter that weights how much the deviation from the fair share affects utility. For example:\n\nUtility = split_self - \u03b1 * |split_self - fair_share|\n\nHere, \u03b1 is a learnable parameter representing the sensitivity to unfairness. If \u03b1 is high, even small deviations from the fair share reduce utility more. But this might not capture all aspects. Alternatively, maybe the model should consider the ratio of the proposed split to the fair share. Or perhaps the difference relative to the total combined earnings.\n\nWait, the problem mentions that two equal split_self values don't represent the same fairness because the combined earning varies. So fairness should be relative to the total. For example, a split_self of \u00a310 when combined_earning is \u00a320 is 50%, which is fair if contributions are equal. But if combined_earning is \u00a340, \u00a310 is 25%, which might be unfair. So the percentage split (splitperc_self) might be a better measure of fairness. But splitperc_self is already provided as a variable. However, maybe using the actual split_self and comparing it to the fair share based on contributions is better.\n\nThe fair share based on contributions would be (token_self / (token_self + token_opp)) * combined_earning. Let's call this fair_share. Then, the difference between split_self and fair_share is a measure of unfairness. The utility could then be split_self minus some parameter times the absolute difference (or squared difference) between split_self and fair_share. Alternatively, if the responder is sensitive to being undercompensated relative to their contribution, the model could penalize offers below the fair share more than those above. But maybe a linear penalty is sufficient for simplicity.\n\nAnother consideration is the total amount. Maybe the utility is not just the split_self but also scaled by the total. For example, getting \u00a35 out of \u00a310 is different from \u00a35 out of \u00a3100. But the split_self is already in absolute terms. However, the problem states that equal split_self values aren't the same fairness because combined_earning varies. So perhaps the model should normalize the split_self by the combined_earning, but that's essentially the split percentage. Alternatively, the fair_share as a proportion of combined_earning is important.\n\nAlternatively, the model could use the ratio of split_self to fair_share. If split_self is equal to fair_share, the ratio is 1. If it's less, the ratio is less than 1, which reduces utility. So the utility could be split_self multiplied by a term that depends on the ratio. For example, split_self * (1 + \u03b2 * (split_self / fair_share - 1)). But this might complicate things.\n\nLet me think again. The key is to model the utility of accepting the offer. The responder's utility should increase with the amount they receive (split_self) but decrease if the offer is unfair. The fairness is determined by how much split_self deviates from the fair share based on contributions.\n\nSo, the utility U_accept = split_self - \u03b1 * (split_self - fair_share)^2. This is a quadratic loss where deviations from fair_share reduce utility. But squared terms can complicate parameter recovery. Alternatively, absolute value: U_accept = split_self - \u03b1 * |split_self - fair_share|. Here, \u03b1 is the sensitivity to unfairness. If \u03b1 is positive, any deviation (whether over or under) reduces utility. But maybe people are more sensitive to being underpaid than overpaid. However, the problem states to build on psychological principles. Inequity aversion models often consider both disadvantageous and advantageous inequity, but perhaps in this case, since the responder is evaluating their own share, they might only care about being below the fair share. So maybe the model should penalize only when split_self is less than fair_share. So U_accept = split_self + \u03b1 * max(fair_share - split_self, 0). Wait, no. If split_self is less than fair_share, then fair_share - split_self is positive, and \u03b1 would be a negative weight, reducing utility. Alternatively, U_accept = split_self - \u03b1 * max(fair_share - split_self, 0). Here, \u03b1 is the penalty for being under the fair share. If split_self is less than fair_share, the penalty is applied. If it's equal or more, no penalty. This captures the idea that people dislike being undercompensated relative to their contribution.\n\nAlternatively, using the percentage terms. The fair percentage would be (token_self / (token_self + token_opp)) * 100. The splitperc_self is the offered percentage. The difference between these could be the unfairness. So U_accept = split_self + \u03b2 * (splitperc_self - fair_percentage). But this might not capture non-linear effects. Or perhaps U_accept = split_self + \u03b2 * (splitperc_self - fair_percentage). If \u03b2 is positive, then higher than fair percentage increases utility, lower decreases. But this is linear. However, the problem states that the model should have no more than two parameters. Let's see.\n\nAnother approach: the utility could be a weighted sum of the monetary gain and the fairness. For example, U_accept = \u03b8 * split_self + (1 - \u03b8) * fairness. But \u03b8 would be a parameter between 0 and 1. However, this introduces a parameter that mixes the two terms. Alternatively, using a single parameter to weight the fairness term against the monetary term.\n\nWait, the problem says the model should have no more than two learnable parameters. So perhaps one parameter for the weight of fairness, and another for something else. But maybe we can capture it with one parameter. Let's think.\n\nSuppose the utility is split_self minus a term that represents the disutility from unfairness. The disutility could be proportional to the difference between the fair share and the offered split. So:\n\nU_accept = split_self - \u03b1 * max(fair_share - split_self, 0)\n\nHere, \u03b1 is the sensitivity to being underpaid. If the offered split is less than the fair share, the utility is reduced by \u03b1 times the deficit. If it's equal or more, no penalty. This model has one parameter, \u03b1. But maybe we need another parameter to capture different aspects. For example, some people might also dislike overcompensation, but that's less common. Alternatively, the model could have a parameter that scales the entire utility by the total combined earnings. Wait, but combined_earning is 3*(token_self + token_opp). So maybe the utility is split_self (monetary gain) plus a term that depends on the ratio of split_self to fair_share. For example:\n\nU_accept = split_self + \u03b3 * (split_self / fair_share - 1)\n\nHere, \u03b3 is a parameter. If split_self equals fair_share, the second term is zero. If it's higher, the term is positive, increasing utility; if lower, negative. But this is linear in the ratio. Alternatively, using a nonlinear function like log, but that complicates things.\n\nAlternatively, considering that the utility could be influenced by the relative difference. For example, the ratio of split_self to fair_share. If the ratio is 1, it's fair. The utility could be split_self multiplied by a function of this ratio. For example:\n\nU_accept = split_self * (1 + \u03b2 * (split_self / fair_share - 1))\n\nBut this introduces \u03b2 as a parameter. If \u03b2 is positive, then getting more than fair increases utility multiplicatively. If \u03b2 is negative, it decreases. But this might not align with typical behavior. People might not get extra utility from overcompensation, but just not be penalized. So maybe \u03b2 is only active when split_self < fair_share.\n\nAlternatively, the model could use a Fehr-Schmidt inequity aversion model, which has parameters for aversion to disadvantageous and advantageous inequality. But in this case, since we're only modeling the utility of accepting (not rejecting), and the responder's own share, perhaps we can simplify. The Fehr-Schmidt model for utility is:\n\nU = x - \u03b1 * max{y - x, 0} - \u03b2 * max{x - y, 0}\n\nWhere x is the responder's payoff, y is the proposer's. But in our case, when the responder accepts, the proposer's payoff is split_opp. So maybe:\n\nU_accept = split_self - \u03b1 * max(split_opp - split_self, 0) - \u03b2 * max(split_self - split_opp, 0)\n\nBut this introduces two parameters, \u03b1 and \u03b2. However, the problem allows up to two parameters. But the model should predict responder behavior, and the proposer's split_opp is part of the data. However, the Fehr-Schmidt model is a standard one, but maybe in this context, since the contributions (token_self and token_opp) are known, the fair share is based on contributions, not just the split amounts. So perhaps the model should compare the split to the contribution-based fair share rather than the proposer's split.\n\nAlternatively, combining both ideas: the utility depends on the monetary amount and the deviation from the fair share. So:\n\nfair_share = (token_self / (token_self + token_opp)) * combined_earning\n\nThen, U_accept = split_self + \u03b1 * (split_self - fair_share)\n\nBut this is linear. If \u03b1 is positive, then getting more than fair increases utility beyond the monetary value. If \u03b1 is negative, it decreases. But this might not capture the aversion to unfairness. Alternatively, using a quadratic term:\n\nU_accept = split_self - \u03b1 * (split_self - fair_share)^2\n\nThis would penalize deviations from fair_share, with \u03b1 controlling the strength. But this introduces a single parameter. However, people might be more sensitive to under-compensation than over. So maybe the model should have separate parameters for under and over, but that would require two parameters. Since we can have up to two, that's acceptable.\n\nWait, the problem allows up to two learnable parameters. So perhaps:\n\nU_accept = split_self - \u03b1 * max(fair_share - split_self, 0) - \u03b2 * max(split_self - fair_share, 0)\n\nHere, \u03b1 is the penalty for being below fair share, \u03b2 for being above. If \u03b1 is high, the responder strongly dislikes being underpaid. If \u03b2 is high, they dislike being overpaid. But in reality, people might not dislike being overpaid, so \u03b2 could be zero or small. However, the model should let the data determine this. But with two parameters, this could work. However, the problem states that the model should build on psychological principles. Inequity aversion does include both parameters, but perhaps in this context, since the responder is evaluating their own share, maybe only the under-compensation matters. Alternatively, using one parameter for disadvantageous inequity and another for advantageous.\n\nBut given the constraint of two parameters, this could be feasible. However, the problem says to avoid high covariance between parameters. If \u03b1 and \u03b2 are both included, they might be correlated, making parameter recovery difficult. So maybe a better approach is to use one parameter for the deviation from fair share, regardless of direction, and another parameter that scales the monetary term. Wait, but the monetary term is split_self, which is in pounds. If the model is U = \u03b8 * split_self - \u03b1 * |split_self - fair_share|, then \u03b8 and \u03b1 are two parameters. But \u03b8 would represent the marginal utility of money, and \u03b1 the disutility from unfairness. However, \u03b8 could be fixed to 1 if we assume linear utility for money, which is common. But if not, \u03b8 could be a learnable parameter. However, the problem states that the model should not include parameters for general stochasticity, but \u03b8 here is about the utility's sensitivity to money. But maybe \u03b8 is redundant if we assume that the utility is in monetary units. For example, if \u03b8 is 1, then it's just the monetary amount minus the unfairness penalty. If \u03b8 is a parameter, it allows the model to scale the importance of money relative to fairness. But with two parameters, \u03b8 and \u03b1, this could be a way to model it.\n\nBut the problem says the model should have no more than two learnable parameters. So if we include both \u03b8 and \u03b1, that's two. Alternatively, fix \u03b8 to 1 and have \u03b1 as the only parameter. But perhaps allowing \u03b8 to vary can capture different sensitivities to money versus fairness. However, in many models, the monetary term is taken as linear with a coefficient of 1, and other terms are added. For example, in the Fehr-Schmidt model, the coefficient for one's own payoff is 1.\n\nBut given the dataset, maybe the model should use split_self and the difference from fair_share. Let's formalize this.\n\nLet me outline possible variables:\n\n- fair_share = (token_self / (token_self + token_opp)) * combined_earning\n\nBut combined_earning is 3*(token_self + token_opp), so fair_share simplifies to 3 * token_self. Because:\n\ncombined_earning = 3*(token_self + token_opp)\n\nfair_share = (token_self / (token_self + token_opp)) * 3*(token_self + token_opp) ) = 3 * token_self\n\nWait, that's a key insight! Because combined_earning is 3*(sum of tokens), the fair_share based on contributions is exactly 3 * token_self. Because each token is worth \u00a33. So the fair_share is simply 3 * token_self. That's a crucial simplification. So the fair_share is 3 * token_self. The offered split_self is the amount the responder would get. So the difference between split_self and 3 * token_self is the deviation from the fair share.\n\nSo the utility could be:\n\nU_accept = split_self - \u03b1 * (3 * token_self - split_self)\n\nBut this is only if split_self is less than 3 * token_self. Wait, but if split_self is more than 3 * token_self, then (3 * token_self - split_self) is negative, so multiplying by \u03b1 (positive) would add to the utility. But that might not make sense. If the responder is offered more than their fair share, they might not have a negative utility from that. Alternatively, the model should penalize only when split_self is less than the fair share. So using a max function:\n\nU_accept = split_self + \u03b1 * max(3 * token_self - split_self, 0)\n\nWait, no. If split_self is less than fair_share (3*token_self), then the max term is positive. If \u03b1 is a positive parameter, then this term would increase the utility. But that doesn't make sense because being underpaid should decrease utility. So perhaps:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b1 is the penalty per unit under the fair share. So if the offered split_self is less than 3*token_self, the utility is reduced by \u03b1 times the deficit. If it's equal or more, no penalty. This makes sense. The responder's utility is the monetary gain minus a penalty for being under their fair share. This model has one parameter, \u03b1. But the problem allows up to two. Maybe another parameter could capture the sensitivity to the total combined earnings. For example, the utility might also depend on the total amount, but how?\n\nAlternatively, the responder might compare their split to the opponent's split. The opponent's split is split_opp. But split_opp is part of the data. However, in the task description, when the participant is the responder, the proposer's split is split_opp. So the responder's utility could depend on the difference between their split and the proposer's. But that's another angle. For example, using the Fehr-Schmidt model:\n\nU_accept = split_self - \u03b1 * max(split_opp - split_self, 0) - \u03b2 * max(split_self - split_opp, 0)\n\nBut this introduces two parameters. However, this model doesn't take into account the contributions, only the splits. But the problem states that the fairness depends on the contributions, so maybe combining both approaches.\n\nAlternatively, the utility could be a combination of the split_self and the difference between the proposed split and the fair share. For example:\n\nU_accept = \u03b8 * split_self - \u03b1 * ( (3 * token_self - split_self) / (3 * token_self) )\n\nHere, \u03b8 is the weight on the monetary gain, and \u03b1 is the weight on the proportional deficit. The term (3*token_self - split_self)/(3*token_self) is the proportion by which the responder is underpaid. For example, if split_self is 2*token_self, then the term is (3-2)/3 = 1/3. Multiplying by \u03b1 gives the penalty. \u03b8 scales the monetary term. But this introduces two parameters, \u03b8 and \u03b1. However, \u03b8 could be fixed to 1 if we assume linear utility for money, leaving \u03b1 as the only parameter. But the problem allows two parameters. However, having two parameters might lead to identifiability issues if they are correlated. The problem mentions that the model should be considerate of high covariance between parameters. So perhaps a model with one parameter is better.\n\nAlternatively, the utility could be:\n\nU_accept = split_self - \u03b1 * max( (3 * token_self - split_self) / (3 * token_self), 0 )\n\nThis normalizes the deficit by the fair share, making the penalty proportional to the percentage under the fair share. For example, being under by \u00a33 when fair share is \u00a330 is a 10% deficit, penalized by \u03b1 * 0.1. This way, \u03b1 represents the sensitivity to proportional underpayment. This model has one parameter, \u03b1.\n\nBut the problem allows up to two parameters. Maybe another parameter could capture the curvature of the utility function for money. For example, if the utility of money is concave (diminishing marginal utility), we could model it with a power function:\n\nU_accept = (split_self)^\u03b3 - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b3 is a parameter between 0 and 1 to model concave utility. But this introduces two parameters, \u03b3 and \u03b1. However, the problem states that the model should not include parameters for general stochasticity, but \u03b3 here is about the shape of the utility function, which is a structural parameter. This could be a valid approach, but with two parameters. However, parameter recovery might be challenging if \u03b3 and \u03b1 are correlated.\n\nAlternatively, the model could use the ratio of split_self to the fair share. For example:\n\nU_accept = split_self * (1 + \u03b1 * (split_self / (3 * token_self)))\n\nBut this might not capture the penalty for being under. Alternatively:\n\nU_accept = split_self + \u03b1 * (split_self - 3 * token_self)\n\nThis is linear in the difference. If \u03b1 is positive, then offers above the fair share increase utility, below decrease. But this assumes that the marginal utility of money is 1 + \u03b1, which might not be the right approach. For example, if \u03b1 is 0.5, then each pound above fair share gives 1.5 utility, each below gives 0.5. But this might not align with typical behavior where the penalty for being under is more significant.\n\nGiven the time constraints and the need to limit to two parameters, perhaps the best approach is to model the utility as the split_self minus a penalty for being under the fair share, with the penalty scaled by a parameter. Additionally, include a parameter that scales the entire utility by the total combined earnings, but I'm not sure. Alternatively, use two parameters: one for the penalty when under, and another for the penalty when over. But as mentioned earlier, people might not penalize overpayment.\n\nAlternatively, use one parameter for the linear effect of split_self and another for the penalty. For example:\n\nU_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b8 is the marginal utility of money, and \u03b1 is the penalty per unit under fair share. This allows for two parameters. If \u03b8 is fixed to 1, it's the previous model. But allowing \u03b8 to vary could capture different sensitivities to money. However, this introduces two parameters which might be correlated. For example, if \u03b8 and \u03b1 are both high, the model could have similar predictions to when both are low. But the problem states to be considerate of high covariance, so maybe this isn't ideal. However, given the constraints, this might be acceptable.\n\nAlternatively, combine the two into a single parameter by assuming \u03b8 = 1, and only have \u03b1 as a learnable parameter. This reduces the number of parameters to one, which is within the limit. But the problem allows up to two, so maybe using two parameters is acceptable if they are not too correlated.\n\nBut the problem says the model must have no more than two learnable parameters. So let's consider two possible models:\n\nModel 1: U_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nModel 2: U_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nModel 1 has one parameter, Model 2 has two. Since the problem allows up to two, perhaps Model 2 is better, allowing the data to determine the weight on the monetary term and the fairness term. However, in many utility models, the coefficient for one's own payoff is 1, and other terms are added. For example, in the Fehr-Schmidt model, the own payoff is not scaled. So maybe setting \u03b8=1 is reasonable, leading to Model 1 with one parameter. But the problem allows two, so perhaps including \u03b8 adds flexibility.\n\nBut the problem states that the model should build on psychological principles. The Fehr-Schmidt model uses own payoff minus inequity terms. So perhaps Model 1 is more aligned with that, assuming \u03b8=1. However, if the data suggests that participants have different sensitivities to money, \u03b8 could capture that. But without prior knowledge, it's hard to say. Given the parameter recovery concern, perhaps a single parameter model is better to avoid covariance issues.\n\nAnother angle: the utility could also depend on the total combined earnings. For example, getting \u00a35 out of \u00a310 might feel different than \u00a35 out of \u00a3100. But the split_self is already in absolute terms. However, the problem states that two equal split_self values aren't the same fairness because combined_earning varies. So perhaps the model should include a term that accounts for the proportion of the total. For example, the fair percentage is (token_self / (token_self + token_opp)) * 100, and the offered percentage is splitperc_self. The difference between these could be the unfairness measure. So:\n\nU_accept = split_self - \u03b1 * |splitperc_self - fair_percentage|\n\nBut fair_percentage is (token_self / (token_self + token_opp)) * 100. So splitperc_self - fair_percentage is the percentage point deviation from the fair split. The absolute value captures any deviation. But this introduces a parameter \u03b1 that scales the disutility from percentage deviation. However, this model uses splitperc_self and fair_percentage, which are both percentages. But split_self is in pounds. Mixing units might not be ideal. Alternatively, the utility could be in terms of percentages:\n\nU_accept = splitperc_self - \u03b1 * |splitperc_self - fair_percentage|\n\nBut this assumes that the utility is linear in percentage points, which might not be the case. Also, the monetary amount is tied to the percentage via combined_earning. For example, a 50% split of \u00a320 is \u00a310, while 50% of \u00a340 is \u00a320. So the actual monetary value matters. Therefore, perhaps the model should use the monetary terms rather than percentages.\n\nReturning to the earlier insight that fair_share = 3 * token_self, because each token is \u00a33. So the fair share is exactly 3 * token_self. The offered split_self is the amount the responder would get. The difference between split_self and 3 * token_self is the deviation from the fair share. So the utility could be:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis model penalizes the responder when the offered split is less than their fair share (3*token_self). The parameter \u03b1 represents the degree to which they dislike being underpaid. If \u03b1 is 0, they only care about the monetary amount. If \u03b1 is positive, they have an aversion to being underpaid. This model has one learnable parameter, \u03b1. But the problem allows up to two. Maybe adding another parameter, like \u03b2, to capture the sensitivity to overpayment. But as mentioned earlier, people might not care about overpayment. Alternatively, the model could include a term that compares the responder's split to the proposer's split (split_opp). For example:\n\nU_accept = split_self - \u03b1 * max(split_opp - split_self, 0)\n\nThis is the Fehr-Schmidt model's disadvantageous inequity term. Here, \u03b1 is the aversion to having less than the proposer. This model uses split_opp, which is available in the dataset. However, this doesn't take into account the contributions, which the problem emphasizes. The fair share based on contributions is important. So combining both contributions and split comparisons:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * max(split_opp - split_self, 0)\n\nThis model has two parameters: \u03b1 for contribution-based fairness and \u03b2 for disadvantageous inequity compared to the proposer's split. However, this introduces two parameters which might be correlated. For example, if both \u03b1 and \u03b2 are high, the model predicts higher penalties. But this might be necessary to capture different aspects of fairness.\n\nBut the problem states that the model should use the variables appropriately but doesn't need to use all. So perhaps using both 3*token_self and split_opp. However, the problem description mentions that the trial_type variable indicates whether the contribution was equal, opponent more, or participant more. This suggests that the contribution-based fairness is a key factor. Therefore, the model should primarily focus on the deviation from the contribution-based fair share.\n\nGiven that, the single-parameter model focusing on the deviation from 3*token_self seems plausible. However, to use two parameters, perhaps include a term that scales the monetary utility. For example:\n\nU_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b8 scales the utility of money, and \u03b1 is the fairness penalty. This allows for two parameters. If \u03b8 is less than 1, the participant derives less utility from each pound, which could model risk aversion or diminishing marginal utility. But the problem doesn't mention risk, so this might be stretching. However, it's a valid approach within the constraints.\n\nBut considering parameter recovery, \u03b8 and \u03b1 might be correlated. For example, increasing \u03b8 and decreasing \u03b1 could lead to similar utilities. To mitigate this, perhaps fixing \u03b8 to 1, as is common in many models, and only learning \u03b1. This reduces the number of parameters to one, which is within the limit. But the problem allows two, so maybe including both is acceptable.\n\nAnother angle: the utility could depend on the ratio of split_self to the fair share. For example:\n\nU_accept = split_self * (1 + \u03b1 * (split_self / (3 * token_self)))\n\nBut this would increase utility when split_self is above fair share, which might not be desired. Alternatively:\n\nU_accept = split_self + \u03b1 * (split_self - 3 * token_self)\n\nThis is a linear function where \u03b1 determines how much deviations from fair share affect utility. If \u03b1 is positive, getting more than fair share increases utility, less decreases. But this assumes that people like being overpaid, which might not be the case. Alternatively, if \u03b1 is negative, deviations in either direction reduce utility. But this might not align with reality.\n\nAfter considering various options, the most straightforward model that aligns with psychological principles (inequity aversion based on contributions) and uses the available variables is:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis model has one learnable parameter, \u03b1, which represents the penalty per unit of being underpaid relative to the fair share. However, the problem allows up to two parameters. To use two parameters, perhaps add a term that accounts for the total combined earning. For example, participants might feel more strongly about unfairness when the total is larger. So the penalty could be scaled by combined_earning:\n\nU_accept = split_self - \u03b1 * (max(3 * token_self - split_self, 0) / combined_earning)\n\nBut combined_earning is 3*(token_self + token_opp), so this term becomes (max(3*token_self - split_self, 0)) / (3*(token_self + token_opp)). This makes the penalty dependent on the relative underpayment compared to the total. However, this introduces division by combined_earning, which could be problematic if the total is small. Alternatively, the penalty could be proportional to the underpayment relative to the total:\n\nU_accept = split_self - \u03b1 * (max(3 * token_self - split_self, 0) / (3 * token_self))\n\nThis normalizes the underpayment by the fair share, making it a percentage. For example, if split_self is 2*token_self, the term is (3-2)/3 = 1/3, multiplied by \u03b1. This model's penalty is a percentage of the fair share. This could be another parameter, say \u03b2, leading to:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * (max(3 * token_self - split_self, 0) / (3 * token_self))\n\nBut this complicates the model with two parameters. However, it's possible that participants are sensitive to both the absolute and relative underpayment. But this might lead to overparameterization.\n\nGiven the constraints and the need for simplicity, the best approach is to use the single-parameter model:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis captures the idea that the utility of accepting is the monetary gain minus a penalty for being underpaid relative to their contribution-based fair share. The parameter \u03b1 represents the sensitivity to this underpayment. If \u03b1 is 0, the responder only cares about the money. Higher \u03b1 values mean stronger aversion to being underpaid.\n\nSince the problem allows up to two parameters, perhaps adding another term, such as a sensitivity to the proposer's share relative to their contribution. For example, the proposer's fair share is 3*token_opp. If the proposer is keeping split_opp, which might be more or less than their fair share, the responder might care about that. For example:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * max(3 * token_opp - split_opp, 0)\n\nHere, \u03b2 represents the responder's aversion to the proposer being underpaid. This introduces two parameters. However, this assumes that the responder cares about the proposer's fairness, which might be a stretch. But it's a possible extension.\n\nAlternatively, the responder might compare their split to the proposer's split in light of their contributions. For example, if the proposer contributed more, the responder might expect a lower split. But this is already captured in the trial_type variable (1 = equal, 2 = opponent more, 3 = participant more). However, trial_type is a categorical variable, and including it in the model would require dummy variables or similar, which complicates the model. The problem states that the model should use the variables appropriately but doesn't need to use all. So perhaps trial_type can be ignored if the contributions are already captured by token_self and token_opp.\n\nGiven all these considerations, the most parsimonious model with one or two parameters that captures contribution-based fairness is:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis model uses split_self and token_self from the dataset. The parameter \u03b1 has a clear interpretation as the aversion to being underpaid relative to one's contribution. It's simple, has one parameter, and aligns with psychological principles of fairness and inequity aversion.\n\nHowever, the problem allows two parameters. To use two, perhaps include a term that captures the responder's sensitivity to the total combined earnings. For example, the utility might increase with the total, but this is already part of split_self. Alternatively, the disutility from being underpaid could depend on the total. For example:\n\nU_accept = split_self - \u03b1 * (max(3 * token_self - split_self, 0) / combined_earning)\n\nBut combined_earning is 3*(token_self + token_opp), so this term becomes the underpayment divided by the total. This makes the penalty relative to the total pot. The parameter \u03b1 would then represent the sensitivity to relative underpayment. This model has one parameter. Alternatively, combining both absolute and relative underpayment:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * (max(3 * token_self - split_self, 0) / combined_earning)\n\nThis uses two parameters, \u03b1 and \u03b2. However, this might be overcomplicating and lead to parameter covariance.\n\nGiven the time constraints and the need to adhere to the problem's requirements, I'll proceed with the two-parameter model that includes both the monetary term and the fairness term with separate parameters:\n\nU_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b8 represents the marginal utility of money, and \u03b1 represents the penalty for each unit under the fair share. This allows for two parameters, which the problem permits. However, to avoid identifiability issues, \u03b8 could be fixed to 1, reducing it to a single parameter. But since the problem allows two, this model is acceptable.\n\nIn summary, the model should:\n\n- Use split_self (monetary gain)\n- Compare it to the fair share (3 * token_self)\n- Penalize any deficit from the fair share with a parameter \u03b1\n- Optionally, scale the monetary term with \u03b8\n\nGiven the problem's allowance for two parameters, the two-parameter model is viable. However, to ensure parameter recovery, it's better to have orthogonal parameters. If \u03b8 and \u03b1 are not strongly correlated, this model is suitable. Otherwise, fixing \u03b8=1 is safer.\n\nBut given the instructions, I'll proceed with the two-parameter model, as it provides more flexibility and adheres to the problem's constraints.\n</think>\n\n<MODEL>\nU_accept = theta * split_self - alpha * max(3 * token_self - split_self, 0)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_accept\": {\n      \"description\": \"Utility of accepting the offer\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"theta\": {\n      \"description\": \"Marginal utility of monetary gain (scaling factor for split_self)\",\n      \"range\": {\n        \"min\": 0.1,\n        \"max\": 2.0,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {}\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha\": {\n      \"description\": \"Sensitivity to underpayment relative to fair share (3 * token_self)\",\n      \"range\": {\n        \"min\": 0.0,\n        \"max\": 5.0,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {}\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"Proposed monetary amount for the responder (in \u00a3)\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant (used to compute fair share)\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n</VARIABLES>\n\n<SUMMARY>\nA utility model capturing responder behavior by combining monetary gain (split_self) and aversion to underpayment relative to contribution-based fairness. The fair share is defined as 3 * token_self (each token = \u00a33). The model uses two learnable parameters: theta scales the utility of money, and alpha penalizes deviations below the fair share. This captures both self-interest and fairness considerations, with parameters constrained to plausible ranges to aid identifiability.\n</SUMMARY>"
+    },
+    {
+      "solver": "simulate_model_solver",
+      "input": "\n                Write Python code to simulate the following mathematical model using only Python standard library (no pandas or numpy).\n                The code should take a list of dictionaries as input (each dictionary representing a trial) and return the utility values for each trial.\n\n                IMPORTANT: Use these exact parameter names for learnable parameters: ['theta', 'alpha']\n\n                Please write a function called `simulate_model` that:\n                1. Takes a list of dictionaries as input (each dictionary contains trial data)\n                2. Has parameter names that matches the variable descriptions exactly\n                3. Implements the mathematical model above using only standard Python math operations\n                4. Returns a list of utility values for each trial\n\n                Your code will be implemented within the following code block:\n\n                ```python\nimport json\nimport math\n\n[YOUR SIMULATE_MODEL FUNCTION HERE]\n\n# Data as list of dictionaries\ndata_json = # imported from .json dumps\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n\nBelow is an example for you to follow:\n<EXAMPLE>\nModel Specification:\nU_i = \u03b2 + \u03b5E + \u03b7N\n\nVariable Descriptions:\nU_i: Utility (probability) of choosing action i \u03b2: [learnable] Base tendency parameter (0-1) representing inherent preference \u03b5: [learnable] Environmental sensitivity parameter (0-1) E: Environmental cue value (-1 to 1) \u03b7: Noise parameter (0-1) N: Random noise drawn from normal distribution N(0,1)\n\nDataset Structure:\nVariables available:\n- trial_id (int64)\n- environmental_cue (float64)\n- beta (float64)\n- epsilon (float64)\n- eta (float64)\n- utility (float64)\n- choice_made (int64)\n- trial_number (int64)\n- participant_id (int64)\n\n\n<YOUR RESPONSE>\ndef simulate_model(trial_data, beta=1, epsilon=1, eta=1):\n    utility_values = []\n    for trial in trial_data:\n        E = trial.get(\"environmental_cue\", 0)\n        u1, u2 = random.random(), random.random()\n        N = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)\n        utility_values.append(beta + (epsilon * E) + (eta * N))\n    return utility_values\n</YOUR RESPONSE>\n\nNow, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE UTLITY VALUES.\n                Model Specification:\n                U_accept = theta * split_self - alpha * max(3 * token_self - split_self, 0)\n\n                Variable Descriptions:\n                {\n  \"variables\": {\n    \"U_accept\": {\n      \"description\": \"Utility of accepting the offer\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"theta\": {\n      \"description\": \"Marginal utility of monetary gain (scaling factor for split_self)\",\n      \"range\": {\n        \"min\": 0.1,\n        \"max\": 2.0,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {}\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha\": {\n      \"description\": \"Sensitivity to underpayment relative to fair share (3 * token_self)\",\n      \"range\": {\n        \"min\": 0.0,\n        \"max\": 5.0,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {}\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"Proposed monetary amount for the responder (in \\u00a3)\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant (used to compute fair share)\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n\nDataset Structure:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276\n\n                ",
+      "output": "```python\nimport json\nimport math\n\ndef simulate_model(trial_data, theta=1, alpha=1):\n    utility_values = []\n    for trial in trial_data:\n        split_self = trial.get(\"split_self\", 0)\n        token_self = trial.get(\"token_self\", 0)\n        \n        if split_self is None or token_self is None:\n            utility_values.append(float('nan')) #Handle missing data gracefully\n            continue\n\n        utility = theta * split_self - alpha * max(3 * token_self - split_self, 0)\n        utility_values.append(utility)\n    return utility_values\n\n# Data as list of dictionaries (replace with your actual data loading)\ndata_json = '[{\"ID\": 1, \"group\": \"A\", \"trial_number\": 1, \"trial_type\": 1, \"trial_role\": 2, \"token_opp\": 5, \"token_self\": 5, \"combined_earning\": 30, \"split_opp\": 15.0, \"split_self\": 15.0, \"splitperc_opp\": 50, \"splitperc_self\": 50, \"accept\": 1.0, \"accepted_amount\": 15.0, \"accepted_perc\": 50.0, \"proposed_perc\": 50.0, \"proposed_amount\": 15.0}, {\"ID\": 2, \"group\": \"A\", \"trial_number\": 2, \"trial_type\": 2, \"trial_role\": 2, \"token_opp\": 8, \"token_self\": 4, \"combined_earning\": 36, \"split_opp\": 24.0, \"split_self\": 12.0, \"splitperc_opp\": 66, \"splitperc_self\": 33, \"accept\": 1.0, \"accepted_amount\": 12.0, \"accepted_perc\": 33.0, \"proposed_perc\": 33.0, \"proposed_amount\": 12.0}]'\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data, theta=1.2, alpha=0.8) # Example theta and alpha values\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n```"
+    }
+  ],
+  "learnable_parameters": {
+    "theta": {
+      "description": "Marginal utility of monetary gain (scaling factor for split_self)",
+      "range": {
+        "min": 0.1,
+        "max": 2.0,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {}
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "alpha": {
+      "description": "Sensitivity to underpayment relative to fair share (3 * token_self)",
+      "range": {
+        "min": 0.0,
+        "max": 5.0,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {}
+      },
+      "learnable": true,
+      "source": "learnable"
+    }
+  },
+  "model_specification": "U_accept = theta * split_self - alpha * max(3 * token_self - split_self, 0)",
+  "variable_descriptions": {
+    "U_accept": {
+      "description": "Utility of accepting the offer",
+      "range": {
+        "min": "-inf",
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "calculated"
+    },
+    "theta": {
+      "description": "Marginal utility of monetary gain (scaling factor for split_self)",
+      "range": {
+        "min": 0.1,
+        "max": 2.0,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {}
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "alpha": {
+      "description": "Sensitivity to underpayment relative to fair share (3 * token_self)",
+      "range": {
+        "min": 0.0,
+        "max": 5.0,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {}
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "split_self": {
+      "description": "Proposed monetary amount for the responder (in \u00a3)",
+      "range": {
+        "min": "-inf",
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    },
+    "token_self": {
+      "description": "Number of tokens found by the participant (used to compute fair share)",
+      "range": {
+        "min": "-inf",
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    }
+  },
+  "model_summary": "A utility model capturing responder behavior by combining monetary gain (split_self) and aversion to underpayment relative to contribution-based fairness. The fair share is defined as 3 * token_self (each token = \u00a33). The model uses two learnable parameters: theta scales the utility of money, and alpha penalizes deviations below the fair share. This captures both self-interest and fairness considerations, with parameters constrained to plausible ranges to aid identifiability.",
+  "full_reasoning": "<think>\nOkay, let's tackle this problem step by step. The goal is to design a computational model that predicts the utility of accepting an offer for the responder in this experiment. The model needs to be based on psychological principles, use the given dataset variables appropriately, and have no more than two learnable parameters. Also, it should avoid parameters for stochasticity since that's handled later by a temperature parameter.\n\nFirst, I need to focus on the responder's behavior. The responder decides whether to accept or reject a proposal. The utility of accepting should depend on factors that influence their decision. From the variables provided, key ones might be the fairness of the split, the contributions of both participants, and perhaps the total combined earnings.\n\nPsychological principles involved here could include fairness considerations, inequity aversion, and self-interest. For example, people might prefer fair splits, and feel aversion if the split is unfair. The model should capture how the responder perceives the fairness of the offer relative to their own contribution and the opponent's contribution.\n\nLooking at the variables, token_self and token_opp represent the contributions each made. The combined_earning is the total, which is 3*(token_self + token_opp). The split_self is the amount offered to the responder. The split percentage variables (splitperc_self) might also be relevant, but maybe the actual amounts are more directly tied to utility.\n\nA common approach in such models is to compare the proposed split to what's considered fair. The fair split could be proportional to each participant's contribution. For example, if the responder contributed token_self tokens, their fair share would be (token_self / (token_self + token_opp)) * combined_earning. The difference between the proposed split_self and this fair share could be a factor in the utility.\n\nAnother angle is inequity aversion, where the utility decreases if there's a disparity between the responder's share and the opponent's share. But since the model should only consider the utility of accepting (not rejecting), maybe the focus is on how much the responder gains compared to what they think is fair.\n\nSo, the utility could be a function of the monetary gain (split_self) adjusted by a fairness term. The fairness term could involve a parameter that weights how much the deviation from the fair share affects utility. For example:\n\nUtility = split_self - \u03b1 * |split_self - fair_share|\n\nHere, \u03b1 is a learnable parameter representing the sensitivity to unfairness. If \u03b1 is high, even small deviations from the fair share reduce utility more. But this might not capture all aspects. Alternatively, maybe the model should consider the ratio of the proposed split to the fair share. Or perhaps the difference relative to the total combined earnings.\n\nWait, the problem mentions that two equal split_self values don't represent the same fairness because the combined earning varies. So fairness should be relative to the total. For example, a split_self of \u00a310 when combined_earning is \u00a320 is 50%, which is fair if contributions are equal. But if combined_earning is \u00a340, \u00a310 is 25%, which might be unfair. So the percentage split (splitperc_self) might be a better measure of fairness. But splitperc_self is already provided as a variable. However, maybe using the actual split_self and comparing it to the fair share based on contributions is better.\n\nThe fair share based on contributions would be (token_self / (token_self + token_opp)) * combined_earning. Let's call this fair_share. Then, the difference between split_self and fair_share is a measure of unfairness. The utility could then be split_self minus some parameter times the absolute difference (or squared difference) between split_self and fair_share. Alternatively, if the responder is sensitive to being undercompensated relative to their contribution, the model could penalize offers below the fair share more than those above. But maybe a linear penalty is sufficient for simplicity.\n\nAnother consideration is the total amount. Maybe the utility is not just the split_self but also scaled by the total. For example, getting \u00a35 out of \u00a310 is different from \u00a35 out of \u00a3100. But the split_self is already in absolute terms. However, the problem states that equal split_self values aren't the same fairness because combined_earning varies. So perhaps the model should normalize the split_self by the combined_earning, but that's essentially the split percentage. Alternatively, the fair_share as a proportion of combined_earning is important.\n\nAlternatively, the model could use the ratio of split_self to fair_share. If split_self is equal to fair_share, the ratio is 1. If it's less, the ratio is less than 1, which reduces utility. So the utility could be split_self multiplied by a term that depends on the ratio. For example, split_self * (1 + \u03b2 * (split_self / fair_share - 1)). But this might complicate things.\n\nLet me think again. The key is to model the utility of accepting the offer. The responder's utility should increase with the amount they receive (split_self) but decrease if the offer is unfair. The fairness is determined by how much split_self deviates from the fair share based on contributions.\n\nSo, the utility U_accept = split_self - \u03b1 * (split_self - fair_share)^2. This is a quadratic loss where deviations from fair_share reduce utility. But squared terms can complicate parameter recovery. Alternatively, absolute value: U_accept = split_self - \u03b1 * |split_self - fair_share|. Here, \u03b1 is the sensitivity to unfairness. If \u03b1 is positive, any deviation (whether over or under) reduces utility. But maybe people are more sensitive to being underpaid than overpaid. However, the problem states to build on psychological principles. Inequity aversion models often consider both disadvantageous and advantageous inequity, but perhaps in this case, since the responder is evaluating their own share, they might only care about being below the fair share. So maybe the model should penalize only when split_self is less than fair_share. So U_accept = split_self + \u03b1 * max(fair_share - split_self, 0). Wait, no. If split_self is less than fair_share, then fair_share - split_self is positive, and \u03b1 would be a negative weight, reducing utility. Alternatively, U_accept = split_self - \u03b1 * max(fair_share - split_self, 0). Here, \u03b1 is the penalty for being under the fair share. If split_self is less than fair_share, the penalty is applied. If it's equal or more, no penalty. This captures the idea that people dislike being undercompensated relative to their contribution.\n\nAlternatively, using the percentage terms. The fair percentage would be (token_self / (token_self + token_opp)) * 100. The splitperc_self is the offered percentage. The difference between these could be the unfairness. So U_accept = split_self + \u03b2 * (splitperc_self - fair_percentage). But this might not capture non-linear effects. Or perhaps U_accept = split_self + \u03b2 * (splitperc_self - fair_percentage). If \u03b2 is positive, then higher than fair percentage increases utility, lower decreases. But this is linear. However, the problem states that the model should have no more than two parameters. Let's see.\n\nAnother approach: the utility could be a weighted sum of the monetary gain and the fairness. For example, U_accept = \u03b8 * split_self + (1 - \u03b8) * fairness. But \u03b8 would be a parameter between 0 and 1. However, this introduces a parameter that mixes the two terms. Alternatively, using a single parameter to weight the fairness term against the monetary term.\n\nWait, the problem says the model should have no more than two learnable parameters. So perhaps one parameter for the weight of fairness, and another for something else. But maybe we can capture it with one parameter. Let's think.\n\nSuppose the utility is split_self minus a term that represents the disutility from unfairness. The disutility could be proportional to the difference between the fair share and the offered split. So:\n\nU_accept = split_self - \u03b1 * max(fair_share - split_self, 0)\n\nHere, \u03b1 is the sensitivity to being underpaid. If the offered split is less than the fair share, the utility is reduced by \u03b1 times the deficit. If it's equal or more, no penalty. This model has one parameter, \u03b1. But maybe we need another parameter to capture different aspects. For example, some people might also dislike overcompensation, but that's less common. Alternatively, the model could have a parameter that scales the entire utility by the total combined earnings. Wait, but combined_earning is 3*(token_self + token_opp). So maybe the utility is split_self (monetary gain) plus a term that depends on the ratio of split_self to fair_share. For example:\n\nU_accept = split_self + \u03b3 * (split_self / fair_share - 1)\n\nHere, \u03b3 is a parameter. If split_self equals fair_share, the second term is zero. If it's higher, the term is positive, increasing utility; if lower, negative. But this is linear in the ratio. Alternatively, using a nonlinear function like log, but that complicates things.\n\nAlternatively, considering that the utility could be influenced by the relative difference. For example, the ratio of split_self to fair_share. If the ratio is 1, it's fair. The utility could be split_self multiplied by a function of this ratio. For example:\n\nU_accept = split_self * (1 + \u03b2 * (split_self / fair_share - 1))\n\nBut this introduces \u03b2 as a parameter. If \u03b2 is positive, then getting more than fair increases utility multiplicatively. If \u03b2 is negative, it decreases. But this might not align with typical behavior. People might not get extra utility from overcompensation, but just not be penalized. So maybe \u03b2 is only active when split_self < fair_share.\n\nAlternatively, the model could use a Fehr-Schmidt inequity aversion model, which has parameters for aversion to disadvantageous and advantageous inequality. But in this case, since we're only modeling the utility of accepting (not rejecting), and the responder's own share, perhaps we can simplify. The Fehr-Schmidt model for utility is:\n\nU = x - \u03b1 * max{y - x, 0} - \u03b2 * max{x - y, 0}\n\nWhere x is the responder's payoff, y is the proposer's. But in our case, when the responder accepts, the proposer's payoff is split_opp. So maybe:\n\nU_accept = split_self - \u03b1 * max(split_opp - split_self, 0) - \u03b2 * max(split_self - split_opp, 0)\n\nBut this introduces two parameters, \u03b1 and \u03b2. However, the problem allows up to two parameters. But the model should predict responder behavior, and the proposer's split_opp is part of the data. However, the Fehr-Schmidt model is a standard one, but maybe in this context, since the contributions (token_self and token_opp) are known, the fair share is based on contributions, not just the split amounts. So perhaps the model should compare the split to the contribution-based fair share rather than the proposer's split.\n\nAlternatively, combining both ideas: the utility depends on the monetary amount and the deviation from the fair share. So:\n\nfair_share = (token_self / (token_self + token_opp)) * combined_earning\n\nThen, U_accept = split_self + \u03b1 * (split_self - fair_share)\n\nBut this is linear. If \u03b1 is positive, then getting more than fair increases utility beyond the monetary value. If \u03b1 is negative, it decreases. But this might not capture the aversion to unfairness. Alternatively, using a quadratic term:\n\nU_accept = split_self - \u03b1 * (split_self - fair_share)^2\n\nThis would penalize deviations from fair_share, with \u03b1 controlling the strength. But this introduces a single parameter. However, people might be more sensitive to under-compensation than over. So maybe the model should have separate parameters for under and over, but that would require two parameters. Since we can have up to two, that's acceptable.\n\nWait, the problem allows up to two learnable parameters. So perhaps:\n\nU_accept = split_self - \u03b1 * max(fair_share - split_self, 0) - \u03b2 * max(split_self - fair_share, 0)\n\nHere, \u03b1 is the penalty for being below fair share, \u03b2 for being above. If \u03b1 is high, the responder strongly dislikes being underpaid. If \u03b2 is high, they dislike being overpaid. But in reality, people might not dislike being overpaid, so \u03b2 could be zero or small. However, the model should let the data determine this. But with two parameters, this could work. However, the problem states that the model should build on psychological principles. Inequity aversion does include both parameters, but perhaps in this context, since the responder is evaluating their own share, maybe only the under-compensation matters. Alternatively, using one parameter for disadvantageous inequity and another for advantageous.\n\nBut given the constraint of two parameters, this could be feasible. However, the problem says to avoid high covariance between parameters. If \u03b1 and \u03b2 are both included, they might be correlated, making parameter recovery difficult. So maybe a better approach is to use one parameter for the deviation from fair share, regardless of direction, and another parameter that scales the monetary term. Wait, but the monetary term is split_self, which is in pounds. If the model is U = \u03b8 * split_self - \u03b1 * |split_self - fair_share|, then \u03b8 and \u03b1 are two parameters. But \u03b8 would represent the marginal utility of money, and \u03b1 the disutility from unfairness. However, \u03b8 could be fixed to 1 if we assume linear utility for money, which is common. But if not, \u03b8 could be a learnable parameter. However, the problem states that the model should not include parameters for general stochasticity, but \u03b8 here is about the utility's sensitivity to money. But maybe \u03b8 is redundant if we assume that the utility is in monetary units. For example, if \u03b8 is 1, then it's just the monetary amount minus the unfairness penalty. If \u03b8 is a parameter, it allows the model to scale the importance of money relative to fairness. But with two parameters, \u03b8 and \u03b1, this could be a way to model it.\n\nBut the problem says the model should have no more than two learnable parameters. So if we include both \u03b8 and \u03b1, that's two. Alternatively, fix \u03b8 to 1 and have \u03b1 as the only parameter. But perhaps allowing \u03b8 to vary can capture different sensitivities to money versus fairness. However, in many models, the monetary term is taken as linear with a coefficient of 1, and other terms are added. For example, in the Fehr-Schmidt model, the coefficient for one's own payoff is 1.\n\nBut given the dataset, maybe the model should use split_self and the difference from fair_share. Let's formalize this.\n\nLet me outline possible variables:\n\n- fair_share = (token_self / (token_self + token_opp)) * combined_earning\n\nBut combined_earning is 3*(token_self + token_opp), so fair_share simplifies to 3 * token_self. Because:\n\ncombined_earning = 3*(token_self + token_opp)\n\nfair_share = (token_self / (token_self + token_opp)) * 3*(token_self + token_opp) ) = 3 * token_self\n\nWait, that's a key insight! Because combined_earning is 3*(sum of tokens), the fair_share based on contributions is exactly 3 * token_self. Because each token is worth \u00a33. So the fair_share is simply 3 * token_self. That's a crucial simplification. So the fair_share is 3 * token_self. The offered split_self is the amount the responder would get. So the difference between split_self and 3 * token_self is the deviation from the fair share.\n\nSo the utility could be:\n\nU_accept = split_self - \u03b1 * (3 * token_self - split_self)\n\nBut this is only if split_self is less than 3 * token_self. Wait, but if split_self is more than 3 * token_self, then (3 * token_self - split_self) is negative, so multiplying by \u03b1 (positive) would add to the utility. But that might not make sense. If the responder is offered more than their fair share, they might not have a negative utility from that. Alternatively, the model should penalize only when split_self is less than the fair share. So using a max function:\n\nU_accept = split_self + \u03b1 * max(3 * token_self - split_self, 0)\n\nWait, no. If split_self is less than fair_share (3*token_self), then the max term is positive. If \u03b1 is a positive parameter, then this term would increase the utility. But that doesn't make sense because being underpaid should decrease utility. So perhaps:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b1 is the penalty per unit under the fair share. So if the offered split_self is less than 3*token_self, the utility is reduced by \u03b1 times the deficit. If it's equal or more, no penalty. This makes sense. The responder's utility is the monetary gain minus a penalty for being under their fair share. This model has one parameter, \u03b1. But the problem allows up to two. Maybe another parameter could capture the sensitivity to the total combined earnings. For example, the utility might also depend on the total amount, but how?\n\nAlternatively, the responder might compare their split to the opponent's split. The opponent's split is split_opp. But split_opp is part of the data. However, in the task description, when the participant is the responder, the proposer's split is split_opp. So the responder's utility could depend on the difference between their split and the proposer's. But that's another angle. For example, using the Fehr-Schmidt model:\n\nU_accept = split_self - \u03b1 * max(split_opp - split_self, 0) - \u03b2 * max(split_self - split_opp, 0)\n\nBut this introduces two parameters. However, this model doesn't take into account the contributions, only the splits. But the problem states that the fairness depends on the contributions, so maybe combining both approaches.\n\nAlternatively, the utility could be a combination of the split_self and the difference between the proposed split and the fair share. For example:\n\nU_accept = \u03b8 * split_self - \u03b1 * ( (3 * token_self - split_self) / (3 * token_self) )\n\nHere, \u03b8 is the weight on the monetary gain, and \u03b1 is the weight on the proportional deficit. The term (3*token_self - split_self)/(3*token_self) is the proportion by which the responder is underpaid. For example, if split_self is 2*token_self, then the term is (3-2)/3 = 1/3. Multiplying by \u03b1 gives the penalty. \u03b8 scales the monetary term. But this introduces two parameters, \u03b8 and \u03b1. However, \u03b8 could be fixed to 1 if we assume linear utility for money, leaving \u03b1 as the only parameter. But the problem allows two parameters. However, having two parameters might lead to identifiability issues if they are correlated. The problem mentions that the model should be considerate of high covariance between parameters. So perhaps a model with one parameter is better.\n\nAlternatively, the utility could be:\n\nU_accept = split_self - \u03b1 * max( (3 * token_self - split_self) / (3 * token_self), 0 )\n\nThis normalizes the deficit by the fair share, making the penalty proportional to the percentage under the fair share. For example, being under by \u00a33 when fair share is \u00a330 is a 10% deficit, penalized by \u03b1 * 0.1. This way, \u03b1 represents the sensitivity to proportional underpayment. This model has one parameter, \u03b1.\n\nBut the problem allows up to two parameters. Maybe another parameter could capture the curvature of the utility function for money. For example, if the utility of money is concave (diminishing marginal utility), we could model it with a power function:\n\nU_accept = (split_self)^\u03b3 - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b3 is a parameter between 0 and 1 to model concave utility. But this introduces two parameters, \u03b3 and \u03b1. However, the problem states that the model should not include parameters for general stochasticity, but \u03b3 here is about the shape of the utility function, which is a structural parameter. This could be a valid approach, but with two parameters. However, parameter recovery might be challenging if \u03b3 and \u03b1 are correlated.\n\nAlternatively, the model could use the ratio of split_self to the fair share. For example:\n\nU_accept = split_self * (1 + \u03b1 * (split_self / (3 * token_self)))\n\nBut this might not capture the penalty for being under. Alternatively:\n\nU_accept = split_self + \u03b1 * (split_self - 3 * token_self)\n\nThis is linear in the difference. If \u03b1 is positive, then offers above the fair share increase utility, below decrease. But this assumes that the marginal utility of money is 1 + \u03b1, which might not be the right approach. For example, if \u03b1 is 0.5, then each pound above fair share gives 1.5 utility, each below gives 0.5. But this might not align with typical behavior where the penalty for being under is more significant.\n\nGiven the time constraints and the need to limit to two parameters, perhaps the best approach is to model the utility as the split_self minus a penalty for being under the fair share, with the penalty scaled by a parameter. Additionally, include a parameter that scales the entire utility by the total combined earnings, but I'm not sure. Alternatively, use two parameters: one for the penalty when under, and another for the penalty when over. But as mentioned earlier, people might not penalize overpayment.\n\nAlternatively, use one parameter for the linear effect of split_self and another for the penalty. For example:\n\nU_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b8 is the marginal utility of money, and \u03b1 is the penalty per unit under fair share. This allows for two parameters. If \u03b8 is fixed to 1, it's the previous model. But allowing \u03b8 to vary could capture different sensitivities to money. However, this introduces two parameters which might be correlated. For example, if \u03b8 and \u03b1 are both high, the model could have similar predictions to when both are low. But the problem states to be considerate of high covariance, so maybe this isn't ideal. However, given the constraints, this might be acceptable.\n\nAlternatively, combine the two into a single parameter by assuming \u03b8 = 1, and only have \u03b1 as a learnable parameter. This reduces the number of parameters to one, which is within the limit. But the problem allows up to two, so maybe using two parameters is acceptable if they are not too correlated.\n\nBut the problem says the model must have no more than two learnable parameters. So let's consider two possible models:\n\nModel 1: U_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nModel 2: U_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nModel 1 has one parameter, Model 2 has two. Since the problem allows up to two, perhaps Model 2 is better, allowing the data to determine the weight on the monetary term and the fairness term. However, in many utility models, the coefficient for one's own payoff is 1, and other terms are added. For example, in the Fehr-Schmidt model, the own payoff is not scaled. So maybe setting \u03b8=1 is reasonable, leading to Model 1 with one parameter. But the problem allows two, so perhaps including \u03b8 adds flexibility.\n\nBut the problem states that the model should build on psychological principles. The Fehr-Schmidt model uses own payoff minus inequity terms. So perhaps Model 1 is more aligned with that, assuming \u03b8=1. However, if the data suggests that participants have different sensitivities to money, \u03b8 could capture that. But without prior knowledge, it's hard to say. Given the parameter recovery concern, perhaps a single parameter model is better to avoid covariance issues.\n\nAnother angle: the utility could also depend on the total combined earnings. For example, getting \u00a35 out of \u00a310 might feel different than \u00a35 out of \u00a3100. But the split_self is already in absolute terms. However, the problem states that two equal split_self values aren't the same fairness because combined_earning varies. So perhaps the model should include a term that accounts for the proportion of the total. For example, the fair percentage is (token_self / (token_self + token_opp)) * 100, and the offered percentage is splitperc_self. The difference between these could be the unfairness measure. So:\n\nU_accept = split_self - \u03b1 * |splitperc_self - fair_percentage|\n\nBut fair_percentage is (token_self / (token_self + token_opp)) * 100. So splitperc_self - fair_percentage is the percentage point deviation from the fair split. The absolute value captures any deviation. But this introduces a parameter \u03b1 that scales the disutility from percentage deviation. However, this model uses splitperc_self and fair_percentage, which are both percentages. But split_self is in pounds. Mixing units might not be ideal. Alternatively, the utility could be in terms of percentages:\n\nU_accept = splitperc_self - \u03b1 * |splitperc_self - fair_percentage|\n\nBut this assumes that the utility is linear in percentage points, which might not be the case. Also, the monetary amount is tied to the percentage via combined_earning. For example, a 50% split of \u00a320 is \u00a310, while 50% of \u00a340 is \u00a320. So the actual monetary value matters. Therefore, perhaps the model should use the monetary terms rather than percentages.\n\nReturning to the earlier insight that fair_share = 3 * token_self, because each token is \u00a33. So the fair share is exactly 3 * token_self. The offered split_self is the amount the responder would get. The difference between split_self and 3 * token_self is the deviation from the fair share. So the utility could be:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis model penalizes the responder when the offered split is less than their fair share (3*token_self). The parameter \u03b1 represents the degree to which they dislike being underpaid. If \u03b1 is 0, they only care about the monetary amount. If \u03b1 is positive, they have an aversion to being underpaid. This model has one learnable parameter, \u03b1. But the problem allows up to two. Maybe adding another parameter, like \u03b2, to capture the sensitivity to overpayment. But as mentioned earlier, people might not care about overpayment. Alternatively, the model could include a term that compares the responder's split to the proposer's split (split_opp). For example:\n\nU_accept = split_self - \u03b1 * max(split_opp - split_self, 0)\n\nThis is the Fehr-Schmidt model's disadvantageous inequity term. Here, \u03b1 is the aversion to having less than the proposer. This model uses split_opp, which is available in the dataset. However, this doesn't take into account the contributions, which the problem emphasizes. The fair share based on contributions is important. So combining both contributions and split comparisons:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * max(split_opp - split_self, 0)\n\nThis model has two parameters: \u03b1 for contribution-based fairness and \u03b2 for disadvantageous inequity compared to the proposer's split. However, this introduces two parameters which might be correlated. For example, if both \u03b1 and \u03b2 are high, the model predicts higher penalties. But this might be necessary to capture different aspects of fairness.\n\nBut the problem states that the model should use the variables appropriately but doesn't need to use all. So perhaps using both 3*token_self and split_opp. However, the problem description mentions that the trial_type variable indicates whether the contribution was equal, opponent more, or participant more. This suggests that the contribution-based fairness is a key factor. Therefore, the model should primarily focus on the deviation from the contribution-based fair share.\n\nGiven that, the single-parameter model focusing on the deviation from 3*token_self seems plausible. However, to use two parameters, perhaps include a term that scales the monetary utility. For example:\n\nU_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b8 scales the utility of money, and \u03b1 is the fairness penalty. This allows for two parameters. If \u03b8 is less than 1, the participant derives less utility from each pound, which could model risk aversion or diminishing marginal utility. But the problem doesn't mention risk, so this might be stretching. However, it's a valid approach within the constraints.\n\nBut considering parameter recovery, \u03b8 and \u03b1 might be correlated. For example, increasing \u03b8 and decreasing \u03b1 could lead to similar utilities. To mitigate this, perhaps fixing \u03b8 to 1, as is common in many models, and only learning \u03b1. This reduces the number of parameters to one, which is within the limit. But the problem allows two, so maybe including both is acceptable.\n\nAnother angle: the utility could depend on the ratio of split_self to the fair share. For example:\n\nU_accept = split_self * (1 + \u03b1 * (split_self / (3 * token_self)))\n\nBut this would increase utility when split_self is above fair share, which might not be desired. Alternatively:\n\nU_accept = split_self + \u03b1 * (split_self - 3 * token_self)\n\nThis is a linear function where \u03b1 determines how much deviations from fair share affect utility. If \u03b1 is positive, getting more than fair share increases utility, less decreases. But this assumes that people like being overpaid, which might not be the case. Alternatively, if \u03b1 is negative, deviations in either direction reduce utility. But this might not align with reality.\n\nAfter considering various options, the most straightforward model that aligns with psychological principles (inequity aversion based on contributions) and uses the available variables is:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis model has one learnable parameter, \u03b1, which represents the penalty per unit of being underpaid relative to the fair share. However, the problem allows up to two parameters. To use two parameters, perhaps add a term that accounts for the total combined earning. For example, participants might feel more strongly about unfairness when the total is larger. So the penalty could be scaled by combined_earning:\n\nU_accept = split_self - \u03b1 * (max(3 * token_self - split_self, 0) / combined_earning)\n\nBut combined_earning is 3*(token_self + token_opp), so this term becomes (max(3*token_self - split_self, 0)) / (3*(token_self + token_opp)). This makes the penalty dependent on the relative underpayment compared to the total. However, this introduces division by combined_earning, which could be problematic if the total is small. Alternatively, the penalty could be proportional to the underpayment relative to the total:\n\nU_accept = split_self - \u03b1 * (max(3 * token_self - split_self, 0) / (3 * token_self))\n\nThis normalizes the underpayment by the fair share, making it a percentage. For example, if split_self is 2*token_self, the term is (3-2)/3 = 1/3, multiplied by \u03b1. This model's penalty is a percentage of the fair share. This could be another parameter, say \u03b2, leading to:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * (max(3 * token_self - split_self, 0) / (3 * token_self))\n\nBut this complicates the model with two parameters. However, it's possible that participants are sensitive to both the absolute and relative underpayment. But this might lead to overparameterization.\n\nGiven the constraints and the need for simplicity, the best approach is to use the single-parameter model:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis captures the idea that the utility of accepting is the monetary gain minus a penalty for being underpaid relative to their contribution-based fair share. The parameter \u03b1 represents the sensitivity to this underpayment. If \u03b1 is 0, the responder only cares about the money. Higher \u03b1 values mean stronger aversion to being underpaid.\n\nSince the problem allows up to two parameters, perhaps adding another term, such as a sensitivity to the proposer's share relative to their contribution. For example, the proposer's fair share is 3*token_opp. If the proposer is keeping split_opp, which might be more or less than their fair share, the responder might care about that. For example:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * max(3 * token_opp - split_opp, 0)\n\nHere, \u03b2 represents the responder's aversion to the proposer being underpaid. This introduces two parameters. However, this assumes that the responder cares about the proposer's fairness, which might be a stretch. But it's a possible extension.\n\nAlternatively, the responder might compare their split to the proposer's split in light of their contributions. For example, if the proposer contributed more, the responder might expect a lower split. But this is already captured in the trial_type variable (1 = equal, 2 = opponent more, 3 = participant more). However, trial_type is a categorical variable, and including it in the model would require dummy variables or similar, which complicates the model. The problem states that the model should use the variables appropriately but doesn't need to use all. So perhaps trial_type can be ignored if the contributions are already captured by token_self and token_opp.\n\nGiven all these considerations, the most parsimonious model with one or two parameters that captures contribution-based fairness is:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nThis model uses split_self and token_self from the dataset. The parameter \u03b1 has a clear interpretation as the aversion to being underpaid relative to one's contribution. It's simple, has one parameter, and aligns with psychological principles of fairness and inequity aversion.\n\nHowever, the problem allows two parameters. To use two, perhaps include a term that captures the responder's sensitivity to the total combined earnings. For example, the utility might increase with the total, but this is already part of split_self. Alternatively, the disutility from being underpaid could depend on the total. For example:\n\nU_accept = split_self - \u03b1 * (max(3 * token_self - split_self, 0) / combined_earning)\n\nBut combined_earning is 3*(token_self + token_opp), so this term becomes the underpayment divided by the total. This makes the penalty relative to the total pot. The parameter \u03b1 would then represent the sensitivity to relative underpayment. This model has one parameter. Alternatively, combining both absolute and relative underpayment:\n\nU_accept = split_self - \u03b1 * max(3 * token_self - split_self, 0) - \u03b2 * (max(3 * token_self - split_self, 0) / combined_earning)\n\nThis uses two parameters, \u03b1 and \u03b2. However, this might be overcomplicating and lead to parameter covariance.\n\nGiven the time constraints and the need to adhere to the problem's requirements, I'll proceed with the two-parameter model that includes both the monetary term and the fairness term with separate parameters:\n\nU_accept = \u03b8 * split_self - \u03b1 * max(3 * token_self - split_self, 0)\n\nHere, \u03b8 represents the marginal utility of money, and \u03b1 represents the penalty for each unit under the fair share. This allows for two parameters, which the problem permits. However, to avoid identifiability issues, \u03b8 could be fixed to 1, reducing it to a single parameter. But since the problem allows two, this model is acceptable.\n\nIn summary, the model should:\n\n- Use split_self (monetary gain)\n- Compare it to the fair share (3 * token_self)\n- Penalize any deficit from the fair share with a parameter \u03b1\n- Optionally, scale the monetary term with \u03b8\n\nGiven the problem's allowance for two parameters, the two-parameter model is viable. However, to ensure parameter recovery, it's better to have orthogonal parameters. If \u03b8 and \u03b1 are not strongly correlated, this model is suitable. Otherwise, fixing \u03b8=1 is safer.\n\nBut given the instructions, I'll proceed with the two-parameter model, as it provides more flexibility and adheres to the problem's constraints.\n</think>\n\n<MODEL>\nU_accept = theta * split_self - alpha * max(3 * token_self - split_self, 0)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_accept\": {\n      \"description\": \"Utility of accepting the offer\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"theta\": {\n      \"description\": \"Marginal utility of monetary gain (scaling factor for split_self)\",\n      \"range\": {\n        \"min\": 0.1,\n        \"max\": 2.0,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {}\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha\": {\n      \"description\": \"Sensitivity to underpayment relative to fair share (3 * token_self)\",\n      \"range\": {\n        \"min\": 0.0,\n        \"max\": 5.0,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {}\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"Proposed monetary amount for the responder (in \u00a3)\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant (used to compute fair share)\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n</VARIABLES>\n\n<SUMMARY>\nA utility model capturing responder behavior by combining monetary gain (split_self) and aversion to underpayment relative to contribution-based fairness. The fair share is defined as 3 * token_self (each token = \u00a33). The model uses two learnable parameters: theta scales the utility of money, and alpha penalizes deviations below the fair share. This captures both self-interest and fairness considerations, with parameters constrained to plausible ranges to aid identifiability.\n</SUMMARY>",
+  "current_model": "Specification: U_accept = theta * split_self - alpha * max(3 * token_self - split_self, 0)\nSummary: A utility model capturing responder behavior by combining monetary gain (split_self) and aversion to underpayment relative to contribution-based fairness. The fair share is defined as 3 * token_self (each token = \u00a33). The model uses two learnable parameters: theta scales the utility of money, and alpha penalizes deviations below the fair share. This captures both self-interest and fairness considerations, with parameters constrained to plausible ranges to aid identifiability.",
+  "simulation_code": "def simulate_model(trial_data, theta=1, alpha=1):\n    utility_values = []\n    for trial in trial_data:\n        split_self = trial.get(\"split_self\", 0)\n        token_self = trial.get(\"token_self\", 0)\n        \n        if split_self is None or token_self is None:\n            utility_values.append(float('nan')) #Handle missing data gracefully\n            continue\n\n        utility = theta * split_self - alpha * max(3 * token_self - split_self, 0)\n        utility_values.append(utility)\n    return utility_values",
+  "fitting_results": [
+    {
+      "theta": 0.1,
+      "alpha": 4.10528745883687,
+      "success": true,
+      "log_likelihood": -7.988039538958892,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.179852097572052,
+      "alpha": 1.7641844811253724,
+      "success": true,
+      "log_likelihood": -16.281262682883085,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 2.918574258554943,
+      "success": true,
+      "log_likelihood": -10.228883640726519,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.41815721585762,
+      "alpha": 2.4612500477402355,
+      "success": true,
+      "log_likelihood": -13.653156181748486,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 3.822279486712146,
+      "success": true,
+      "log_likelihood": -9.848709686242183,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 2.1117633628491963,
+      "success": true,
+      "log_likelihood": -11.19818715356074,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.3703753451934495,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 2.0301508484861324,
+      "success": true,
+      "log_likelihood": -11.251236946184818,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.370375345193449,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.5441694321336352,
+      "alpha": 3.275815714946729,
+      "success": true,
+      "log_likelihood": -11.166531339818198,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 3.7439340227219775,
+      "success": true,
+      "log_likelihood": -5.583534937093923,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.14166353582214045,
+      "alpha": 3.41203007600426,
+      "success": true,
+      "log_likelihood": -9.09031047065613,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 4.016031616786185,
+      "success": true,
+      "log_likelihood": -8.854760654857696,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.370375345193449,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.37037534519345,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.37037534519345,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.37037534519345,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.7660889861516543,
+      "success": true,
+      "log_likelihood": -6.214918122041379,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.7242717898069234,
+      "success": true,
+      "log_likelihood": -7.656146828788504,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.3703753451934495,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3997529062736769,
+      "alpha": 1.9300514812075327,
+      "success": true,
+      "log_likelihood": -15.240283485273629,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.8670324213145489,
+      "success": true,
+      "log_likelihood": -8.623736865237998,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.6803255670852143,
+      "alpha": 1.4190008989303888,
+      "success": true,
+      "log_likelihood": -18.324232069366378,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.1922211042003403,
+      "alpha": 1.51144804248146,
+      "success": true,
+      "log_likelihood": -16.99121846572731,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3696500625727541,
+      "alpha": 2.3828146810387265,
+      "success": true,
+      "log_likelihood": -13.939297531627558,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.5707551676827936,
+      "alpha": 1.7910073209735449,
+      "success": true,
+      "log_likelihood": -14.894718696214223,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 2.51613839305119,
+      "success": true,
+      "log_likelihood": -11.656930369516099,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.45673267145468,
+      "alpha": 5.0,
+      "success": true,
+      "log_likelihood": -4.9435408669135725,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.6701386625721422,
+      "success": true,
+      "log_likelihood": -9.47678773162642,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3686478154986756,
+      "alpha": 0.7717174873666274,
+      "success": true,
+      "log_likelihood": -15.902796867863493,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.37037534519345,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 4.105290091501653,
+      "success": true,
+      "log_likelihood": -7.98803953895588,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.5302952805142838,
+      "alpha": 0.9385723877028137,
+      "success": true,
+      "log_likelihood": -21.05837517839953,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.9859895105316822,
+      "alpha": 2.01986068751686,
+      "success": true,
+      "log_likelihood": -15.4121949696985,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -2.370375345193449,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.9073981080287847,
+      "alpha": 1.5867293749738454,
+      "success": true,
+      "log_likelihood": -13.363774643218193,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 1.7856817200605646,
+      "success": true,
+      "log_likelihood": -8.62544184161642,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.4182353466157738,
+      "alpha": 2.2782609408809082,
+      "success": true,
+      "log_likelihood": -14.22566912814157,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.1824283700053295,
+      "alpha": 1.0867673465538692,
+      "success": true,
+      "log_likelihood": -17.719069088477383,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.9042382441523331,
+      "alpha": 0.31967470849056173,
+      "success": true,
+      "log_likelihood": -9.541669266186236,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.1277732780358458,
+      "alpha": 1.3063039172274225,
+      "success": true,
+      "log_likelihood": -17.746254323657887,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.44855373700147383,
+      "alpha": 2.482124663744918,
+      "success": true,
+      "log_likelihood": -12.426179406532299,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.8697491668440755,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -7.745036530321459,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3558918032030811,
+      "alpha": 1.592521270814691,
+      "success": true,
+      "log_likelihood": -16.139319574861226,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.8991179484462195,
+      "alpha": 2.033161887036935,
+      "success": true,
+      "log_likelihood": -13.257553281170932,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3961914377132907,
+      "alpha": 0.7958777774478134,
+      "success": true,
+      "log_likelihood": -15.740340539897316,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3997499577971877,
+      "alpha": 1.9300492944520093,
+      "success": true,
+      "log_likelihood": -15.240283488101857,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.6486320059950873,
+      "alpha": 1.298604774714135,
+      "success": true,
+      "log_likelihood": -18.99591754561019,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.437073365292177,
+      "alpha": 3.2198558617743873,
+      "success": true,
+      "log_likelihood": -11.269891205013579,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.38724950340875597,
+      "alpha": 0.3456423424766213,
+      "success": true,
+      "log_likelihood": -23.58999698435772,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.2183554029692394,
+      "alpha": 0.8529262911859748,
+      "success": true,
+      "log_likelihood": -17.337692820586412,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 1.9441306731666272,
+      "success": true,
+      "log_likelihood": -13.420440314859247,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.9538050763460563,
+      "alpha": 1.0885967714940008,
+      "success": true,
+      "log_likelihood": -19.08444485500519,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.6554085171954239,
+      "alpha": 0.4590164676640922,
+      "success": true,
+      "log_likelihood": -21.64957631840627,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.44634051586860923,
+      "alpha": 1.2332560828605557,
+      "success": true,
+      "log_likelihood": -19.14585130433828,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.9978466089902884,
+      "alpha": 5.0,
+      "success": true,
+      "log_likelihood": -5.173014313354184,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.003315955643001,
+      "alpha": 3.4213831428057873,
+      "success": true,
+      "log_likelihood": -10.386539880518415,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.1376584891236217,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -13.68048820634755,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 2.9937219471872716,
+      "success": true,
+      "log_likelihood": -9.829540880569828,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.4313179906128362,
+      "alpha": 0.4646031710795055,
+      "success": true,
+      "log_likelihood": -14.062138466406953,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.9003181822309901,
+      "alpha": 0.8693001254026769,
+      "success": true,
+      "log_likelihood": -19.766504714132676,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3305753408951357,
+      "alpha": 2.1438528795885836,
+      "success": true,
+      "log_likelihood": -14.763159511971233,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 4.10529778226197,
+      "success": true,
+      "log_likelihood": -7.988039538960818,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.6307130231075903,
+      "alpha": 0.977128550908219,
+      "success": true,
+      "log_likelihood": -20.702526780303952,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.6965884725017244,
+      "alpha": 3.040144981548736,
+      "success": true,
+      "log_likelihood": -11.083994119546729,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.6312851607897376,
+      "alpha": 1.9393138467153022,
+      "success": true,
+      "log_likelihood": -14.437445103531422,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.4046525579067469,
+      "success": true,
+      "log_likelihood": -8.47742585732385,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.87005520569071,
+      "alpha": 0.7069721047226074,
+      "success": true,
+      "log_likelihood": -11.779558638978562,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.4154038586326065,
+      "alpha": 1.4704025362737576,
+      "success": true,
+      "log_likelihood": -16.029288800099636,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3560443238613435,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -11.54012448937104,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.27744008101869966,
+      "alpha": 5.0,
+      "success": true,
+      "log_likelihood": -3.9021809630670408,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 2.10400025118781,
+      "success": true,
+      "log_likelihood": -12.624891284567658,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3706220504410973,
+      "alpha": 1.8171461065195345,
+      "success": true,
+      "log_likelihood": -15.606148306038516,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.402882325734063,
+      "alpha": 0.5665405523136742,
+      "success": true,
+      "log_likelihood": -14.833726687616094,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.46060184709907986,
+      "alpha": 0.6219342576478959,
+      "success": true,
+      "log_likelihood": -22.663571894029964,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.887367029278563,
+      "alpha": 1.7135730014753578,
+      "success": true,
+      "log_likelihood": -13.469173044978085,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.16979246636655834,
+      "success": true,
+      "log_likelihood": -7.806716493561563,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 3.726253668697517,
+      "success": true,
+      "log_likelihood": -8.964141976457979,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.5316294471593075,
+      "alpha": 0.2669991196867978,
+      "success": true,
+      "log_likelihood": -22.370656052662888,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 4.105289844483494,
+      "success": true,
+      "log_likelihood": -7.98803953895606,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.4685745719364373,
+      "alpha": 0.5662963548824934,
+      "success": true,
+      "log_likelihood": -22.80911474982644,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.3338916905682159,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -11.741860654227647,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1,
+      "alpha": 2.9067608785247785,
+      "success": true,
+      "log_likelihood": -10.133265362277804,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 2.6359977039202414,
+      "success": true,
+      "log_likelihood": -10.538905767541172,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.33959635208405403,
+      "alpha": 0.19842239633113393,
+      "success": true,
+      "log_likelihood": -23.819155650561914,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.1660376217005442,
+      "alpha": 4.314170868385137,
+      "success": true,
+      "log_likelihood": -7.785436408187044,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.145470520989753,
+      "alpha": 0.8855464780118033,
+      "success": true,
+      "log_likelihood": -17.959641902550075,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.31650944377455087,
+      "alpha": 2.1578411613840465,
+      "success": true,
+      "log_likelihood": -13.317159678734138,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 2.0,
+      "alpha": 0.24457228005855272,
+      "success": true,
+      "log_likelihood": -6.3164548554794715,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 1.545926870856144,
+      "alpha": 1.9788048501644127,
+      "success": true,
+      "log_likelihood": -14.67936824911899,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    },
+    {
+      "theta": 0.7069545428412777,
+      "alpha": 0.3326569677827756,
+      "success": true,
+      "log_likelihood": -20.833123334925407,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 36
+    }
+  ],
+  "parameter_recovery": {
+    "correlations": {
+      "theta": {
+        "r": 0.8088880235771785,
+        "p": 2.4623217369592977e-24
+      },
+      "alpha": {
+        "r": 0.9042672153171015,
+        "p": 5.328437574703862e-38
+      }
+    },
+    "plots_directory": "param_recovery_plots"
+  },
+  "average_bic": 31.58304081194221,
+  "bic_error": "'ModelOutput' object has no attribute 'metrics'",
+  "recovery_summary": "Parameter Recovery:\n- theta: r = 0.809\n- alpha: r = 0.904",
+  "previous_models": [
+    "Specification: U_accept = theta * split_self - alpha * max(3 * token_self - split_self, 0)\nSummary: A utility model capturing responder behavior by combining monetary gain (split_self) and aversion to underpayment relative to contribution-based fairness. The fair share is defined as 3 * token_self (each token = \u00a33). The model uses two learnable parameters: theta scales the utility of money, and alpha penalizes deviations below the fair share. This captures both self-interest and fairness considerations, with parameters constrained to plausible ranges to aid identifiability.\nBIC: 31.58304081194221\n\nParameter Recovery:\n- theta: r = 0.809\n- alpha: r = 0.904"
+  ]
+}

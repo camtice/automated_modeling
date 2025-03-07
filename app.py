@@ -6,6 +6,7 @@ import os
 import yaml
 from pathlib import Path
 from werkzeug.exceptions import HTTPException
+import time
 
 app = Flask(__name__)
 
@@ -30,11 +31,60 @@ def safe_float_filter(value):
         return "N/A"
 
 
-# Set the experiments directory using absolute path
+# Define experiments directory
 EXPERIMENTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "modeling", "experiments"))
 CONFIGS_DIR = os.path.abspath(os.path.join(os.getcwd(), "modeling", "configs"))
-DEFAULT_EXPERIMENT = "testing_v1"
 
+# Function to find the most recent experiment with results.csv
+def find_most_recent_experiment():
+    """Find the most recent experiment directory that contains a results.csv file."""
+    fallback = "testing_v1"  # Default fallback if no valid experiment is found
+    
+    if not os.path.exists(EXPERIMENTS_DIR):
+        return fallback
+    
+    def get_creation_time(path):
+        return os.path.getctime(path)
+    
+    # Function to recursively find directories with results.csv
+    def find_results_dirs(base_dir, max_depth=3, current_depth=0):
+        if current_depth > max_depth:
+            return []
+        
+        valid_dirs = []
+        try:
+            for item in os.listdir(base_dir):
+                item_path = os.path.join(base_dir, item)
+                if os.path.isdir(item_path):
+                    results_path = os.path.join(item_path, "results.csv")
+                    if os.path.exists(results_path):
+                        valid_dirs.append(item_path)
+                    # Recursively search in subdirectories
+                    valid_dirs.extend(find_results_dirs(item_path, max_depth, current_depth + 1))
+        except Exception as e:
+            print(f"Error scanning directory {base_dir}: {e}")
+        
+        return valid_dirs
+    
+    # Find all directories with results.csv
+    valid_experiment_dirs = find_results_dirs(EXPERIMENTS_DIR)
+    
+    if not valid_experiment_dirs:
+        print("Warning: No valid experiment directories found with results.csv")
+        return fallback
+    
+    # Sort by creation time (newest first) and get the most recent
+    valid_experiment_dirs.sort(key=get_creation_time, reverse=True)
+    most_recent_dir = valid_experiment_dirs[0]
+    
+    # Get the relative path from EXPERIMENTS_DIR
+    rel_path = os.path.relpath(most_recent_dir, EXPERIMENTS_DIR)
+    print(f"Using most recent experiment: {rel_path}")
+    
+    return rel_path
+
+# Set default experiment to the most recent valid one
+DEFAULT_EXPERIMENT = find_most_recent_experiment()
 
 def validate_experiment_dir():
     """Validate that the experiments directory exists."""

@@ -118,23 +118,44 @@ def model_design_solver():
         )
         custom_model = get_model(model_name, config=model_config)
 
+        # Get parameter recovery information if available
+        param_recovery = state.metadata.get("parameter_recovery", {})
+        correlations = param_recovery.get("correlations", {})
+
         # Format previous models with tags before generating
         previous_models = ""
+
+        # Format previous models
         for i, model in enumerate(state.metadata.get("previous_models", []), 1):
             previous_models += (
-                f"\nModel {i}:\n<previous_model_{i}>\n{model}\n</previous_model_{i}>\n"
+                f"\nModel {i}:\n<previous_model_{i}>\n{model}\n</previous_model_{i}>"
             )
 
         # Combine the task description with desired output description
-        prompt = f"""
+        output_description = state.metadata["output_description"]
+
+        # Check if output_description already contains "Previous Models:"
+        if "Previous Models:" in output_description:
+            # If it does, don't add previous_models again as they're already included
+            prompt = f"""
 Task Description: {state.metadata["task_description"]}
 
-Desired Output Specification: {state.metadata["output_description"]}
+Desired Output Specification: {output_description}
+
+Please think through this step by step, then provide your model specification and variable descriptions.
+""".strip()
+        else:
+            # If not, add previous_models as before
+            prompt = f"""
+Task Description: {state.metadata["task_description"]}
+
+Desired Output Specification: {output_description}
 
 Previous Models:{previous_models}
 
 Please think through this step by step, then provide your model specification and variable descriptions.
 """.strip()
+
         # Update the user prompt in state
         state.user_prompt.text = prompt
 
@@ -218,13 +239,14 @@ Please think through this step by step, then provide your model specification an
         state.metadata["model_summary"] = summary  # Add summary to metadata
         state.metadata["full_reasoning"] = state.output.completion
 
-        # Store the raw model (without tags) in previous_models list
+        # Store the raw model (without tags) in metadata for final_model_summary_solver to use
         current_model = f"""Specification: {model}
 Summary: {summary}"""
+        state.metadata["current_model"] = current_model
 
-        previous_models = state.metadata.get("previous_models", [])
-        previous_models.append(current_model)
-        state.metadata["previous_models"] = previous_models
+        # We're not adding BIC or parameter recovery info here anymore
+        # That will be handled by final_model_summary_solver which runs after
+        # parameter_recovery_solver and bic_solver
 
         return state
 
@@ -861,6 +883,56 @@ def bic_solver():
     return solve
 
 
+@solver
+def final_model_summary_solver():
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        try:
+            # Get current model from metadata
+            current_model = state.metadata.get("current_model", "")
+
+            # If current_model is not available, reconstruct it from model_specification and model_summary
+            if not current_model:
+                model_spec = state.metadata.get("model_specification", "")
+                model_summary = state.metadata.get("model_summary", "")
+                current_model = f"""Specification: {model_spec}
+Summary: {model_summary}"""
+
+            # Get BIC value if available
+            bic_value = state.metadata.get("average_bic")
+            if bic_value is not None:
+                current_model += f"\nBIC: {bic_value}"
+
+            # Get parameter recovery information if available
+            param_recovery = state.metadata.get("parameter_recovery", {})
+            correlations = param_recovery.get("correlations", {})
+
+            # Add parameter recovery information to the current model if available
+            if correlations:
+                recovery_str = "\n\nParameter Recovery:"
+                for param, values in correlations.items():
+                    r_value = values.get("r", 0)
+                    recovery_str += f"\n- {param}: r = {r_value:.3f}"
+
+                # Add recovery info to the current model
+                current_model += recovery_str
+
+                # Also store recovery info in a more accessible format for multiple_runs.py
+                state.metadata["recovery_summary"] = recovery_str.strip()
+
+            # Update the previous_models list with the complete model information
+            previous_models = state.metadata.get("previous_models", [])
+            previous_models.append(current_model)
+            state.metadata["previous_models"] = previous_models
+
+            return state
+
+        except Exception as e:
+            state.metadata["final_summary_error"] = str(e)
+            return state
+
+    return solve
+
+
 @scorer(metrics=[accuracy(), stderr(), bic()])
 def verify() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
@@ -938,6 +1010,7 @@ def design_model(
             parameter_fitting_solver(),
             parameter_recovery_solver(),
             bic_solver(),
+            final_model_summary_solver(),
         ],
         scorer=verify(),
     )
