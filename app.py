@@ -19,6 +19,16 @@ def yaml_filter(data):
     )
 
 
+# Add timestamp_to_datetime filter
+@app.template_filter("timestamp_to_datetime")
+def timestamp_to_datetime(timestamp):
+    """Convert a Unix timestamp to a readable datetime format."""
+    if timestamp is None:
+        return "N/A"
+    from datetime import datetime
+    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+
 # Add safe float format filter
 @app.template_filter("safe_float")
 def safe_float_filter(value):

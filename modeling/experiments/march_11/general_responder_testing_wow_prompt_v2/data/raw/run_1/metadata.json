@@ -1,0 +1,978 @@
+{
+  "task_description": "In the  experiment, each participant is given 36 different proposals to respond to. Each is designated by a trial number in the data set This gives 36 instances for the learnable parameters to be trained. There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641",
+  "output_description": "Design a computational model for the described task.\n\nYour model should use the given variables appropriately, but does not necessary need to use all or even most of the variables. \n\nThe model should:\n1. Predict only responder behavior.\n2. Be considerate of high covariance between learnable parameters as the model\nwill have to pass parameter recovery tests.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. This specific model should calculate the utility of an action (not the probability). The value returned will then be used to determine the probability of choosing that action. Negative values should represent a negative utility, and thus an unlikly action.\n5. Should not include the utility of rejecting an offer. \n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.",
+  "dataset_info": "\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641",
+  "complete_model_interaction": [
+    {
+      "solver": "model_design_solver",
+      "input": "Task Description: In the  experiment, each participant is given 36 different proposals to respond to. Each is designated by a trial number in the data set This gives 36 instances for the learnable parameters to be trained. There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641\n\nDataset:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641\n\nDesired Output Specification: Design a computational model for the described task.\n\nYour model should use the given variables appropriately, but does not necessary need to use all or even most of the variables. \n\nThe model should:\n1. Predict only responder behavior.\n2. Be considerate of high covariance between learnable parameters as the model\nwill have to pass parameter recovery tests.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. This specific model should calculate the utility of an action (not the probability). The value returned will then be used to determine the probability of choosing that action. Negative values should represent a negative utility, and thus an unlikly action.\n5. Should not include the utility of rejecting an offer. \n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.\n\nPrevious Models:Not Provided\n\nPlease think through this step by step, then provide your model specification and variable descriptions.",
+      "output": "Step-by-step reasoning:\n1. Key psychological mechanisms involve a responder\u2019s sensitivity to both the absolute monetary gain (split_self) and the fairness of the offer relative to what they think they deserve based on their token contribution. Fairness here is operationalized as the expected share: (token_self/(token_self + token_opp)) multiplied by the combined_earning.\n2. These mechanisms interact such that if the offered split_self is lower than the expected fair share, the utility is penalized. A baseline (bias) parameter is added to capture any general predisposition toward acceptance.\n3. A simple mathematical formulation is to calculate the utility of accepting an offer as the offered split_self plus a baseline value, minus a penalty term that is proportional to the shortfall if the offer is below the fair share.\n4. Two learnable parameters are needed: one capturing the baseline bias (bias) and one for the sensitivity to disadvantageous inequity (alpha). Their finite bounds are chosen generously (bias \u2208 [\u2013100, 100] and alpha \u2208 [0, 10]).\n5. Observable behavior: When responders evaluate an offer, they compare the offered split_self with the fair share computed from token_self, token_opp, and combined_earning. The computed utility then influences the probability of accepting the offer.\n\n<MODEL>\nU = bias + split_self - alpha * max((token_self/(token_self+token_opp))*combined_earning - split_self,0)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U\": {\n      \"description\": \"Utility of accepting the offer\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"bias\": {\n      \"description\": \"Baseline utility parameter capturing a general predisposition towards acceptance\",\n      \"range\": {\n        \"min\": -100,\n        \"max\": 100,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha\": {\n      \"description\": \"Sensitivity to disadvantageous inequity; penalizes offers below the fair share\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 10,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"Proposed share for the participant (in \u00a3)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"combined_earning\": {\n      \"description\": \"Total amount of money earned in the interaction (\u00a3), computed from tokens where each token is equivalent to \u00a33\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n</VARIABLES>\n\n<SUMMARY>\nA utility model for responder behavior that combines monetary gain (split_self) with a fairness check. The model computes the expected fair share based on token contributions and penalizes offers that fall short of this benchmark by an amount proportional to a learnable inequity sensitivity parameter (alpha) and an added baseline bias (bias).\n</SUMMARY>"
+    },
+    {
+      "solver": "simulate_model_solver",
+      "input": "\n                Write Python code to simulate the following mathematical model using only Python standard library (no pandas or numpy).\n                The code should take a list of dictionaries as input (each dictionary representing a trial) and return a value for each trial.\n\n                IMPORTANT: Use these exact parameter names for learnable parameters: ['bias', 'alpha']\n\n                Please write a function called `simulate_model` that:\n                1. Takes a list of dictionaries as input (each dictionary contains trial data)\n                2. Has parameter names that matches the variable descriptions exactly\n                3. Implements the mathematical model above using only standard Python math operations\n                4. Returns a list of model_predictions for each trial (please use the exact name \"model_predictions\" as the return value)\n\n                Your code will be implemented within the following code block:\n\n                ```python\nimport json\nimport math\n\n[YOUR SIMULATE_MODEL FUNCTION HERE]\n\n# Data as list of dictionaries\ndata_json = # imported from .json dumps\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n\nBelow is an example for you to follow:\n<EXAMPLE>\nModel Specification:\nU_i = \u03b2 + \u03b5E + \u03b7N\n\nVariable Descriptions:\nU_i: Utility (probability) of choosing action i \u03b2: [learnable] Base tendency parameter (0-1) representing inherent preference \u03b5: [learnable] Environmental sensitivity parameter (0-1) E: Environmental cue value (-1 to 1) \u03b7: Noise parameter (0-1) N: Random noise drawn from normal distribution N(0,1)\n\nDataset Structure:\nVariables available:\n- trial_id (int64)\n- environmental_cue (float64)\n- beta (float64)\n- epsilon (float64)\n- eta (float64)\n- utility (float64)\n- choice_made (int64)\n- trial_number (int64)\n- participant_id (int64)\n\n\n<YOUR RESPONSE>\ndef simulate_model(trial_data, beta=1, epsilon=1, eta=1):\n    model_predictions = []\n    for trial in trial_data:\n        E = trial.get(\"environmental_cue\", 0)\n        u1, u2 = random.random(), random.random()\n        N = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)\n        model_predictions.append(beta + (epsilon * E) + (eta * N))\n    return model_predictions\n</YOUR RESPONSE>\n\nNow, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE MODEL PREDICTIONS.\n                Model Specification:\n                U = bias + split_self - alpha * max((token_self/(token_self+token_opp))*combined_earning - split_self,0)\n\n                Variable Descriptions:\n                {\n  \"variables\": {\n    \"U\": {\n      \"description\": \"Utility of accepting the offer\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"bias\": {\n      \"description\": \"Baseline utility parameter capturing a general predisposition towards acceptance\",\n      \"range\": {\n        \"min\": -100,\n        \"max\": 100,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha\": {\n      \"description\": \"Sensitivity to disadvantageous inequity; penalizes offers below the fair share\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 10,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"Proposed share for the participant (in \\u00a3)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"combined_earning\": {\n      \"description\": \"Total amount of money earned in the interaction (\\u00a3), computed from tokens where each token is equivalent to \\u00a33\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n\nDataset Structure:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641\n\n                ",
+      "output": "```python\nimport json\nimport math\n\ndef simulate_model(trial_data, bias=0, alpha=1):\n    model_predictions = []\n    for trial in trial_data:\n        split_self = trial.get(\"split_self\", 0)\n        token_self = trial.get(\"token_self\", 0)\n        token_opp = trial.get(\"token_opp\", 0)\n        combined_earning = trial.get(\"combined_earning\", 0)\n\n        if token_self + token_opp ==0: #Handle division by zero\n            fair_share = 0\n        else:\n            fair_share = (token_self / (token_self + token_opp)) * combined_earning\n\n        penalty = max(fair_share - split_self, 0)\n        utility = bias + split_self - alpha * penalty\n        model_predictions.append(utility)\n    return model_predictions\n\n# Data as list of dictionaries\ndata_json = '[{\"split_self\": 10, \"token_self\": 5, \"token_opp\": 5, \"combined_earning\": 30}, {\"split_self\": 15, \"token_self\": 10, \"token_opp\": 2, \"combined_earning\": 36}, {\"split_self\": 5, \"token_self\": 2, \"token_opp\": 8, \"combined_earning\": 30}]'\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data, bias=5, alpha=2)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n```",
+      "timestamp": 1741698918.661592
+    }
+  ],
+  "learnable_parameters": {
+    "bias": {
+      "description": "Baseline utility parameter capturing a general predisposition towards acceptance",
+      "range": {
+        "min": -100,
+        "max": 100,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": true,
+      "source": "learnable"
+    },
+    "alpha": {
+      "description": "Sensitivity to disadvantageous inequity; penalizes offers below the fair share",
+      "range": {
+        "min": 0,
+        "max": 10,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": true,
+      "source": "learnable"
+    }
+  },
+  "model_specification": "U = bias + split_self - alpha * max((token_self/(token_self+token_opp))*combined_earning - split_self,0)",
+  "variable_descriptions": {
+    "U": {
+      "description": "Utility of accepting the offer",
+      "range": {
+        "min": "-inf",
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "calculated"
+    },
+    "bias": {
+      "description": "Baseline utility parameter capturing a general predisposition towards acceptance",
+      "range": {
+        "min": -100,
+        "max": 100,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": true,
+      "source": "learnable"
+    },
+    "alpha": {
+      "description": "Sensitivity to disadvantageous inequity; penalizes offers below the fair share",
+      "range": {
+        "min": 0,
+        "max": 10,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": true,
+      "source": "learnable"
+    },
+    "split_self": {
+      "description": "Proposed share for the participant (in \u00a3)",
+      "range": {
+        "min": 0,
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": false
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    },
+    "token_self": {
+      "description": "Number of tokens found by the participant",
+      "range": {
+        "min": 0,
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": false
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    },
+    "token_opp": {
+      "description": "Number of tokens found by the opponent",
+      "range": {
+        "min": 0,
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": false
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    },
+    "combined_earning": {
+      "description": "Total amount of money earned in the interaction (\u00a3), computed from tokens where each token is equivalent to \u00a33",
+      "range": {
+        "min": 0,
+        "max": "inf",
+        "inclusive_min": true,
+        "inclusive_max": false
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    }
+  },
+  "model_summary": "A utility model for responder behavior that combines monetary gain (split_self) with a fairness check. The model computes the expected fair share based on token contributions and penalizes offers that fall short of this benchmark by an amount proportional to a learnable inequity sensitivity parameter (alpha) and an added baseline bias (bias).",
+  "full_reasoning": "Step-by-step reasoning:\n1. Key psychological mechanisms involve a responder\u2019s sensitivity to both the absolute monetary gain (split_self) and the fairness of the offer relative to what they think they deserve based on their token contribution. Fairness here is operationalized as the expected share: (token_self/(token_self + token_opp)) multiplied by the combined_earning.\n2. These mechanisms interact such that if the offered split_self is lower than the expected fair share, the utility is penalized. A baseline (bias) parameter is added to capture any general predisposition toward acceptance.\n3. A simple mathematical formulation is to calculate the utility of accepting an offer as the offered split_self plus a baseline value, minus a penalty term that is proportional to the shortfall if the offer is below the fair share.\n4. Two learnable parameters are needed: one capturing the baseline bias (bias) and one for the sensitivity to disadvantageous inequity (alpha). Their finite bounds are chosen generously (bias \u2208 [\u2013100, 100] and alpha \u2208 [0, 10]).\n5. Observable behavior: When responders evaluate an offer, they compare the offered split_self with the fair share computed from token_self, token_opp, and combined_earning. The computed utility then influences the probability of accepting the offer.\n\n<MODEL>\nU = bias + split_self - alpha * max((token_self/(token_self+token_opp))*combined_earning - split_self,0)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U\": {\n      \"description\": \"Utility of accepting the offer\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"bias\": {\n      \"description\": \"Baseline utility parameter capturing a general predisposition towards acceptance\",\n      \"range\": {\n        \"min\": -100,\n        \"max\": 100,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha\": {\n      \"description\": \"Sensitivity to disadvantageous inequity; penalizes offers below the fair share\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 10,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"Proposed share for the participant (in \u00a3)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"combined_earning\": {\n      \"description\": \"Total amount of money earned in the interaction (\u00a3), computed from tokens where each token is equivalent to \u00a33\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": \"inf\",\n        \"inclusive_min\": true,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n</VARIABLES>\n\n<SUMMARY>\nA utility model for responder behavior that combines monetary gain (split_self) with a fairness check. The model computes the expected fair share based on token contributions and penalizes offers that fall short of this benchmark by an amount proportional to a learnable inequity sensitivity parameter (alpha) and an added baseline bias (bias).\n</SUMMARY>",
+  "current_model": "Specification: U = bias + split_self - alpha * max((token_self/(token_self+token_opp))*combined_earning - split_self,0)\nSummary: A utility model for responder behavior that combines monetary gain (split_self) with a fairness check. The model computes the expected fair share based on token contributions and penalizes offers that fall short of this benchmark by an amount proportional to a learnable inequity sensitivity parameter (alpha) and an added baseline bias (bias).",
+  "simulation_errors": [],
+  "current_retry": 0,
+  "simulation_code": "def simulate_model(trial_data, bias=0, alpha=1):\n    model_predictions = []\n    for trial in trial_data:\n        split_self = trial.get(\"split_self\", 0)\n        token_self = trial.get(\"token_self\", 0)\n        token_opp = trial.get(\"token_opp\", 0)\n        combined_earning = trial.get(\"combined_earning\", 0)\n\n        if token_self + token_opp ==0: #Handle division by zero\n            fair_share = 0\n        else:\n            fair_share = (token_self / (token_self + token_opp)) * combined_earning\n\n        penalty = max(fair_share - split_self, 0)\n        utility = bias + split_self - alpha * penalty\n        model_predictions.append(utility)\n    return model_predictions",
+  "total_retries": 0,
+  "fitting_results": [
+    {
+      "bias": -9.168838587271047,
+      "alpha": 1.1373657178152143,
+      "success": true,
+      "log_likelihood": -8.957813358421653,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.095675299111994,
+      "alpha": 0.15721348628624407,
+      "success": true,
+      "log_likelihood": -35.1151489290559,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.4722686040290105,
+      "alpha": 0.4161869464142744,
+      "success": true,
+      "log_likelihood": -34.85180787413536,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.56413048530763,
+      "alpha": 0.261664949014938,
+      "success": true,
+      "log_likelihood": -29.41412774441847,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.4405451627639145,
+      "alpha": 0.9087292758424756,
+      "success": true,
+      "log_likelihood": -32.66216998613023,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.345762181079435,
+      "alpha": 0.03846425599396461,
+      "success": true,
+      "log_likelihood": -37.73461260584798,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.9599588326003194,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.85508417692571,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.12401250057321,
+      "alpha": 0.05835366034400361,
+      "success": true,
+      "log_likelihood": -39.13866079687604,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": 45.607321239755784,
+      "alpha": 5.046756568109709,
+      "success": true,
+      "log_likelihood": -335.70583677360213,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.084907768520457,
+      "alpha": 0.783133745339191,
+      "success": true,
+      "log_likelihood": -29.51639018759523,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.535541183142892,
+      "alpha": 0.8334528193210998,
+      "success": true,
+      "log_likelihood": -30.22339637936924,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -8.508738893663558,
+      "alpha": 1.047222355060409,
+      "success": true,
+      "log_likelihood": -11.153638749147788,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.663335992498507,
+      "alpha": 0.9259221593051565,
+      "success": true,
+      "log_likelihood": -30.59241317853396,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.959956451480972,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.855084176931264,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.959958816767477,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.8550841769257,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.9599656908960787,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.855084176984384,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.9599589994344517,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.855084176925814,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.951932375177978,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -39.290580621138645,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.7621463448394783,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.24423116240317,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.9599551762031624,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.85508417693973,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.514073686944221,
+      "alpha": 0.2668612023896646,
+      "success": true,
+      "log_likelihood": -38.010043076192886,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.951932784247625,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.01558062076174,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -6.438532624701077,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -27.014358285628195,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.1685908943056456,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -34.612824660059246,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.323725282042583,
+      "alpha": 0.6554478267709016,
+      "success": true,
+      "log_likelihood": -36.93645888625786,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.787317002093709,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -36.439693399295535,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.758046221240302,
+      "alpha": 0.12374523472719115,
+      "success": true,
+      "log_likelihood": -34.76406090728831,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.249720051555161,
+      "alpha": 1.9394443185055388,
+      "success": true,
+      "log_likelihood": -21.507456826904395,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.7621610861979518,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.919231162527595,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -3.506849217848329,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -42.39434750282187,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.9599512941629889,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.85508417698909,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -9.168845046018598,
+      "alpha": 1.1373628657253565,
+      "success": true,
+      "log_likelihood": -8.957813358408561,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.986068841155866,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -30.823471776300533,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.711572877390757,
+      "alpha": 0.3156702222963912,
+      "success": true,
+      "log_likelihood": -29.742893685994698,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -1.9599581178173957,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.85508417692597,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.4166363447365224,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -34.66599716524299,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.051890036136542,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -37.6249412082711,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.648497189763895,
+      "alpha": 0.43642279488462055,
+      "success": true,
+      "log_likelihood": -35.78825914062262,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.2337856413146095,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.17855147098973,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.568869835963508,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -42.35214596925858,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.533665821912807,
+      "alpha": 0.036920623875015365,
+      "success": true,
+      "log_likelihood": -40.580901540952404,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -6.816717834482988,
+      "alpha": 0.8209389144258484,
+      "success": true,
+      "log_likelihood": -20.74885450539478,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.168709004579437,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -43.52264000254641,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.976323983776385,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -35.198902297342414,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.600970019811605,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -36.76167039369727,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -3.870438547627796,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -38.6305152490593,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.909451314020439,
+      "alpha": 0.14925856653119898,
+      "success": true,
+      "log_likelihood": -35.654131061500294,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -90.19888728829972,
+      "alpha": 6.959951671993844,
+      "success": true,
+      "log_likelihood": -322.36191298190727,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.484933204910161,
+      "alpha": 1.0793292212566519,
+      "success": true,
+      "log_likelihood": -32.541777945532395,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -77.03478754947366,
+      "alpha": 0.8562009912201637,
+      "success": true,
+      "log_likelihood": -437.49113587995083,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": 66.6581688552522,
+      "alpha": 3.5181653568055307,
+      "success": true,
+      "log_likelihood": -596.0452599495432,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -8.782927669986188,
+      "alpha": 0.16511835179921167,
+      "success": true,
+      "log_likelihood": -15.218112214855102,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.168583129089706,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -33.86282466029337,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.787327033323338,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -36.2896933990023,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.9170172647476935,
+      "alpha": 0.17999773500372432,
+      "success": true,
+      "log_likelihood": -33.67801162121505,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.998157848360142,
+      "alpha": 1.394321425802772,
+      "success": true,
+      "log_likelihood": -24.77613724119817,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.8668778114847635,
+      "alpha": 1.1132014194949913,
+      "success": true,
+      "log_likelihood": -23.171624964307906,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.762166683395386,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -43.944231162289064,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -8.67875680187352,
+      "alpha": 0.8113885709727163,
+      "success": true,
+      "log_likelihood": -11.58677511915733,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -3.323690456778516,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -40.42703826061088,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.6009654351638964,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -39.23667039295979,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.687334049165539,
+      "alpha": 0.41114065672091255,
+      "success": true,
+      "log_likelihood": -36.00181955223316,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -9.168774189146136,
+      "alpha": 1.137430067223959,
+      "success": true,
+      "log_likelihood": -8.957813360052178,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.772602045433493,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -31.662832287470472,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -6.749196373387738,
+      "alpha": 0.8930593119616268,
+      "success": true,
+      "log_likelihood": -18.9703652454071,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": 4.625771228987325,
+      "alpha": 9.99999999984462,
+      "success": true,
+      "log_likelihood": -145.371034705291,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.5688699456939244,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.902145969377614,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.9519325773703704,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -42.140580620456205,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.976323918063162,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -32.798902297980455,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.5688709153840943,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -43.55214596884958,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -7.300122845448802,
+      "alpha": 10.0,
+      "success": true,
+      "log_likelihood": -8.218578090148087,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -8.576618913238663,
+      "alpha": 0.3348710737368715,
+      "success": true,
+      "log_likelihood": -14.750133259173953,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.081546393152303,
+      "alpha": 0.049449831396350945,
+      "success": true,
+      "log_likelihood": -34.97829380577932,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -3.506849160531517,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -39.91934750343004,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.3648221954262025,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -36.4796498157522,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.0518929229146305,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -40.32494120767156,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.371345181061823,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -42.46239407724597,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -10.676158898906056,
+      "alpha": 0.3797072414130216,
+      "success": true,
+      "log_likelihood": -8.03578103787476,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.60096455719208,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -38.71167039299294,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -9.168995714076352,
+      "alpha": 1.1372723779800515,
+      "success": true,
+      "log_likelihood": -8.957813363676642,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.168588559446843,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -37.987824658897964,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.568871666697976,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -43.70214596890954,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -64.8591251776911,
+      "alpha": 2.932010436356969,
+      "success": true,
+      "log_likelihood": -92.09543300485835,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.340628450269656,
+      "alpha": 0.01383893885998299,
+      "success": true,
+      "log_likelihood": -30.25391791881237,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.600963412943626,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -42.98667039202585,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -8.195487262404733,
+      "alpha": 1.6102427727024595,
+      "success": true,
+      "log_likelihood": -11.489422421557952,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.051890144084197,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.29994120737054,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -6.915517772026087,
+      "alpha": 0.7202058813688502,
+      "success": true,
+      "log_likelihood": -21.897066327035887,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -2.3713465755849925,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -41.787394077395746,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -5.56586994241229,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -28.49719030945431,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    },
+    {
+      "bias": -4.051889404535733,
+      "alpha": 0.0,
+      "success": true,
+      "log_likelihood": -42.04994120717481,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "participant_id": null,
+      "n_trials": 51
+    }
+  ],
+  "parameter_recovery": {
+    "correlations": {
+      "bias": {
+        "r": 0.8822455147690536,
+        "p": 7.860211240631329e-34
+      },
+      "alpha": {
+        "r": 0.18822513752392184,
+        "p": 0.060739575984676594
+      }
+    },
+    "plots_directory": "param_recovery_plots"
+  },
+  "average_bic": 111.95511591957441,
+  "bic_error": "'ModelOutput' object has no attribute 'metrics'",
+  "recovery_summary": "Parameter Recovery:\n- bias: r = 0.882\n- alpha: r = 0.188",
+  "previous_models": [
+    "Specification: U = bias + split_self - alpha * max((token_self/(token_self+token_opp))*combined_earning - split_self,0)\nSummary: A utility model for responder behavior that combines monetary gain (split_self) with a fairness check. The model computes the expected fair share based on token contributions and penalizes offers that fall short of this benchmark by an amount proportional to a learnable inequity sensitivity parameter (alpha) and an added baseline bias (bias).\nBIC: 111.95511591957441\n\nParameter Recovery:\n- bias: r = 0.882\n- alpha: r = 0.188"
+  ]
+}

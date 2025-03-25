@@ -1,3 +1,5 @@
+## Current status
+
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import get_model
@@ -33,6 +35,8 @@ import yaml
 from pathlib import Path
 import shutil
 from inspect_ai.model import GenerateConfig
+import time
+import re
 
 
 def validate_config(config: Dict[str, Any]) -> None:
@@ -42,6 +46,7 @@ def validate_config(config: Dict[str, Any]) -> None:
         "model": ["name"],
         "parameter_recovery": ["n_iterations"],
         "system": ["prompt"],
+        "comp_model_specifications": ["type"],
     }
 
     for section, fields in required_fields.items():
@@ -59,8 +64,16 @@ def validate_config(config: Dict[str, Any]) -> None:
     if not dataset_path.exists():
         raise FileNotFoundError(f"Dataset not found: {dataset_path}")
 
+    # Validate comp_model_specifications.type
+    valid_model_types = ["utility", "numerical_variable_estimation"]
+    model_type = config["comp_model_specifications"]["type"]
+    if model_type not in valid_model_types:
+        raise ValueError(
+            f"Invalid model type: {model_type}. Must be one of: {', '.join(valid_model_types)}"
+        )
 
-def load_config(config_path: str = None) -> dict:
+
+def load_config(config_path= None) -> dict:
     """Load configuration from YAML file with fallback to default config."""
     # Get the directory containing this script
     base_dir = Path(__file__).parent
@@ -131,6 +144,20 @@ def model_design_solver():
                 f"\nModel {i}:\n<previous_model_{i}>\n{model}\n</previous_model_{i}>"
             )
 
+        # Get prediction type from config
+        prediction_type = CONFIG["comp_model_specifications"]["type"]
+        prediction_type_info = ""
+        if prediction_type.lower() == "utility":
+            prediction_type_info = """
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function, and then used to predict binary decisions.
+"""
+        elif prediction_type.lower() == "numerical_variable_estimation":  #numerical_variable_estimation
+            prediction_type_info = """
+Your model should directly predict a numerical value (not a binary choice). The model's predictions will be compared to actual values using mean squared error.
+"""
+        else:
+            raise ValueError(f"Invalid prediction type: {prediction_type}")
+
         # Combine the task description with desired output description
         output_description = state.metadata["output_description"]
 
@@ -142,6 +169,8 @@ Task Description: {state.metadata["task_description"]}
 
 Desired Output Specification: {output_description}
 
+Model Type: {prediction_type_info}
+
 Please think through this step by step, then provide your model specification and variable descriptions.
 """.strip()
         else:
@@ -151,7 +180,9 @@ Task Description: {state.metadata["task_description"]}
 
 Desired Output Specification: {output_description}
 
-Previous Models:{previous_models}
+Model Type: {prediction_type_info}
+
+Previous Models:{previous_models if previous_models else "Not Provided"}
 
 Please think through this step by step, then provide your model specification and variable descriptions.
 """.strip()
@@ -192,6 +223,20 @@ Please think through this step by step, then provide your model specification an
             r"<SUMMARY>(.*?)</SUMMARY>", state.output.completion, re.DOTALL
         )
         summary = summary_match.group(1).strip() if summary_match else ""
+
+        # Extract target variable
+        target_var_match = re.search(
+            r"<target_variable>(.*?)</target_variable>",
+            state.output.completion,
+            re.DOTALL,
+        )
+        target_variable = (
+            target_var_match.group(1).strip() if target_var_match else None
+        )
+
+        # Raise error if no target variable is found
+        if not target_variable:
+            raise ValueError("No target variable specified in model description")
 
         # Parse variable descriptions as JSON and ensure consistent format
         var_dict = {}
@@ -236,12 +281,16 @@ Please think through this step by step, then provide your model specification an
         # Store everything in metadata
         state.metadata["model_specification"] = model
         state.metadata["variable_descriptions"] = var_dict["variables"]
-        state.metadata["model_summary"] = summary  # Add summary to metadata
+        state.metadata["model_summary"] = summary
+        state.metadata["target_variable"] = target_variable  # Store the target variable
         state.metadata["full_reasoning"] = state.output.completion
+        state.metadata["prediction_type"] = prediction_type  # Store the prediction type
 
         # Store the raw model (without tags) in metadata for final_model_summary_solver to use
         current_model = f"""Specification: {model}
-Summary: {summary}"""
+Summary: {summary}
+Target Variable: {target_variable}
+Prediction Type: {prediction_type}"""
         state.metadata["current_model"] = current_model
 
         # We're not adding BIC or parameter recovery info here anymore
@@ -256,8 +305,11 @@ Summary: {summary}"""
 @solver
 def simulate_model_solver():
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        max_retries = 10
+        max_retries = CONFIG["fitting"]["max_retries"]
         retry_count = 0
+
+        # Initialize simulation_errors list in metadata if it doesn't exist
+        state.metadata.setdefault("simulation_errors", [])
 
         while retry_count < max_retries:
             try:
@@ -267,13 +319,16 @@ def simulate_model_solver():
                 dataset_info = state.metadata.get("dataset_info")
                 learnable_params = state.metadata.get("learnable_parameters", {})
 
+                # Track current retry attempt
+                state.metadata["current_retry"] = retry_count
+
                 # Format variable descriptions for the prompt
                 var_desc_formatted = json.dumps({"variables": var_desc}, indent=2)
 
                 # Update the prompt to use the formatted variable descriptions
                 prompt = f"""
                 Write Python code to simulate the following mathematical model using only Python standard library (no pandas or numpy).
-                The code should take a list of dictionaries as input (each dictionary representing a trial) and return the utility values for each trial.
+                The code should take a list of dictionaries as input (each dictionary representing a trial) and return a value for each trial.
 
                 IMPORTANT: Use these exact parameter names for learnable parameters: {list(learnable_params.keys())}
 
@@ -281,9 +336,9 @@ def simulate_model_solver():
                 1. Takes a list of dictionaries as input (each dictionary contains trial data)
                 2. Has parameter names that matches the variable descriptions exactly
                 3. Implements the mathematical model above using only standard Python math operations
-                4. Returns a list of utility values for each trial
+                4. Returns a list of model_predictions for each trial (please use the exact name "model_predictions" as the return value)
 
-                Your code will be implemented within the following code block:
+                Your code will be implemented within the following code block (please do not include any code outside of this code block, for instance, you should not include data_json = # imported from .json dumps, or data = json.loads(data_json)):
 
                 ```python
 import json
@@ -323,16 +378,16 @@ Variables available:
 
 <YOUR RESPONSE>
 def simulate_model(trial_data, beta=1, epsilon=1, eta=1):
-    utility_values = []
+    model_predictions = []
     for trial in trial_data:
         E = trial.get("environmental_cue", 0)
         u1, u2 = random.random(), random.random()
         N = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
-        utility_values.append(beta + (epsilon * E) + (eta * N))
-    return utility_values
+        model_predictions.append(beta + (epsilon * E) + (eta * N))
+    return model_predictions
 </YOUR RESPONSE>
 
-Now, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE UTLITY VALUES.
+Now, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE MODEL PREDICTIONS.
                 Model Specification:
                 {model_spec}
 
@@ -353,29 +408,44 @@ Dataset Structure:
                         "solver": "simulate_model_solver",
                         "input": current_prompt,
                         "output": state.output.completion,
+                        "timestamp": time.time(),
                     }
                 )
 
                 # Clean up the generated code
                 simulation_code = state.output.completion
 
-                # Extract the complete function definition including return statement
-                import re
+                # Remove any Markdown code block delimiters
+                simulation_code = simulation_code.replace("```python", "").replace(
+                    "```", ""
+                )
 
-                # Regex to capture the entire function including def and return
+                # Extract the complete function definition including return statement
                 function_match = re.search(
-                    r"(def\s+simulate_model\s*\(.*?\):.*?return\s+utility_values)",
+                    r"(def\s+simulate_model\s*\(.*?\):.*?return\s+model_predictions)",
                     simulation_code,
                     re.DOTALL,
                 )
+
                 if function_match:
-                    # Assign the entire function to simulation_code
+                    # Use only the matched function definition, not the entire code block
                     simulation_code = function_match.group(1).strip()
                 else:
-                    raise ValueError(
-                        "Could not find complete simulate_model function in generated code"
+                    error_msg = (
+                        "Could not extract simulate_model function from generated code"
                     )
-                # Eventually from here to the end of the function can be deletd, kept for now for debugging
+                    state.metadata["simulation_error"] = error_msg
+                    state.metadata["simulation_errors"].append(
+                        {
+                            "retry_number": retry_count,
+                            "error": error_msg,
+                            "timestamp": time.time(),
+                        }
+                    )
+                    retry_count += 1
+                    continue  # Skip to next retry without raising an exception
+
+                # Rest of the code to test the simulation...
                 try:
                     # First read and parse the CSV in the main process
                     import pandas as pd
@@ -401,28 +471,30 @@ Dataset Structure:
 
                     data_dicts_clean = replace_nan(data_dicts)
 
-                    # Modify the sandbox execution code block to ensure clean JSON output
-                    code = f"""
+                    # Add default parameters for all learnable parameters
+                    default_params = ", ".join(
+                        [f"{param}=0.5" for param in learnable_params.keys()]
+                    )
+
+                    # Create test code with explicit parameters and clean data
+                    test_code = f"""
 import json
 import math
+import random
 
 {simulation_code}
 
 # Data as list of dictionaries
 data = json.loads('''{json.dumps(data_dicts_clean)}''')
 
-try:
-    # Get results for the data
-    results = simulate_model(data)
-    # Ensure single-line JSON output
-    print(json.dumps({{"results": results}}).strip())
-except Exception as e:
-    print(json.dumps({{"error": str(e)}}).strip())
+# Get results for the data
+results = simulate_model(data, {default_params})
+print(json.dumps({{"results": results}}))
 """
 
-                    # Execute the code
+                    # Execute the test code
                     result = await sandbox().exec(
-                        cmd=["python", "-c", code],
+                        cmd=["python", "-c", test_code],
                         timeout=30,
                     )
 
@@ -436,57 +508,107 @@ except Exception as e:
                                 state.metadata["simulation_error"] = output_data[
                                     "error"
                                 ]
+                                # Add error to simulation_errors list
+                                state.metadata["simulation_errors"].append(
+                                    {
+                                        "retry_number": retry_count,
+                                        "error": output_data["error"],
+                                        "timestamp": time.time(),
+                                    }
+                                )
                                 state.output.completion = (
                                     f"Error in simulation: {output_data['error']}"
                                 )
+                                # Don't raise an exception, just increment retry counter and continue
+                                retry_count += 1
+                                continue
                             else:
+                                # Success! Store the results and return
                                 simulation_results = output_data["results"]
-                                # Flatten the results into a single list
-                                # state.metadata["simulation_results"] = simulation_results
                                 state.metadata["simulation_code"] = simulation_code
                                 state.output.completion = str(simulation_results)
+                                # Record total retries on success
+                                state.metadata["total_retries"] = retry_count
+                                return state
                         except json.JSONDecodeError as e:
-                            state.metadata["simulation_error"] = (
+                            error_msg = (
                                 f"JSON parsing error: {str(e)}\nOutput: {result.stdout}"
                             )
-                            state.output.completion = (
-                                f"Error parsing simulation output: {str(e)}"
+                            state.metadata["simulation_error"] = error_msg
+                            # Add error to simulation_errors list
+                            state.metadata["simulation_errors"].append(
+                                {
+                                    "retry_number": retry_count,
+                                    "error": error_msg,
+                                    "timestamp": time.time(),
+                                }
                             )
+                            # Don't raise an exception, just increment retry counter and continue
+                            retry_count += 1
+                            continue
                     else:
-                        state.metadata["simulation_error"] = result.stderr
+                        error_msg = result.stderr
+                        state.metadata["simulation_error"] = error_msg
+                        # Add error to simulation_errors list
+                        state.metadata["simulation_errors"].append(
+                            {
+                                "retry_number": retry_count,
+                                "error": error_msg,
+                                "timestamp": time.time(),
+                            }
+                        )
                         state.metadata["simulation_code"] = simulation_code
                         state.output.completion = (
                             f"Error in simulation: {result.stderr}"
                         )
+                        # Don't raise an exception, just increment retry counter and continue
+                        retry_count += 1
+                        continue
 
                 except Exception as e:
                     error_msg = str(e)
                     state.metadata["simulation_error"] = error_msg
-                    state.output.completion = f"Error in simulation: {error_msg}"
-
-                return state
+                    state.metadata["simulation_errors"].append(
+                        {
+                            "retry_number": retry_count,
+                            "error": error_msg,
+                            "timestamp": time.time(),
+                        }
+                    )
+                    retry_count += 1
+                    continue  # Continue to next retry without raising
 
             except Exception as e:
+                # This catches any exceptions in the outer try block
                 retry_count += 1
-                if retry_count >= max_retries:
-                    state.metadata["simulation_error"] = (
-                        f"Failed after {max_retries} attempts: {str(e)}"
-                    )
-                    state.output.completion = f"Error in simulation: {str(e)}"
-                    return state
+                error_msg = str(e)
 
-                # Try regenerating on failure and log the interaction
-                current_prompt = state.user_prompt.text
-                state = await generate(state)
-                state.metadata.setdefault("complete_model_interaction", []).append(
+                # Record error information
+                state.metadata["simulation_errors"].append(
                     {
-                        "solver": "simulate_model_solver",
-                        "input": current_prompt,
-                        "output": state.output.completion,
+                        "retry_number": retry_count,
+                        "error": error_msg,
+                        "timestamp": time.time(),
                     }
                 )
+
+                if retry_count >= max_retries:
+                    state.metadata["simulation_error"] = (
+                        f"Failed after {max_retries} attempts: {error_msg}"
+                    )
+                    state.metadata["total_retries"] = retry_count
+                    state.output.completion = f"Error in simulation: {error_msg}"
+                    return state
+
+                # Continue to next retry without raising
                 continue
 
+        # If we get here, we've exhausted all retries
+        state.metadata["total_retries"] = retry_count
+        state.metadata["simulation_error"] = "Failed after maximum retries"
+        state.output.completion = (
+            "Error: Failed to generate working simulation after maximum retries"
+        )
         return state
 
     return solve
@@ -495,82 +617,78 @@ except Exception as e:
 @solver
 def parameter_fitting_solver():
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        max_retries = CONFIG["fitting"]["max_retries"]
-        retry_count = 0
+        # Get necessary data from state
+        fitting_results = state.metadata.get("fitting_results", [])
+        simulation_code = state.metadata.get("simulation_code")
+        var_desc = state.metadata.get("variable_descriptions", {})
+        target_variable = state.metadata.get("target_variable")
 
-        while retry_count < max_retries:
+        # Update: Use config for dataset path
+        df = pd.read_csv(CONFIG["paths"]["dataset"])
+
+        all_results = []
+        participant_ids = df["ID"].unique()
+
+        # Get prediction type from config
+        prediction_type = CONFIG["comp_model_specifications"]["type"]
+
+        # Track skipped participants
+        skipped_participants = []
+
+        # Fit for each participant
+        for participant_id in participant_ids:
             try:
-                # Get necessary data from state
-                fitting_results = state.metadata.get("fitting_results", [])
-                simulation_code = state.metadata.get("simulation_code")
-                var_desc = state.metadata.get("variable_descriptions", {})
+                participant_data = df[df["ID"] == participant_id]
+                data_dicts = participant_data.to_dict("records")
 
-                # Update: Use config for dataset path
-                df = pd.read_csv(CONFIG["paths"]["dataset"])
-
-                all_results = []
-                participant_ids = df["ID"].unique()
-
-                # Fit for each participant
-                for participant_id in participant_ids:
-                    try:
-                        participant_data = df[df["ID"] == participant_id]
-                        data_dicts = participant_data.to_dict("records")
-
-                        fit_results = fit_participant(
-                            data_dicts,
-                            simulation_code,
-                            {
-                                k: v
-                                for k, v in var_desc.items()
-                                if v.get("learnable", False)
-                            },
-                        )
-
-                        if fit_results is not None:
-                            fit_results["participant_id"] = participant_id
-                            fit_results["n_trials"] = len(
-                                data_dicts
-                            )  # Add number of trials
-                            all_results.append(fit_results)
-
-                    except Exception as e:
-                        state.metadata.setdefault("fitting_warnings", []).append(
-                            f"Error fitting participant {participant_id}: {str(e)}"
-                        )
-                        continue
-
-                # Check if we got any results
-                if not all_results:
-                    raise ValueError("No successful parameter fits obtained")
-
-                state.metadata["fitting_results"] = all_results
-                state.output.completion = (
-                    f"Successfully fit parameters for {len(all_results)} participants"
+                fit_results = fit_participant(
+                    data_dicts,
+                    simulation_code,
+                    {k: v for k, v in var_desc.items() if v.get("learnable", False)},
+                    target_variable,  # Pass the target variable
+                    prediction_type,  # Pass the prediction type from config
                 )
-                return state
+
+                if fit_results is not None:
+                    fit_results["participant_id"] = participant_id
+                    fit_results["n_trials"] = len(data_dicts)  # Add number of trials
+                    all_results.append(fit_results)
 
             except Exception as e:
-                retry_count += 1
-                if retry_count >= max_retries:
-                    state.metadata["fitting_error"] = (
-                        f"Failed after {max_retries} attempts: {str(e)}"
-                    )
-                    state.output.completion = f"Error in parameter fitting: {str(e)}"
-                    return state
-
-                # Try regenerating on failure and log the interaction
-                current_prompt = state.user_prompt.text
-                state = await generate(state)
-                state.metadata.setdefault("complete_model_interaction", []).append(
-                    {
-                        "solver": "parameter_fitting_solver",
-                        "input": current_prompt,
-                        "output": state.output.completion,
-                    }
+                # Instead of just logging the error, add this participant to the skipped list
+                skipped_participants.append({
+                    "participant_id": participant_id,
+                    "error": str(e)
+                })
+                # Log the error but continue with other participants
+                state.metadata.setdefault("fitting_warnings", []).append(
+                    f"Error fitting participant {participant_id}: {str(e)}"
                 )
-                continue
 
+        # Store information about skipped participants
+        state.metadata["skipped_participants"] = skipped_participants
+        state.metadata["num_skipped_participants"] = len(skipped_participants)
+
+        # Check if we got any results after trying all participants
+        if not all_results:
+            state.metadata["fitting_error"] = "No successful parameter fits obtained"
+            state.output.completion = f"Error: No successful parameter fits obtained. All {len(skipped_participants)} participants were skipped."
+            return state
+
+        # Store results and return success
+        state.metadata["fitting_results"] = all_results
+        
+        # Include information about skipped participants in the completion message
+        if skipped_participants:
+            state.output.completion = (
+                f"Successfully fit parameters for {len(all_results)} participants. "
+                f"Skipped {len(skipped_participants)} participants due to errors."
+            )
+        else:
+            state.output.completion = (
+                f"Successfully fit parameters for {len(all_results)} participants."
+            )
+            
         return state
 
     return solve
@@ -592,17 +710,31 @@ def parameter_recovery_solver():
                     raise ValueError("simulate_model function not found")
 
                 # Generate utilities for all trials at once
-                utilities = local_vars["simulate_model"](
+                model_predictions = local_vars["simulate_model"](
                     participant_trials, **true_params
                 )
 
+                # Get prediction type and target variable
+                prediction_type = CONFIG["comp_model_specifications"]["type"]
+                target_variable = state.metadata.get("target_variable")
+
                 # Generate synthetic decisions for each trial
                 synthetic_data = []
-                for trial, utility in zip(participant_trials, utilities):
+                for trial, model_prediction in zip(
+                    participant_trials, model_predictions
+                ):
                     trial_copy = trial.copy()
-                    p_accept = stable_logistic(utility)
-                    decision = random.random() < p_accept
-                    trial_copy["accept"] = 1 if decision else 0
+
+                    # Handle different prediction types
+                    if prediction_type.lower() == "utility":
+                        # For utility models, convert to binary decision
+                        p_accept = stable_logistic(model_prediction)
+                        decision = random.random() < p_accept
+                        trial_copy[target_variable] = 1 if decision else 0
+                    else:
+                        # For numerical prediction models, use the prediction directly
+                        trial_copy[target_variable] = model_prediction
+
                     synthetic_data.append(trial_copy)
 
                 return synthetic_data
@@ -615,6 +747,7 @@ def parameter_recovery_solver():
             fitting_results = state.metadata.get("fitting_results", [])
             simulation_code = state.metadata.get("simulation_code")
             var_desc = state.metadata.get("variable_descriptions", {})
+            target_variable = state.metadata.get("target_variable")
 
             if not fitting_results:
                 raise ValueError("No fitting results found")
@@ -640,6 +773,9 @@ def parameter_recovery_solver():
             n_iterations = CONFIG["parameter_recovery"]["n_iterations"]
             recovery_results = []
 
+            # Get prediction type from config
+            prediction_type = CONFIG["comp_model_specifications"]["type"]
+
             for i in range(n_iterations):
                 # Randomly select a participant
                 random_participant = random.choice(participant_ids)
@@ -661,7 +797,11 @@ def parameter_recovery_solver():
                 try:
                     # Fit parameters directly using synthetic data
                     recovered_params = fit_participant(
-                        synthetic_data, simulation_code, learnable_params
+                        synthetic_data,
+                        simulation_code,
+                        learnable_params,
+                        target_variable,  # Pass the target variable
+                        prediction_type,  # Pass the prediction type
                     )
 
                     result = {
@@ -731,7 +871,7 @@ def parameter_recovery_solver():
 
 def calculate_bic(log_likelihood: float, n_trials: int, k_params: int) -> float:
     """
-    Calculate Bayesian Information Criterion (BIC).
+    Calculate Bayesian Information Criterion (BIC) using log likelihood.
 
     Args:
         log_likelihood: Log likelihood of the model
@@ -741,6 +881,33 @@ def calculate_bic(log_likelihood: float, n_trials: int, k_params: int) -> float:
     Returns:
         float: BIC value
     """
+    return -2 * log_likelihood + k_params * math.log(n_trials)
+
+
+def calculate_bic_from_mse(mse: float, n_trials: int, k_params: int) -> float:
+    """
+    Calculate Bayesian Information Criterion (BIC) using MSE.
+
+    For numerical prediction models, we convert MSE to log-likelihood assuming
+    Gaussian errors with variance = MSE.
+
+    Args:
+        mse: Mean squared error of the model
+        n_trials: Number of observations/trials
+        k_params: Number of free parameters in the model
+
+    Returns:
+        float: BIC value
+    """
+    # Convert MSE to log-likelihood under Gaussian error assumption
+    # log(L) = -n/2 * log(2π) - n/2 * log(MSE) - n/2
+    log_likelihood = (
+        -n_trials / 2 * math.log(2 * math.pi)
+        - n_trials / 2 * math.log(mse)
+        - n_trials / 2
+    )
+
+    # Calculate BIC using the standard formula
     return -2 * log_likelihood + k_params * math.log(n_trials)
 
 
@@ -782,14 +949,28 @@ def get_bic_summary(
     group_bics = {}  # e.g., { "cocaine": [bic1, bic2, ...], "control": [bic3, bic4, ...] }
 
     for result in fitting_results:
-        log_likelihood = result.get("log_likelihood")
         n_trials = result.get("n_trials")
         participant_id = result.get("participant_id")
+        prediction_type = result.get(
+            "prediction_type", "utility"
+        )  # Default to utility if not specified
 
-        if (log_likelihood is None) or (n_trials is None) or (participant_id is None):
+        # Skip if missing required data
+        if n_trials is None or participant_id is None:
             continue
 
-        bic_value = calculate_bic(log_likelihood, n_trials, k_params)
+        # Calculate BIC based on prediction type
+        if prediction_type.lower() == "utility":
+            log_likelihood = result.get("log_likelihood")
+            if log_likelihood is None:
+                continue
+            bic_value = calculate_bic(log_likelihood, n_trials, k_params)
+        else:  # numerical prediction
+            mse = result.get("mse")
+            if mse is None:
+                continue
+            bic_value = calculate_bic_from_mse(mse, n_trials, k_params)
+
         bic_values.append(bic_value)
 
         if group_analysis_enabled:
@@ -858,6 +1039,13 @@ def bic_solver():
                 for group, value in group_avg.items():
                     state.output.metrics[f"bic_{group}"] = value
 
+            # Get prediction type from the first result (assuming all are the same type)
+            prediction_type = (
+                fitting_results[0].get("prediction_type", "utility")
+                if fitting_results
+                else "utility"
+            )
+
             # Store full BIC results in metadata for detailed view
             state.metadata["bic_results"] = {
                 "average_bic": overall_avg,
@@ -865,7 +1053,10 @@ def bic_solver():
                 "group_enabled": group_enabled,
                 "group_bics": group_bics if group_enabled else None,
                 "num_parameters": k_params,
-                "bic_formula": "BIC = -2 * log_likelihood + k * log(n_trials)",
+                "prediction_type": prediction_type,
+                "bic_formula": "BIC = -2 * log_likelihood + k * log(n_trials)"
+                if prediction_type == "utility"
+                else "BIC calculated from MSE using Gaussian error assumption",
             }
 
             # Prepare a completion message showing the results
@@ -894,8 +1085,14 @@ def final_model_summary_solver():
             if not current_model:
                 model_spec = state.metadata.get("model_specification", "")
                 model_summary = state.metadata.get("model_summary", "")
+                target_variable = state.metadata.get("target_variable", "")
+                prediction_type = state.metadata.get(
+                    "prediction_type", CONFIG["comp_model_specifications"]["type"]
+                )
                 current_model = f"""Specification: {model_spec}
-Summary: {model_summary}"""
+Summary: {model_summary}
+Target Variable: {target_variable}
+Prediction Type: {prediction_type}"""
 
             # Get BIC value if available
             bic_value = state.metadata.get("average_bic")
@@ -938,9 +1135,12 @@ def verify() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         # Get the BIC results from the state metadata
         bic_results = state.metadata.get("bic_results", {})
+        prediction_type = state.metadata.get(
+            "prediction_type", CONFIG["comp_model_specifications"]["type"]
+        )
 
         # Create explanation string
-        explanation = "BIC Results:\n"
+        explanation = f"Model Type: {prediction_type}\n\nBIC Results:\n"
         if bic_results:
             explanation += f"Average BIC: {bic_results.get('average_bic', 'N/A')}\n"
             explanation += (

@@ -50,13 +50,14 @@ def random_starting_points(bounds: List[tuple], n_starts: int = 3) -> List[np.nd
     return points
 
 
-def negative_log_likelihood(
+def negative_log_likelihood_utility(
     params: np.ndarray,
     trial_data: List[Dict],
     simulation_code: str,
     param_names: List[str],
+    target_value_name: str,
 ) -> float:
-    """Calculate negative log likelihood for given parameters."""
+    """Calculate negative log likelihood for given parameters for binary choice models."""
     try:
         # Convert numpy values to Python floats
         params = [float(p) for p in params]
@@ -78,24 +79,96 @@ def negative_log_likelihood(
         total_ll = 0
         for utility, trial in zip(result, trial_data):
             p_accept = stable_logistic(utility)
-            actual_decision = trial["accept"]
+            actual_decision = trial[target_value_name]
             p = p_accept if actual_decision == 1 else (1 - p_accept)
             total_ll += np.log(p + 1e-10)
 
         return -total_ll
 
     except Exception as e:
+        print(f"Error in specific operation: {e}")
         raise ValueError(
             f"Error in likelihood calculation: {str(e)}\nParams: {param_dict}"
         )
+
+
+def mean_squared_error(
+    params: np.ndarray,
+    trial_data: List[Dict],
+    simulation_code: str,
+    param_names: List[str],
+    target_value_name: str,
+) -> float:
+    """Calculate mean squared error for numerical value prediction models. Skips trials where target value is nan or None."""
+    try:
+        # Convert numpy values to Python floats
+        params = [float(p) for p in params]
+
+        # Create parameter dictionary
+        param_dict = dict(zip(param_names, params))
+
+        # Create a local namespace for execution
+        local_vars = {"math": math, "random": random}
+
+        # Execute simulation code with current parameters
+        exec(simulation_code, local_vars)
+        predicted_values = local_vars["simulate_model"](trial_data, **param_dict)
+
+        if not isinstance(predicted_values, list):
+            raise ValueError(
+                f"simulate_model returned {type(predicted_values)}, expected list"
+            )
+
+        # Calculate MSE
+        total_squared_error = 0
+        valid_trials = 0
+        
+        for predicted, trial in zip(predicted_values, trial_data):
+            try:
+                actual_value = trial[target_value_name]
+                
+                # Skip trials where target value is nan or None
+                if actual_value is None or (isinstance(actual_value, float) and math.isnan(actual_value)):
+                    continue
+                
+                actual_value = float(actual_value)
+                squared_error = (predicted - actual_value) ** 2
+                total_squared_error += squared_error
+                valid_trials += 1
+            except (TypeError, ValueError, KeyError):
+                # Skip this trial if any errors occur
+                continue
+
+        # Check if we have any valid trials
+        if valid_trials == 0:
+            raise ValueError("No valid trials found for MSE calculation")
+            
+        mse = total_squared_error / valid_trials
+        return mse
+
+    except Exception as e:
+        raise ValueError(f"Error in MSE calculation: {str(e)}\nParams: {param_dict}")
 
 
 def fit_participant(
     participant_data: List[Dict],
     simulation_code: str,
     learnable_params: Dict[str, Dict],
+    target_value_name: str,
+    prediction_type: str,
 ) -> Dict[str, Any]:
-    """Fit parameters for a single participant."""
+    """Fit parameters for a single participant.
+
+    Args:
+        participant_data: List of dictionaries containing trial data
+        simulation_code: Python code string for the simulation model
+        learnable_params: Dictionary of learnable parameters with their constraints
+        target_value_name: Name of the target variable in the trial data
+        prediction_type: Type of prediction ("utility" or "numerical")
+
+    Returns:
+        Dictionary containing fitted parameters and optimization results
+    """
     try:
         bounds = get_param_bounds(learnable_params)
         param_names = list(learnable_params.keys())
@@ -104,13 +177,23 @@ def fit_participant(
         if not participant_data:
             raise ValueError("No data provided for participant")
 
-        if "accept" not in participant_data[0]:
-            raise ValueError("Missing 'accept' column in data")
+        if target_value_name not in participant_data[0]:
+            raise ValueError(f"Missing '{target_value_name}' column in data")
+
+        # Select the appropriate objective function based on prediction type
+        if prediction_type.lower() == "utility":
+            objective_function = negative_log_likelihood_utility
+            optimization_goal = "likelihood"  # We maximize likelihood
+        elif prediction_type.lower() == "numerical_variable_estimation":
+            objective_function = mean_squared_error
+            optimization_goal = "mse"  # We minimize MSE
+        else:
+            raise ValueError(f"Unsupported prediction type: {prediction_type}")
 
         minimizer_kwargs = {
             "method": "L-BFGS-B",
             "bounds": bounds,
-            "args": (participant_data, simulation_code, param_names),
+            "args": (participant_data, simulation_code, param_names, target_value_name),
             "options": {
                 "maxiter": 1000,
                 "ftol": 1e-6,
@@ -121,27 +204,51 @@ def fit_participant(
         initial_points = random_starting_points(bounds, n_starts=3)
 
         best_result = None
-        best_likelihood = float("-inf")
+        best_objective = float("inf")  # For minimization (both -LL and MSE)
 
         optimization_errors = []
 
         for init_params in initial_points:
             try:
-                # Test the likelihood function first
-                test_ll = negative_log_likelihood(
-                    init_params, participant_data, simulation_code, param_names
+                # Test the objective function first
+                test_objective = objective_function(
+                    init_params,
+                    participant_data,
+                    simulation_code,
+                    param_names,
+                    target_value_name,
                 )
 
-                if not np.isfinite(test_ll):
-                    raise ValueError(f"Initial likelihood is not finite: {test_ll}")
+                if not np.isfinite(test_objective):
+                    raise ValueError(
+                        f"Initial objective value is not finite: {test_objective}"
+                    )
 
-                result = minimize(
-                    negative_log_likelihood, init_params, **minimizer_kwargs
-                )
+                result = minimize(objective_function, init_params, **minimizer_kwargs)
 
-                if result.success and -result.fun > best_likelihood:
+                # For likelihood, we negate the fun value to get the actual LL
+                # For MSE, we use the fun value directly
+                current_objective = result.fun
+                if optimization_goal == "likelihood":
+                    current_objective = (
+                        -current_objective
+                    )  # Convert back to LL from -LL
+
+                # For likelihood, higher is better. For MSE, lower is better.
+                # We're minimizing, so for likelihood we want to compare negated values
+                is_better = False
+                if optimization_goal == "likelihood":
+                    is_better = (
+                        current_objective > best_objective if best_result else True
+                    )
+                else:  # MSE
+                    is_better = (
+                        current_objective < best_objective if best_result else True
+                    )
+
+                if result.success and is_better:
                     best_result = result
-                    best_likelihood = -result.fun
+                    best_objective = current_objective
 
             except Exception as e:
                 optimization_errors.append(str(e))
@@ -155,13 +262,25 @@ def fit_participant(
         # Create results dictionary
         fit_results = {name: value for name, value in zip(param_names, best_result.x)}
 
-        fit_results.update(
-            {
-                "success": best_result.success,
-                "log_likelihood": -best_result.fun,
-                "optimization_message": best_result.message,
-            }
-        )
+        # Store appropriate metric in results
+        if optimization_goal == "likelihood":
+            fit_results.update(
+                {
+                    "success": best_result.success,
+                    "log_likelihood": -best_result.fun,  # Convert back to log likelihood from negative log likelihood
+                    "optimization_message": best_result.message,
+                    "prediction_type": "utility",
+                }
+            )
+        else:  # MSE
+            fit_results.update(
+                {
+                    "success": best_result.success,
+                    "mse": best_result.fun,  # MSE is already in the correct format
+                    "optimization_message": best_result.message,
+                    "prediction_type": "numerical",
+                }
+            )
 
         return fit_results
 

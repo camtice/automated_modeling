@@ -101,42 +101,104 @@
         /* NEW TOOLTIP STYLES */
         .variable-hover {
             position: relative;
-            cursor: help;
-            z-index: 1;
+            display: inline-block;
         }
         .variable-tooltip {
             display: none;
             position: fixed;
             z-index: 9999;
-            background-color: rgba(0, 0, 0, 0.95);
-            color: #fff;
+            background-color: #1e1e1e;
+            color: white;
             padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.9em;
+            border-radius: 6px;
+            font-size: 0.85em;
             width: max-content;
             max-width: 300px;
-            white-space: pre-wrap;
+            white-space: pre-line;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
             pointer-events: none;
-        }
-        .variable-hover:hover .variable-tooltip {
-            display: block;
         }
         .variable-tooltip::before {
             content: "";
             position: absolute;
-            border: 5px solid transparent;
+            border-width: 6px;
+            border-style: solid;
         }
         .variable-tooltip[style*="--arrow-position: bottom"]::before {
-            border-top-color: rgba(0, 0, 0, 0.95);
-            bottom: -10px;
+            bottom: -12px;
             left: 50%;
             transform: translateX(-50%);
+            border-color: #1e1e1e transparent transparent transparent;
         }
         .variable-tooltip[style*="--arrow-position: top"]::before {
-            border-bottom-color: rgba(0, 0, 0, 0.95);
-            top: -10px;
+            top: -12px;
             left: 50%;
             transform: translateX(-50%);
+            border-color: transparent transparent #1e1e1e transparent;
+        }
+        
+        /* Model Interaction History Styles */
+        .interaction-timestamp {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: normal;
+        }
+        .interaction-name {
+            font-weight: 500;
+            color: #212529;
+        }
+        .accordion-button {
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+        }
+        .accordion-button:not(.collapsed) {
+            background-color: #f0f7ff;
+        }
+        .accordion-button .badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            min-width: 24px;
+        }
+        .nav-tabs .nav-link {
+            padding: 0.5rem 1rem;
+            font-size: 0.95rem;
+        }
+        #interactionAccordion pre {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            tab-size: 4;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        #interactionAccordion pre::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        #interactionAccordion pre::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        #interactionAccordion pre::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        #interactionAccordion pre::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        /* Styles for the Errors tab */
+        .error-history pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: rgba(0,0,0,.125);
+        }
+        .error-count-badge {
+            font-size: 0.9em;
+            padding: 0.25em 0.6em;
+            margin-left: 0.5em;
         }
     </style>
 </head>
@@ -210,6 +272,14 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config" type="button" role="tab">
                     Configuration
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button" role="tab">
+                    Errors
+                    {% if metadata.get('simulation_errors') %}
+                        <span class="badge bg-danger error-count-badge">{{ metadata.get('simulation_errors')|length }}</span>
+                    {% endif %}
                 </button>
             </li>
         </ul>
@@ -333,6 +403,141 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Errors Tab -->
+            <div class="tab-pane fade" id="errors" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="h5 mb-3">Simulation Retry Information</h4>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                {% if metadata.get('total_retries') is not none %}
+                                    <div class="alert alert-info">
+                                        <strong>Total Retries:</strong> {{ metadata.get('total_retries') }}
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-info">
+                                        <strong>Total Retries:</strong> Not available
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                {% if metadata.get('simulation_error') %}
+                                    <div class="alert alert-danger">
+                                        <strong>Last Error:</strong>
+                                        <pre class="mb-0 mt-2 small">{{ metadata.get('simulation_error') }}</pre>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-success">
+                                        <strong>No errors</strong> in final simulation
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if metadata.get('simulation_errors') %}
+                            <h5 class="h6 mt-4 mb-3">Error History</h5>
+                            <div class="error-history table-responsive">
+                                <table class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 10%">Retry #</th>
+                                            <th style="width: 70%">Error</th>
+                                            <th style="width: 20%">Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for error in metadata.get('simulation_errors', []) %}
+                                            <tr>
+                                                <td>{{ error.retry_number }}</td>
+                                                <td><pre class="mb-0 small">{{ error.error }}</pre></td>
+                                                <td>{{ error.timestamp|timestamp_to_datetime }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success mt-3">
+                                <strong>No errors recorded</strong> - The simulation ran successfully on the first attempt.
+                            </div>
+                        {% endif %}
+                        
+                        {% if metadata.get('complete_model_interaction') %}
+                            <h5 class="h6 mt-4 mb-3">Model Interaction History</h5>
+                            <div class="accordion" id="interactionAccordion">
+                                {% for interaction in metadata.get('complete_model_interaction') %}
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                    data-bs-target="#interaction{{ loop.index }}" aria-expanded="false">
+                                                <span class="me-2 badge rounded-pill bg-primary">{{ loop.index }}</span>
+                                                <span class="interaction-name">{{ interaction.solver }}</span>
+                                                {% if interaction.timestamp %}
+                                                    <span class="interaction-timestamp ms-auto">{{ interaction.timestamp|timestamp_to_datetime }}</span>
+                                                {% endif %}
+                                            </button>
+                                        </h2>
+                                        <div id="interaction{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#interactionAccordion">
+                                            <div class="accordion-body">
+                                                <ul class="nav nav-tabs mb-3" id="interaction-tabs-{{ loop.index }}" role="tablist">
+                                                    <li class="nav-item" role="presentation">
+                                                        <button class="nav-link active" id="input-tab-{{ loop.index }}" data-bs-toggle="tab" 
+                                                                data-bs-target="#input-content-{{ loop.index }}" type="button" role="tab" 
+                                                                aria-controls="input-content-{{ loop.index }}" aria-selected="true">
+                                                            Input Prompt
+                                                        </button>
+                                                    </li>
+                                                    <li class="nav-item" role="presentation">
+                                                        <button class="nav-link" id="output-tab-{{ loop.index }}" data-bs-toggle="tab" 
+                                                                data-bs-target="#output-content-{{ loop.index }}" type="button" role="tab" 
+                                                                aria-controls="output-content-{{ loop.index }}" aria-selected="false">
+                                                            Model Output
+                                                        </button>
+                                                    </li>
+                                                    <li class="nav-item ms-auto" role="presentation">
+                                                        <button class="btn btn-sm btn-outline-secondary copy-btn" 
+                                                                data-target-tab="input-content-{{ loop.index }}"
+                                                                title="Copy to clipboard">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+                                                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
+                                                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
+                                                            </svg>
+                                                            <span class="visually-hidden">Copy</span>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary print-btn ms-1"
+                                                                data-target-tab="input-content-{{ loop.index }}"
+                                                                title="Print content">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+                                                                <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+                                                                <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 14h6a1 1 0 0 0 1-1v-1H4v1a1 1 0 0 0 1 1m7-1V8H4v8zm2-1a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+                                                                <path d="M5 11.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z"/>
+                                                            </svg>
+                                                            <span class="visually-hidden">Print</span>
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                                
+                                                <div class="tab-content">
+                                                    <div class="tab-pane fade show active" id="input-content-{{ loop.index }}" role="tabpanel" 
+                                                         aria-labelledby="input-tab-{{ loop.index }}">
+                                                        <pre class="bg-light p-3 rounded small" style="height: 500px; overflow: auto;">{{ interaction.input }}</pre>
+                                                    </div>
+                                                    <div class="tab-pane fade" id="output-content-{{ loop.index }}" role="tabpanel" 
+                                                         aria-labelledby="output-tab-{{ loop.index }}">
+                                                        <pre class="bg-light p-3 rounded small" style="height: 500px; overflow: auto;">{{ interaction.output }}</pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -422,7 +627,140 @@
             modelSpec.innerHTML = highlightedText;
         }
         
-        document.addEventListener('DOMContentLoaded', highlightParameters);
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize parameter highlighting
+            highlightParameters();
+            
+            // Add listeners to adjust pre elements when an accordion item is expanded
+            document.querySelectorAll('#interactionAccordion .accordion-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Wait for collapse animation to complete
+                    setTimeout(() => {
+                        const collapseId = this.getAttribute('data-bs-target');
+                        const collapseEl = document.querySelector(collapseId);
+                        
+                        if (collapseEl && this.getAttribute('aria-expanded') === 'true') {
+                            // Auto-resize code blocks when accordion is opened
+                            const preElements = collapseEl.querySelectorAll('pre');
+                            preElements.forEach(pre => {
+                                // Set initial height to content height (up to 500px max)
+                                const contentHeight = Math.min(pre.scrollHeight, 500);
+                                pre.style.height = contentHeight + 'px';
+                            });
+                            
+                            // Update copy/print buttons to target the active tab
+                            const activeTabPane = collapseEl.querySelector('.tab-pane.active');
+                            if (activeTabPane) {
+                                const tabId = activeTabPane.id;
+                                collapseEl.querySelectorAll('.copy-btn, .print-btn').forEach(btn => {
+                                    btn.setAttribute('data-target-tab', tabId);
+                                });
+                            }
+                        }
+                    }, 350);
+                });
+            });
+            
+            // Add listeners for tab switching to adjust pre element height and update copy/print buttons
+            document.querySelectorAll('.nav-tabs .nav-link').forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function() {
+                    const targetId = this.getAttribute('data-bs-target');
+                    const targetPane = document.querySelector(targetId);
+                    if (targetPane) {
+                        const pre = targetPane.querySelector('pre');
+                        if (pre) {
+                            // Adjust height based on content (up to 500px max)
+                            const contentHeight = Math.min(pre.scrollHeight, 500);
+                            pre.style.height = contentHeight + 'px';
+                        }
+                        
+                        // Update copy/print buttons to target this tab
+                        const accordionBody = targetPane.closest('.accordion-body');
+                        if (accordionBody) {
+                            accordionBody.querySelectorAll('.copy-btn, .print-btn').forEach(btn => {
+                                btn.setAttribute('data-target-tab', targetId.substring(1)); // Remove the # prefix
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Handle copy button clicks
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-target-tab');
+                    const tabPane = document.getElementById(tabId);
+                    if (tabPane) {
+                        const pre = tabPane.querySelector('pre');
+                        if (pre) {
+                            const textToCopy = pre.textContent;
+                            navigator.clipboard.writeText(textToCopy).then(() => {
+                                // Show success feedback
+                                const originalTitle = this.getAttribute('title');
+                                this.setAttribute('title', 'Copied!');
+                                this.classList.add('btn-success');
+                                this.classList.remove('btn-outline-secondary');
+                                
+                                // Reset button after a short delay
+                                setTimeout(() => {
+                                    this.setAttribute('title', originalTitle);
+                                    this.classList.remove('btn-success');
+                                    this.classList.add('btn-outline-secondary');
+                                }, 2000);
+                            }).catch(err => {
+                                console.error('Failed to copy text: ', err);
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Handle print button clicks
+            document.querySelectorAll('.print-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-target-tab');
+                    const tabPane = document.getElementById(tabId);
+                    if (tabPane) {
+                        const pre = tabPane.querySelector('pre');
+                        if (pre) {
+                            const content = pre.textContent;
+                            const interactionHeader = this.closest('.accordion-item').querySelector('.accordion-button').textContent.trim();
+                            const tabLabel = this.closest('.accordion-body').querySelector('.nav-link.active').textContent.trim();
+                            
+                            // Create a new window for printing
+                            const printWindow = window.open('', '_blank');
+                            printWindow.document.write(`
+                                <html>
+                                <head>
+                                    <title>${interactionHeader} - ${tabLabel}</title>
+                                    <style>
+                                        body { font-family: monospace; white-space: pre-wrap; padding: 20px; }
+                                        header { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+                                        h1 { font-size: 16px; margin-bottom: 5px; }
+                                        h2 { font-size: 14px; color: #666; margin-top: 0; }
+                                        pre { white-space: pre-wrap; font-size: 12px; line-height: 1.5; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <header>
+                                        <h1>${interactionHeader}</h1>
+                                        <h2>${tabLabel}</h2>
+                                    </header>
+                                    <pre>${content}</pre>
+                                </body>
+                                </html>
+                            `);
+                            printWindow.document.close();
+                            
+                            // Allow a moment for the content to load before printing
+                            setTimeout(() => {
+                                printWindow.print();
+                            }, 250);
+                        }
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html> 
