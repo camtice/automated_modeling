@@ -1,0 +1,30 @@
+<think>
+For run 86, we aim to push the nonlinear modulation even further by incorporating additional higher‐order terms in the dynamic threshold factor and by refining the extra blending composite. In the adaptive transformation step (Step 6), we now incorporate an extra cubic term (e.g., 0.00005×a³) to better capture extreme variability. In the extra blending composite (Step 7), instead of a fixed squared hyperbolic cosine factor, we recommend modifying its exponent to be dynamic—for example, using [1 + cosh(0.001×a)]^(2 + 0.0005×a) to further stabilize extreme values. We also encourage experimentation with slight adjustments to the final exponent (which remains close to 0.942) if it improves recovery. All other steps remain similar, and the three learnable parameters (beta, gamma, phi) continue with the bounds beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5]. These modifications should further lower BIC, improve accuracy, and enhance parameter recovery.
+</think>
+
+New Instructions for Run 86 of 200:
+1. Compute the core sum “a” as the sum of the fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by 1.08.
+4. Sequentially modulate this scaled value using these factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Denote the result after these modulations as z.
+6. Define the adaptive transformation function f_adapt(z) as:
+  f_adapt(z) = { 0.01 × z if z < 0; min(z, 1 + ln(1 + z)) if z ≥ 0 },
+  then multiply f_adapt(z) by a dynamic thresholding factor [1 + 0.0005 × a² + 0.00005 × a³].
+7. For the extra blending composite, compute:
+  extra = ( exp(–a/0.1) × [z/(1 + |z|)] × [1 + 0.005 × sin(1/(1 + a))] × ln(1 + exp(0.865/(1 + a))) × [1 – 0.002 × cos(a)] × [1 – 0.0025 × cos(2.5 × a)] × [1 + 0.001 × a] × [1 + cosh(0.001 × a)]^(2 + 0.0005 × a) + 1e–6 )^(0.942).
+  Feel free to experiment with the exponent on the hyperbolic cosine term to further stabilize extreme values.
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × extra )^(0.942).
+9. Compute the latent utility: U = beta + gamma × f(x), and then obtain the acceptance probability via the logistic function: P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with these bounds:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+
+Encourage out‐of‐the‐box experimentation in Steps 6 and 7 to further enhance accuracy, lower BIC, and improve parameter recovery.

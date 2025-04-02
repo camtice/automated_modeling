@@ -1,0 +1,26 @@
+<think>
+For run 99, we want to encourage even more creative adaptive activation functions while emphasizing improvements in accuracy, a lower BIC, and better parameter recovery. We will urge exploring alternatives to the standard piecewise logarithmic transform in f_adapt – for example, a leaky or parametric ReLU variant or even a convex combination between a linear and logarithmic response. Also, the dynamic threshold T should incorporate an additional cubic or quartic term to flexibly capture curvature. Moreover, the extra blending composite should be revisited: consider weighting the softplus term more heavily (or even combining it with a linear term using a learnable mixing coefficient, though that mixing coefficient is fixed in our learnable set) to better handle extreme values and avoid overcompression. Emphasize that the overall model structure must remain intact and that exactly three learnable parameters must be preserved (beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5]). Encourage out‐of‐the‐box experimentation with these adaptive components, as creative modifications here can yield improved BIC, better parameter recovery, and higher predictive accuracy.
+</think>
+
+New Instructions for Run 99 of 200:
+1. Compute the core sum “a” as the sum of fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)], then scale the result by 1.08.
+3. Sequentially modulate the scaled value with:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+4. Define the resulting value as z.
+5. For the adaptive transformation f_adapt(z), instead of the basic piecewise function, experiment with a flexible activation such as a parametric or leaky ReLU, or a convex blend of a linear term and a logarithmic term. Keep the overall idea that for z < 0 an amplified linear response is applied, and for z ≥ 0 a saturating logarithmic response is used.
+6. Multiply f_adapt(z) by a dynamic threshold T defined as:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ plus an additional small cubic/quartic term (e.g., 0.000001×a³) to allow for extra curvature.
+7. Compute the extra blending composite as:
+  extra = ( exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [softplus(0.865/(1+a)) + 0.1×(0.865/(1+a))] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 )^(0.944 + 0.00015×ln(1+a)).
+  Consider blending the softplus term with an alternative (e.g., increasing its weight or adding a linear component) to better capture extreme behaviors.
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × T × extra )^(0.944 + 0.00015×ln(1+a) ).
+9. Compute the latent utility U = beta + gamma × f(x) and then obtain the acceptance probability:
+  P(accept = 1) = 1/(1 + exp(–U)).
+10. Retain exactly three learnable parameters with fixed bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+Encourage innovative, out-of-the-box modifications to the adaptive transformation and extra blending composite while keeping the overall model structure intact. Aim to lower BIC, improve parameter recovery, and increase accuracy through these flexible nonlinear components.

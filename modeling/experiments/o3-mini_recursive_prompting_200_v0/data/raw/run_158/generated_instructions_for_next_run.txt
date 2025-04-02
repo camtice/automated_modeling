@@ -1,0 +1,48 @@
+<think>
+For the new instructions, we want to further enhance model flexibility by adding extra nonlinear interactions and oscillatory modulations, increase the negative‐branch penalty (raise its exponent from 46 to 48), and include additional multiplicative factors in the extra composite term. Encourage the inclusion of two new factors: one based on a sigmoid (e.g., [1 + sigmoid(0.14×a)]) and one on tanh (e.g., [1 + tanh(0.35×a)]), as well as an extra oscillatory term [1 + sin(4.2×a)]. In addition, instruct that the nested softplus should be applied eight times in succession instead of seven to add further smoothness. Extend the dynamic threshold T by either extending the summation (for instance, sum from k=0 to 120) or by using a flexible rational-function formulation. Finally, modify the exponent modulation term by multiplying it by an extra factor [1 + 0.009×tanh(0.5×a) + 0.004×sin(3.5×a) + 0.003×cos(2.7×a) + 0.002×sin(4.0×a)]. Also encourage integrating additional novel interactions (for example, piecewise behavior in f_adapt or extra polynomial terms) to capture localized nonlinear effects. These changes should help improve overall accuracy, lower BIC, and boost parameter recovery.
+</think>
+
+New Instructions for Run 159:
+
+1. Compute the core sum a as the sum of fixed components F₁,…,F₁₁ plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Multiply a_mod sequentially by the following factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+ Define z as the resulting product.
+4. Compute w = (phi − 0.5) / phi.
+  • For z ≥ 0, set f_adapt(z) = clip[1.002 × (z^w × (ln(1+z))^(1−w) × softsign(z)), −30, 30] where softsign(x) = x/(1+|x|).
+  • For z < 0, set f_adapt(z) = phi × [softsign(z + Δ_shift)]^(48), with Δ_shift = 1×10^(–6).
+5. Define the dynamic threshold T as the sum from k = 0 to 120 of (a^k × (½)^k); alternatively, a flexible rational function that allows extra flexibility may be used.
+6. Define the extra composite term extra as the product of:
+  • exp(–a/0.1)
+  • [z/(1 + |z|)]
+  • [1 + 0.005 × sin(1/(1+a))]
+  • [1 + 0.002 × cos(0.5×a)]
+  • ([1 + 0.003 × cos(0.3×a)]²)
+  • ([1 + 0.004 × cos(0.3×a)]²)
+  • [1 + 0.0025 × cos(0.7×a)]
+  • [1 + tanh(0.05×a)]
+  • [1 + sigmoid(0.01×a)]
+  • [1 + 0.002 × cos(3×a)]
+  • [1 + 0.002 × (sin(2.5×a) + 0.001 × cos(3.5×a) + 0.0015 × sin(3×a))]
+  • [1 + sigmoid(0.03×a)]
+  • [1 + tanh(0.07×a)]
+  • [1 + cos(3.1×a)]
+  • [1 + sigmoid(0.04×a)]
+  • [1 + tanh(0.08×a)]
+  • [1 + cos(3.2×a)]
+  • [1 + sigmoid(0.05×a)]
+  • [1 + tanh(0.1×a)]
+  • [1 + cos(3.4×a)]
+  • [1 + sigmoid(0.06×a)]        (new)\n  • [1 + tanh(0.12×a)]        (new)\n  • [1 + cos(3.6×a)]        (new)\n  • [1 + sigmoid(0.08×a)]        (new)\n  • [1 + tanh(0.2×a)]        (new)\n  • [1 + cos(4.2×a)]        (new)\n  • [1 + sin(4.0×a)]        (new)\n  • [1 + sigmoid(0.12×a)]        (new)\n  • [1 + tanh(0.3×a)]         (new)\n  • [1 + sin(4.2×a)]         (new)\nAlso, multiply extra by a Gaussian radial basis function exp(–((a – 1)²)/(2×(0.25)²)). Then, nest one additional softplus layer so that softplus is applied eight times in succession to 0.865/(1+a).
+7. Define the final exponent modulation factor as:
+  Exponent = [0.9478 + 0.00018 × ln(1+a)] × [1 + 0.009 × tanh(0.5×a) + 0.004 × sin(3.5×a) + 0.003 × cos(2.7×a) + 0.002 × sin(4.0×a)].
+8. Compute the final transformed signal: f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and then define P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+
+Encourage creative nonlinear interactions and the exploration of additional piecewise or rational formulations to better capture localized nonlinear effects and cyclic patterns.

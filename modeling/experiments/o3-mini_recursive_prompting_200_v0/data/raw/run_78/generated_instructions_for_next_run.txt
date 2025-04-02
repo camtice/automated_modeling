@@ -1,0 +1,28 @@
+<think>
+For run 79, we want to further refine the extra blending composite and adaptive transformation to better stabilize the transformation and capture higher-order nonlinearities. In this run, instruct the model to incorporate an extra dynamic thresholding step within the adaptive transformation to guard against extreme values. Also, add a secondary non‐linear modulation term – for example, a hyperbolic cosine factor or a squared term – to enhance the blending composite. Slightly decrease the softplus constant from 0.88 to 0.87 and increase the final exponent from 0.937 to 0.94, allowing for a more flexible compression. Continue using the same three learnable parameters with the same bounds but encourage out‐of‐the‐box creative modifications in these extra stages.
+</think>
+New Instructions for Run 79 of 200:
+1. Compute the core sum “a” as the sum of the fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by 1.08.
+4. Sequentially modulate the scaled value using these five factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Let z denote the result after these modulations.
+6. Define the adaptive transformation function f_adapt(z) as:
+  f_adapt(z) = { 0.01 × z if z < 0; min(z, 1 + ln(1 + z)) if z ≥ 0 }.
+  Then, introduce a dynamic thresholding factor inside f_adapt, for example, by integrating an additional term such as [1 + 0.0005 × a²].
+7. For the extra blending composite, compute:
+  extra = ( exp(–a/0.1) × [z/(1 + |z|)] × [1 + 0.005 × sin(1/(1 + a))] × ln(1 + exp(0.87/(1 + a))) × [1 – 0.002 × cos(a)] × [1 – 0.0025 × cos(2.5 × a)] × [1 + 0.001 × a] × [1 + cosh(0.001 × a)] + 1e–6 )^(0.94).
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × extra )^(0.94).
+9. Compute the latent utility: U = beta + gamma × f(x), and then calculate the acceptance probability via the logistic function: P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with these bounds:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+
+Focus on encouraging innovative, out‐of‐the‐box modifications in the extra blending and adaptive transformation stages to further improve accuracy, lower BIC, and enhance parameter recovery, while keeping the computation efficient.

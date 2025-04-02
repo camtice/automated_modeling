@@ -4,7 +4,6 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import get_model
 from inspect_ai.scorer import (
-    match,
     metric,
     Metric,
     Score,
@@ -24,56 +23,22 @@ from typing import Dict, Any, List
 import json
 import random
 import math
-import traceback
-import os
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
-import numpy as np
 from model_utils import fit_participant, stable_logistic, get_dataset_info
 import statistics
 import yaml
 from pathlib import Path
-import shutil
 from inspect_ai.model import GenerateConfig
 import time
 import re
+import logging
+
+# importing solvers
+# from solvers.model_design import model_design_solver
 
 
-def validate_config(config: Dict[str, Any]) -> None:
-    """Validate configuration structure and required fields."""
-    required_fields = {
-        "paths": ["dataset", "plot_output"],
-        "model": ["name"],
-        "parameter_recovery": ["n_iterations"],
-        "system": ["prompt"],
-        "comp_model_specifications": ["type"],
-    }
-
-    for section, fields in required_fields.items():
-        if section not in config:
-            raise ValueError(f"Missing required section: {section}")
-
-        for field in fields:
-            if field not in config[section]:
-                raise ValueError(
-                    f"Missing required field '{field}' in section '{section}'"
-                )
-
-    # Validate paths exist
-    dataset_path = Path(config["paths"]["dataset"])
-    if not dataset_path.exists():
-        raise FileNotFoundError(f"Dataset not found: {dataset_path}")
-
-    # Validate comp_model_specifications.type
-    valid_model_types = ["utility", "numerical_variable_estimation"]
-    model_type = config["comp_model_specifications"]["type"]
-    if model_type not in valid_model_types:
-        raise ValueError(
-            f"Invalid model type: {model_type}. Must be one of: {', '.join(valid_model_types)}"
-        )
-
-
-def load_config(config_path= None) -> dict:
+def load_config(config_path=None) -> dict:
     """Load configuration from YAML file with fallback to default config."""
     # Get the directory containing this script
     base_dir = Path(__file__).parent
@@ -95,6 +60,9 @@ def load_config(config_path= None) -> dict:
 
     with open(prompts_dir / "model_output_description.txt", "r") as f:
         config["model_output_description"] = f.read().strip()
+
+    with open(prompts_dir / "instructions.txt", "r") as f:
+        config["instructions"] = f.read().strip()
 
     # Get dataset information
     dataset_info = ""
@@ -149,9 +117,9 @@ def model_design_solver():
         prediction_type_info = ""
         if prediction_type.lower() == "utility":
             prediction_type_info = """
-Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function, and then used to predict binary decisions.
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.
 """
-        elif prediction_type.lower() == "numerical_variable_estimation":  #numerical_variable_estimation
+        elif prediction_type.lower() == "numerical_variable_estimation":
             prediction_type_info = """
 Your model should directly predict a numerical value (not a binary choice). The model's predictions will be compared to actual values using mean squared error.
 """
@@ -160,6 +128,16 @@ Your model should directly predict a numerical value (not a binary choice). The 
 
         # Combine the task description with desired output description
         output_description = state.metadata["output_description"]
+
+        # Read instructions from metadata
+        current_instructions = state.metadata.get("instructions")
+        if not current_instructions:
+            # Fallback or error if instructions somehow weren't set in metadata
+            logging.error("Instructions not found in state metadata!")
+            # Handle appropriately - maybe use a default or raise error
+            current_instructions = (
+                "Default instructions if metadata missing."  # Example fallback
+            )
 
         # Check if output_description already contains "Previous Models:"
         if "Previous Models:" in output_description:
@@ -171,6 +149,8 @@ Desired Output Specification: {output_description}
 
 Model Type: {prediction_type_info}
 
+Instructions: {current_instructions}
+
 Please think through this step by step, then provide your model specification and variable descriptions.
 """.strip()
         else:
@@ -181,6 +161,8 @@ Task Description: {state.metadata["task_description"]}
 Desired Output Specification: {output_description}
 
 Model Type: {prediction_type_info}
+
+Instructions: {current_instructions}
 
 Previous Models:{previous_models if previous_models else "Not Provided"}
 
@@ -656,10 +638,9 @@ def parameter_fitting_solver():
 
             except Exception as e:
                 # Instead of just logging the error, add this participant to the skipped list
-                skipped_participants.append({
-                    "participant_id": participant_id,
-                    "error": str(e)
-                })
+                skipped_participants.append(
+                    {"participant_id": participant_id, "error": str(e)}
+                )
                 # Log the error but continue with other participants
                 state.metadata.setdefault("fitting_warnings", []).append(
                     f"Error fitting participant {participant_id}: {str(e)}"
@@ -675,9 +656,21 @@ def parameter_fitting_solver():
             state.output.completion = f"Error: No successful parameter fits obtained. All {len(skipped_participants)} participants were skipped."
             return state
 
+        # Calculate and store overall accuracy if this is a utility model
+        if prediction_type.lower() == "utility":
+            # Get all accuracy values from results
+            accuracy_values = [
+                result.get("accuracy", 0)
+                for result in all_results
+                if "accuracy" in result
+            ]
+            if accuracy_values:
+                overall_accuracy = sum(accuracy_values) / len(accuracy_values)
+                state.metadata["overall_accuracy"] = overall_accuracy
+
         # Store results and return success
         state.metadata["fitting_results"] = all_results
-        
+
         # Include information about skipped participants in the completion message
         if skipped_participants:
             state.output.completion = (
@@ -688,7 +681,7 @@ def parameter_fitting_solver():
             state.output.completion = (
                 f"Successfully fit parameters for {len(all_results)} participants."
             )
-            
+
         return state
 
     return solve
@@ -1027,17 +1020,17 @@ def bic_solver():
             # Save the overall average BIC directly into the metadata
             state.metadata["average_bic"] = overall_avg
 
+            # Get overall accuracy if it was calculated
+            overall_accuracy = state.metadata.get("overall_accuracy")
+            accuracy_message = ""
+            if overall_accuracy is not None:
+                accuracy_message = f"\nOverall Accuracy: {overall_accuracy:.4f}"
+
             # If group analysis is enabled, save each group's average BIC in the metadata
             if group_enabled:
                 for group, avg_value in group_avg.items():
                     # For example, if group is "cocaine", the key becomes "bic_cocaine"
                     state.metadata[f"bic_{group}"] = avg_value
-
-            # Store BIC values in state.output.metrics for CSV output
-            state.output.metrics["average_bic"] = overall_avg
-            if group_enabled:
-                for group, value in group_avg.items():
-                    state.output.metrics[f"bic_{group}"] = value
 
             # Get prediction type from the first result (assuming all are the same type)
             prediction_type = (
@@ -1058,9 +1051,8 @@ def bic_solver():
                 if prediction_type == "utility"
                 else "BIC calculated from MSE using Gaussian error assumption",
             }
-
             # Prepare a completion message showing the results
-            messages = [f"Average BIC: {overall_avg:.2f}"]
+            messages = [f"Average BIC: {overall_avg:.2f}{accuracy_message}"]
             if group_enabled:
                 for group, avg in group_avg.items():
                     messages.append(f"{group.title()} group BIC: {avg:.2f}")
@@ -1098,6 +1090,12 @@ Prediction Type: {prediction_type}"""
             bic_value = state.metadata.get("average_bic")
             if bic_value is not None:
                 current_model += f"\nBIC: {bic_value}"
+
+            # Get overall accuracy if available and if this is a utility model
+            prediction_type = state.metadata.get("prediction_type", "")
+            overall_accuracy = state.metadata.get("overall_accuracy")
+            if prediction_type.lower() == "utility" and overall_accuracy is not None:
+                current_model += f"\nOverall Accuracy: {overall_accuracy:.4f}"
 
             # Get parameter recovery information if available
             param_recovery = state.metadata.get("parameter_recovery", {})
@@ -1138,7 +1136,6 @@ def verify() -> Scorer:
         prediction_type = state.metadata.get(
             "prediction_type", CONFIG["comp_model_specifications"]["type"]
         )
-
         # Create explanation string
         explanation = f"Model Type: {prediction_type}\n\nBIC Results:\n"
         if bic_results:
@@ -1163,54 +1160,54 @@ def verify() -> Scorer:
     return score
 
 
-@task
-def design_model(
-    task_description: str = TASK_DESCRIPTION,
-    output_description: str = MODEL_OUTPUT_DESCRIPTION,
-    dataset_path: str = CONFIG["paths"]["dataset"],
-) -> Task:
-    """
-    Task to generate a computational model specification based on descriptions.
+# @task
+# def design_model(
+#     task_description: str = TASK_DESCRIPTION,
+#     output_description: str = MODEL_OUTPUT_DESCRIPTION,
+#     dataset_path: str = CONFIG["paths"]["dataset"],
+# ) -> Task:
+#     """
+#     Task to generate a computational model specification based on descriptions.
 
-    Args:
-        task_description: Detailed description of the task/problem to solve
-        output_description: Description of desired model outputs and characteristics
-        dataset_path: Path to CSV file containing the dataset structure
-    """
-    # Get dataset information
-    dataset_info = ""
-    info = get_dataset_info(dataset_path)
-    if "error" not in info:
-        dataset_info = "\nDataset Structure:\n"
-        dataset_info += "Variables available:\n"
-        for var, dtype in info["data_types"].items():
-            dataset_info += f"- {var} ({dtype})\n"
-        dataset_info += f"\nNumber of observations: {info['n_rows']}"
+#     Args:
+#         task_description: Detailed description of the task/problem to solve
+#         output_description: Description of desired model outputs and characteristics
+#         dataset_path: Path to CSV file containing the dataset structure
+#     """
+#     # Get dataset information
+#     dataset_info = ""
+#     info = get_dataset_info(dataset_path)
+#     if "error" not in info:
+#         dataset_info = "\nDataset Structure:\n"
+#         dataset_info += "Variables available:\n"
+#         for var, dtype in info["data_types"].items():
+#             dataset_info += f"- {var} ({dtype})\n"
+#         dataset_info += f"\nNumber of observations: {info['n_rows']}"
 
-    # Format task description with dataset info
-    formatted_task = task_description.format(dataset_info=dataset_info)
+#     # Format task description with dataset info
+#     formatted_task = task_description.format(dataset_info=dataset_info)
 
-    return Task(
-        sandbox="docker",
-        dataset=[
-            Sample(
-                input="Generate model specification",
-                target="",  # No specific target since this is a generative task
-                metadata={
-                    "task_description": formatted_task,
-                    "output_description": output_description,
-                    "dataset_info": dataset_info,
-                },
-            )
-        ],
-        solver=[
-            system_message(CONFIG["system"]["prompt"]),  # Use system prompt from CONFIG
-            model_design_solver(),
-            simulate_model_solver(),
-            parameter_fitting_solver(),
-            parameter_recovery_solver(),
-            bic_solver(),
-            final_model_summary_solver(),
-        ],
-        scorer=verify(),
-    )
+#     return Task(
+#         sandbox="docker",
+#         dataset=[
+#             Sample(
+#                 input="Generate model specification",
+#                 target="",  # No specific target since this is a generative task
+#                 metadata={
+#                     "task_description": formatted_task,
+#                     "output_description": output_description,
+#                     "dataset_info": dataset_info,
+#                 },
+#             )
+#         ],
+#         solver=[
+#             system_message(CONFIG["system"]["prompt"]),  # Use system prompt from CONFIG
+#             model_design_solver(),
+#             simulate_model_solver(),
+#             parameter_fitting_solver(),
+#             parameter_recovery_solver(),
+#             bic_solver(),
+#             final_model_summary_solver(),
+#         ],
+#         scorer=verify(),
+#     )

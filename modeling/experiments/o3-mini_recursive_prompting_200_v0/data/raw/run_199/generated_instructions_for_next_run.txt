@@ -1,0 +1,105 @@
+<MODEL>
+U = beta + gamma * { [(ln(1+z) + 0.05*(z²/(1+z)) + tanh(z)) * I[z ≥ 1e-3] + [ln(1+exp(lambda_p*z))/lambda_p] * I[z < 1e-3] ] * T * Extra * ((phi - 0.5)/phi) } 
+where z = 1.08 * (Σ[i=1 to 11] F[i] + beta) * (1 + 0.012*sin((Σ[i=1 to 11] F[i] + beta) + 0.045)) 
+      × [1 + 0.008*cos((Σ[i=1 to 11] F[i] + beta) + 0.065)]
+      × [1 + 0.005*sin((Σ[i=1 to 11] F[i] + beta) + 0.115)]
+      × [1 + 0.004*cos((Σ[i=1 to 11] F[i] + beta) + 0.085)]
+      × [1 + 0.006*sin((Σ[i=1 to 11] F[i] + beta) + 0.035)*cos((Σ[i=1 to 11] F[i] + beta) + 0.055)]
+      × [1 + 0.003*sin((Σ[i=1 to 11] F[i] + beta) + 0.03)*cos((Σ[i=1 to 11] F[i] + beta) + 0.05)];
+T = (Σ[j=0 to J] (a^j)/(j!)) / (Σ[j=0 to J] ((a+1)^j)/(j!)), with J in [30,50];
+Extra = exp(-((a-1)²)/(2*(0.25)²)) * sp(2) where sp(2) denotes a 2‐layer nested softplus of a,
+and a = Σ[i=1 to 11] F[i] + beta.
+</MODEL>
+ 
+<VARIABLES>
+{
+  "variables": {
+    "F1": {
+      "description": "Normalized fixed feature 1 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F2": {
+      "description": "Normalized fixed feature 2 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F3": {
+      "description": "Normalized fixed feature 3 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F4": {
+      "description": "Normalized fixed feature 4 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F5": {
+      "description": "Normalized fixed feature 5 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F6": {
+      "description": "Normalized fixed feature 6 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F7": {
+      "description": "Normalized fixed feature 7 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F8": {
+      "description": "Normalized fixed feature 8 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F9": {
+      "description": "Normalized fixed feature 9 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F10": {
+      "description": "Normalized fixed feature 10 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "F11": {
+      "description": "Normalized fixed feature 11 derived from the offer data",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": false, "source": "data"
+    },
+    "beta": {
+      "description": "Learnable base tendency parameter for the responder, controlling overall bias",
+      "range": { "min": -10, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": true, "source": "learnable"
+    },
+    "lambda_p": {
+      "description": "Learnable slope parameter for the softplus transformation in the negative regime",
+      "range": { "min": 2, "max": 4, "inclusive_min": true, "inclusive_max": true },
+      "learnable": true, "source": "learnable"
+    },
+    "gamma": {
+      "description": "Learnable scaling parameter for oscillatory corrections in the exponent modulator",
+      "range": { "min": 0, "max": 10, "inclusive_min": true, "inclusive_max": true },
+      "learnable": true, "source": "learnable"
+    },
+    "phi": {
+      "description": "Learnable weight adjustment parameter controlling transformation curvature (especially negative values)",
+      "range": { "min": 0.5, "max": 1.5, "inclusive_min": true, "inclusive_max": true },
+      "learnable": true, "source": "learnable"
+    },
+    "U": {
+      "description": "Computed latent utility value before applying the logistic function",
+      "range": { "min": "-inf", "max": "inf", "inclusive_min": false, "inclusive_max": false },
+      "learnable": false, "source": "calculated"
+    }
+  }
+}
+</VARIABLES>
+ 
+<target_variable>accept</target_variable>
+ 
+<SUMMARY>
+This nonlinear composite utility model computes a core sum from 11 normalized fixed features plus a learnable base (beta). The core sum is modulated via sinusoidal functions to yield a composite signal z. An adaptive transformation function f_adapt(z) blends a logarithmic-plus-quadratic form for values above a threshold and a gentle two-layer softplus (or logistic) function for very low values, ensuring smoother behavior in the negative regime. A dynamic threshold T is calculated using a finite Padé approximant and multiplied with an extra term incorporating a Gaussian radial basis and a brief nested softplus chain. The final transformed signal is raised to an exponent modulated by gentle oscillatory terms. The latent utility is then computed as U = beta + gamma * [transformed signal weighted by (phi - 0.5)/phi] and mapped via a logistic function into the probability of acceptance. This design emphasizes smoother transitions in the negative regime, improved parameter recovery, and overall better accuracy.
+</SUMMARY>

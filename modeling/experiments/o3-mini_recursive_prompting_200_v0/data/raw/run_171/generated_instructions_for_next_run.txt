@@ -1,0 +1,20 @@
+<think>
+For Run 172, instruct the model to adopt more creative and flexible nonlinear approximations. Encourage a switch in the f_adapt component from a fixed high‐order softplus/softsign block to a piecewise function. For nonnegative z (i.e. z ≥ some small ε), specify that the model use a rational (Padé) approximant that smoothly transitions from a local quadratic correction (e.g. z + k1×z² when z is very small) into a logarithmic saturation term (e.g. ln(1+z)) with a rational correction (e.g. + k2·z/(1+z)). For negative z, require a hinge‐loss style formulation that penalizes extreme negative values, for example, f_adapt(z) = –max(0, –z – Δₛ)^p (with Δₛ a small positive shift and p chosen to sharply penalize negatives). Also direct the model to redefine the dynamic threshold T not via an infinite power series but by a rational function such as T = (a + c1) / (a + c2) with tunable constants c1 and c2. In the extra composite factor, add an oscillatory multiplicative modulation term (for example, multiply by [1 + 0.005×cos(0.9×a)] or incorporate a smooth maximum of two oscillatory terms) to capture mid‐range nuances. Finally, replace any nested softplus chain with a nested softsign (or nested arctan) chain to damp extreme outputs more effectively. Also allow the final exponent to include an additional mild oscillatory modulation (e.g. multiply by [1 + 0.001×sin(a)]). Use exactly three learnable parameters (beta, gamma, phi) with bounds beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+</think>
+
+<new_instructions>
+1. Compute the core sum a = Σ₍i=1₎^₁₁ Fᵢ + δ.
+2. Set a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)] and then compute z by sequentially multiplying by [1 + 0.008 × cos(a + 0.065)], [1 + 0.005 × sin(a + 0.115)], [1 + 0.004 × cos(a + 0.085)], [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))], and [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+3. Define the weight w = (phi − 0.5) / phi.
+4. For the adaptive transformation f_adapt(z):
+  • For z ≥ ε (a small threshold, e.g. 0.0001), approximate f_adapt(z) using a rational (Padé) approximant that transitions from a local quadratic correction (e.g. z + k₁·z² when z is very small) to a saturated logarithmic term such as ln(1+z) plus a rational correction (e.g. + k₂·z/(1+z)).
+  • For z < 0, define f_adapt(z) = –max(0, –z − Δₛ)ᵖ, where Δₛ is a small positive shift (e.g. 0.05) and p is selected (e.g. p = 2) to sharply penalize negative deviations.
+5. Redefine the dynamic threshold T as a rational function, e.g. T = (a + c1) / (a + c2), with tunable fixed constants c1 and c2.
+6. In the extra composite factor, incorporate an additional multiplicative modulation term—such as multiplying by [1 + 0.005 × cos(0.9 × a)] or merging smoothly multiple oscillatory expressions—to better capture mid-range behavior.
+7. Replace any nested softplus chain with a nested softsign chain (or nested arctan chain) to more effectively damp extreme outputs.
+8. Compute the final transformed signal as f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }, where Exponent may include an additional mild oscillatory factor (for instance, multiplied by [1 + 0.001 × sin(a)]).
+9. Set the latent utility U = beta + gamma × f(x) and convert U into an acceptance probability using the logistic function.
+10. Use exactly three learnable parameters with bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+
+These instructions should encourage creative nonlinear approximations that capture local curvature and enforce sharper penalties on negative signals, ultimately improving BIC, parameter recovery, and accuracy.
+</new_instructions>

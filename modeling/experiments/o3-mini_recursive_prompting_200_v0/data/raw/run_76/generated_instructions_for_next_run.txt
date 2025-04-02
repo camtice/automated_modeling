@@ -1,0 +1,27 @@
+<think>
+For run 77, we want to slightly modify the extra blending composite to further improve stability and parameter recovery. In addition to the previous modifications, we now lower the softplus tunable constant from 0.9 to 0.88 and intensify the oscillatory damping using a multiplier of [1 – 0.0025 × cos(2.5 × a)]. Also, we update the final exponent from 0.93 to 0.935 to add more flexibility. The rest of the model structure remains the same, and the three learnable parameters (beta, gamma, phi) retain their bounds. Emphasize creative, out‐of‐the‐box modifications in the extra blending stage while keeping computations efficient.
+</think>
+New Instructions for Run 77 of 200:
+1. Compute the core sum “a” by summing the 11 fixed components (F1 to F11) derived from task variables and add a small constant δ.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by the constant 1.08.
+4. Sequentially modulate the scaled value using these five factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Let z denote the result after these sequential modulations.
+6. Define the adaptive transformation function f_adapt(z) as:
+  f_adapt(z) = { 0.01 × z if z < 0; min(z, 1 + ln(1 + z)) if z ≥ 0 }.
+7. For the extra blending composite, compute:
+  extra = ( exp(–a/0.1) × [z/(1 + |z|)] × [1 + 0.005 × sin(1/(1 + a))] × ln(1 + exp(0.88/(1 + a))) × [1 – 0.002 × cos(a)] × [1 – 0.0025 × cos(2.5 × a)] + 1e–6 )^(0.935).
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × extra )^(0.935).
+9. Compute the latent utility U = beta + gamma × f(x), then obtain the acceptance probability via the logistic function: P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with these bounds:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+
+Focus on ensuring that the extra blending composite is both stable and robust by incorporating the new tuned softplus constant and intensified oscillatory damping. Encourage innovative, out‐of‐the‐box thinking in refining this composite while keeping the overall computations efficient to achieve improved accuracy, lower BIC, and better parameter recovery.

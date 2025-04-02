@@ -1,0 +1,57 @@
+<think>
+For run 155, we want to build further on the previous nonlinear design while encouraging out‐of‐the‐box ideas. In this iteration, the instructions will push the model to sharpen its nonlinear transformation when proposals are very unfair. Specifically, increase the negative-branch exponent (previously set to 38) to 40 for a steeper penalty on extreme negative signals. In the extra composite term, add two new multiplicative factors, one of the form [1 + sigmoid(0.12 × a)] and another [1 + tanh(0.3 × a)], and also include an oscillatory factor [1 + sin(4.0 × a)] to capture additional cyclic patterns. Also, nest one more softplus layer so that softplus is applied six times in a row (instead of five). Furthermore, extend the dynamic threshold T from summing over k = 0 to 85 to now run from k = 0 to 90 to capture higher order behavior. Finally, modify the exponent modulation by multiplying it by the extra factor [1 + 0.008 × tanh(0.5 × a) + 0.003 × sin(3.2 × a) + 0.002 × cos(2.5 × a)] to capture even subtler interactions. These changes should help reduce BIC, improve parameter recovery, and boost accuracy. Please encourage exploring alternative functional forms like adding a small Gaussian radial basis term if desired.
+</think>
+
+New Instructions for Run 155:
+
+1. Compute the core sum a as the sum of fixed components F1,…,F11 plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Sequentially multiply a_mod by:
+  • [1 + 0.008 × cos(a + 0.065)],
+  • [1 + 0.005 × sin(a + 0.115)],
+  • [1 + 0.004 × cos(a + 0.085)],
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))],
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+Let z be the resulting product.
+4. Calculate w = (phi − 0.5) / phi.
+  • For z ≥ 0, define f_adapt(z) as the clipped value:  
+   f_adapt(z) = clip[1.002 × (z^w × (ln(1+z))^(1−w) × softsign(z)), −30, 30], with softsign(x) = x/(1+|x|).
+  • For z < 0, set f_adapt(z) = phi × [softsign(z + Δ_shift)]^(40), with Δ_shift = 1×10⁻⁶.
+5. Define the dynamic threshold T as the sum from k = 0 to 90 of (a^k × (½)^k.
+6. Define the extra composite term extra as the product of:
+  • exp(–a/0.1),
+  • [z/(1+|z|)],
+  • [1 + 0.005 × sin(1/(1+a))],
+  • [1 + 0.002 × cos(0.5×a)],
+  • ([1 + 0.003 × cos(0.3×a)]²),
+  • ([1 + 0.004 × cos(0.3×a)]²),
+  • [1 + 0.0025 × cos(0.7×a)],
+  • [1 + tanh(0.05×a)],
+  • [1 + sigmoid(0.01×a)],
+  • [1 + 0.002 × cos(3×a)],
+  • [1 + 0.002 × (sin(2.5×a) + 0.001×cos(3.5×a) + 0.0015×sin(3×a))],
+  • [1 + sigmoid(0.03×a)],
+  • [1 + tanh(0.07×a)],
+  • [1 + cos(3.1×a)],
+  • [1 + sigmoid(0.04×a)],
+  • [1 + tanh(0.08×a)],
+  • [1 + cos(3.2×a)],
+  • [1 + sigmoid(0.05×a)],
+  • [1 + tanh(0.1×a)],
+  • [1 + cos(3.4×a)],
+  • [1 + sigmoid(0.06×a)]          (new),
+  • [1 + tanh(0.12×a)]             (new),
+  • [1 + cos(3.6×a)]              (new),
+  • [1 + sigmoid(0.08×a)]            (new),
+  • [1 + tanh(0.2×a)]              (new),
+  • [1 + cos(4.2×a)]              (new).
+  • Nest an additional softplus layer so that softplus is applied five times in succession to 0.865/(1+a).
+Then, raise the product to the power [0.9478 + 0.00018×ln(1+a)].
+7. Define the final exponent modulation factor as:
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.0055×sin(2.9×a) + 0.0015×cos(3.9×a) + 0.0035×sin(3.5×a) + 0.0025×cos(4.5×a) + 0.0015×sin(3.0×a) + 0.0007×cos(4.2×a) + 0.0015×(sin(2.7×a)×cos(3.4×a)) + 0.0025×cos(3.8×a) + 0.0015×sin(2.8×a) + 0.005×tanh(0.5×a) + 0.002×sin(3×a)].
+8. Compute the final transformed signal f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and then let P(accept = 1) = 1/(1 + exp(–U)).
+10. Exactly three learnable parameters are used with the following finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5].
+
+These instructions encourage further flexibility by steepening the penalty on negative signals (by raising the negative exponent from 38 to 40) and adding new multiplicative factors and layers in the extra composite term, extending the dynamic threshold to higher orders, and strengthening the final exponent modulation via additional oscillatory terms.
+</previous_instructions>

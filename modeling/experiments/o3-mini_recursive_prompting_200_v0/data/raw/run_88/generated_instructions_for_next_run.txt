@@ -1,0 +1,31 @@
+<think>
+For run 89, we want to push the model’s dynamic range further and experiment with additional nonlinearity in the thresholding and blending stages. In this version, we add a quintic term to the dynamic threshold factor and slightly adjust the exponent on the extra composite (or even allow it to vary with the core sum “a”). We also propose experimenting with a slightly higher scaling for negative z values within the adaptive transformation (e.g., 0.012×z instead of 0.01×z) to see if that improves parameter recovery. Maintain the sequential modulation factors exactly as before and keep the same three learnable parameters with bounds. In summary, the new instructions encourage out-of-the-box experimentation – for example, a dynamic (perhaps even “a”-dependent) extra composite exponent and additional high-degree polynomial terms in the threshold factor – to better capture extreme values, thereby aiming to improve accuracy and lower BIC while enhancing parameter recoverability.
+</think>
+
+New Instructions for Run 89 of 200:
+1. Compute the core sum a as the sum of fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply a by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by 1.08.
+4. Sequentially modulate this scaled value using:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Denote the result as z.
+6. Define the adaptive transformation f_adapt(z) as:
+  f_adapt(z) = { 0.012 × z if z < 0; min(z, 1 + ln(1 + z)) if z ≥ 0 }  [Note: Slightly larger scaling for negative values].
+Then multiply f_adapt(z) by a dynamic threshold factor T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵.
+7. For the extra blending composite, compute:
+  extra = ( exp(–a/0.1) × [z/(1 + |z|)] × [1 + 0.005 × sin(1/(1 + a))] × ln(1 + exp(0.865/(1 + a))) × [1 – 0.002 × cos(a)] × [1 – 0.0025 × cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2 + 0.0005×a) + 1e–6 )^(0.944)
+  (Optionally, consider letting the composite exponent vary dynamically with “a”).
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × extra )^(0.944)
+9. Compute the latent utility: U = beta + gamma × f(x), and then obtain the acceptance probability via the logistic function:
+  P(accept = 1) = 1/(1 + exp(–U))
+10. Retain exactly three learnable parameters with these bounds:
+  • beta ∈ [–10, 10]
+  • gamma ∈ [0, 10]
+  • phi ∈ [0.5, 1.5]
+
+Encourage experimenting with the additional quintic term in the threshold factor and slight adjustments to the extra composite exponent (or even making it dynamic) to capture extreme values more robustly. Think outside the obvious transformations—for instance, consider alternative functions (like softplus) in the extra blending stage—to improve overall accuracy, lower the BIC, and enhance parameter recovery.

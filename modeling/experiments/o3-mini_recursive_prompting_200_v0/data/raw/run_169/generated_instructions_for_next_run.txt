@@ -1,0 +1,20 @@
+<think>
+For Run 170, we want to push the model further by encouraging more creative nonlinear approximations. We will instruct the model to replace its current f_adapt block with one that, for z ≥ ε, uses a rational (Padé) approximant—this will capture the nearly linear region smoothly and then transition into logarithmic saturation—and for z < 0, to penalize negatives with a hinge-type loss that prevents over‐amplification. Moreover, we will redefine the dynamic threshold T by using a rational function (for example, [a + c1] / [a + c2]) instead of a fixed power series. In addition, in the extra composite factor we will include an additional multiplicative modulation term (e.g., [1 + 0.005×cos(0.9×a)] or a smooth “max” between two oscillatory functions) to help capture mid-range nuances. Finally, we recommend replacing the nested softplus chain with a nested softsign (or even nested arctan) chain to better dampen extreme outputs. These changes aim to improve BIC, enhance parameter recovery (especially for phi), and yield higher accuracy. Be creative and feel free to vary the coefficients and structure in a way that breaks out of the most obvious patterns.
+</think>
+
+New Instructions for Run 170:
+
+1. Compute the core sum a as the sum of fixed components F₁ through F₁₁ plus a constant δ.
+2. Set a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)] and compute z by sequentially multiplying by [1 + 0.008 × cos(a + 0.065)], [1 + 0.005 × sin(a + 0.115)], [1 + 0.004 × cos(a + 0.085)], [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))], and [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+3. Define w = (phi − 0.5) / phi.
+4. For the adaptive function f_adapt(z), use a piecewise function:
+  • For z ≥ ε (some small threshold), use a rational (Padé) approximant that “clips” by transitioning from a local quadratic correction (z + k₁×z²) when z is very small to an expression approximating ln(1+z) plus a rational correction when z is larger.
+  • For z < 0, instead of a high-degree exponent on a nested softsign, use a hinge loss formulation such that f_adapt(z) = –max(0, –z − Δₛ)^p, where Δₛ is a small shift and p is chosen to sharply penalize negative deviations.
+5. Redefine the dynamic threshold T not as an infinite power series but as a rational function such as T = (a + c1) / (a + c2) with tunable fixed constants c1 and c2.
+6. In the extra composite factor, incorporate an additional multiplicative modulation term—e.g., multiply by [1 + 0.005 × cos(0.9 × a)] or use a smooth maximum of two oscillatory expressions—to gently blend and capture mid-range behavior.
+7. Replace the current nested softplus chain with a nested softsign chain (or nested arctan chain) to dampen extreme outputs more effectively.
+8. Compute the final transformed signal as f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }, where Exponent is defined analogously as before but may include additional mild oscillatory modulations.
+9. Finally, set the latent utility U = beta + gamma × f(x) and convert U into an acceptance probability via the logistic function.
+10. Use exactly three learnable parameters: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+
+These instructions encourage creativity and out‐of‐the‐box choices while emphasizing the importance of capturing local curvature near zero and enforcing sharper penalties on negative values.

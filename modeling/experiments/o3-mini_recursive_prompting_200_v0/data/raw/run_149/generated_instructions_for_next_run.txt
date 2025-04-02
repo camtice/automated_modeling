@@ -1,0 +1,46 @@
+<think>
+For this run, further push the model’s ability to capture complex nonlinear interactions by increasing the sensitivity of the negative branch and further enriching the extra composite transformation. In the negative branch of f_adapt, raise the exponent from 30 to 32 to allow for even steeper responses. In the extra composite term, add three new multiplicative factors: one for [1 + sigmoid(0.08×a)], one for [1 + tanh(0.2×a)], and one for [1 + cos(4.0×a)]. Also, nest an additional softplus function inside extra by multiplying the result by softplus(softplus(softplus(0.865/(1+a)))). Extend the dynamic threshold T by summing from k = 0 to 65. Finally, further enrich the final exponent modulation factor by including an extra oscillatory multiplier that incorporates additional terms—for example, a factor of [1 + 0.0055×sin(2.9×a) + 0.0015×cos(3.9×a) + 0.0035×sin(3.5×a) + 0.0025×cos(4.5×a) + 0.0015×sin(3.0×a) + 0.0007×cos(4.2×a) + 0.0015×(sin(2.7×a)×cos(3.4×a)) + 0.0025×cos(3.8×a) + 0.0015×sin(2.8×a)]. Emphasize creative interleaving of functions and do not settle for the most obvious transformations.
+</think>
+New Instructions for Run 150:
+
+1. Compute the core sum a as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Sequentially multiply a_mod by:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+Let z be the resulting product.
+4. Compute w = (phi − 0.5) / phi.
+  • For z ≥ 0, set f_adapt(z) = clip[1.002 × (z^w × (ln(1+z))^(1−w) × softsign(z)), −30, 30], with softsign(z) = z/(1+|z|).
+  • For z < 0, set f_adapt(z) = phi × [softsign(z + Δ_shift)]^(32), with Δ_shift = 1×10⁻⁶.
+5. Define the dynamic threshold T as the sum of a^k × (½)^k for k = 0 to 65.
+6. Define the extra composite term extra as the product of the following factors:
+  • exp(−a/0.1)
+  • [z/(1+|z|)]
+  • [1 + 0.005 × sin(1/(1+a))]
+  • [1 + 0.002 × cos(0.5×a)]
+  • ([1 + 0.003 × cos(0.3×a)]²)
+  • ([1 + 0.004 × cos(0.3×a)]²)
+  • [1 + 0.0025 × cos(0.7×a)]
+  • [1 + tanh(0.05×a)]
+  • [1 + sigmoid(0.01×a)]
+  • [1 + 0.002 × cos(3×a)]
+  • [1 + 0.002 × (sin(2.5×a) + 0.001×cos(3.5×a) + 0.0015×sin(3×a))]
+  • [1 + sigmoid(0.03×a)]
+  • [1 + tanh(0.07×a)]
+  • [1 + cos(3.1×a)]
+  • [1 + sigmoid(0.04×a)]
+  • [1 + tanh(0.08×a)]
+  • [1 + cos(3.2×a)]
+  • [1 + sigmoid(0.05×a)]
+  • [1 + tanh(0.1×a)]
+  • [1 + cos(3.4×a)]
+  • [1 + sigmoid(0.06×a)]           (added)\n  • [1 + tanh(0.12×a)]              (added)\n  • [1 + cos(3.6×a)]              (added)\n  • Multiply by softplus(softplus(softplus(0.865/(1+a))))\nThen raise the product to the power [0.9478 + 0.00018×ln(1+a)].
+7. Define the final exponent modulation factor as:\n  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.0055×sin(2.9×a) + 0.0015×cos(3.9×a) + 0.0035×sin(3.5×a) + 0.0025×cos(4.5×a) + 0.0015×sin(3.0×a) + 0.0007×cos(4.2×a) + 0.0015×(sin(2.7×a)×cos(3.4×a)) + 0.0025×cos(3.8×a) + 0.0015×sin(2.8×a)].
+8. Compute the final transformed signal f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and let P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with these finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5].
+
+These instructions encourage creative interleaving of nonlinear functions to capture richer response patterns and improve the model’s predictive accuracy, BIC, and parameter recovery.

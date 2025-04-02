@@ -1,0 +1,22 @@
+<think>
+We want to update the instructions to encourage smoother transformations in the negative regime and to improve overall performance (accuracy, lower BIC, better parameter recovery). We want to suggest using a two‐layer softplus (or logistic) function for z<ε instead of an overly aggressive power law, and tweak oscillatory terms and dynamic thresholds. We also want to suggest that the exponent modulator be gently modulated to preserve local variation, and encourage experimenting with more flexible Padé approximants or finite polynomial series for T. We also want to have a clear specification of strict finite bounds; we restate β, γ and φ bounds. We encourage the use of out-of-the-box nonlinear mixtures like blending softplus and logistic functions, and mention to experiment with lower effective exponents in the negative regime to improve parameter recovery.
+</think>
+
+New Instructions for run 199 of 200:
+1. Compute the core sum as a = Σ[i=1 to 11] F[i] + beta, where each fixed feature F[i] is first normalized to avoid excessive scaling.
+2. Scale a using a sinusoidal modulation: set a_mod = 1.08 · a · (1 + 0.012 · sin(a + 0.045)).
+3. Construct the composite signal z = a_mod multiplied by successive oscillatory factors: [1 + 0.008 · cos(a + 0.065)], [1 + 0.005 · sin(a + 0.115)], [1 + 0.004 · cos(a + 0.085)], [1 + 0.006 · (sin(a + 0.035) · cos(a + 0.055))], and [1 + 0.003 · (sin(a + 0.03) · cos(a + 0.05))].
+4. Define the weight: w = (phi – 0.5) / phi.
+5. For the adaptive transformation f_adapt(z), design a smooth function that:
+  • For z ≥ ε (choose ε around 1e–3), blends a logarithmic transformation with a small quadratic correction and tanh damping (for instance: f_adapt(z) = ln(1+z) + k₁·(z²/(1+z)) + tanh(z)), where k₁ around 0.05.
+  • For z < ε, instead of aggressive power‐law transformation, apply a two‐layer softplus or logistic function (e.g., f_adapt(z) = ln(1 + exp(λ·z))/λ, with λ chosen between 2 and 4) to smooth the transition in the negative regime.
+6. Compute a dynamic threshold T using a finite polynomial series or Padé approximant with order in the range 30–50. Experiment with a Padé form of T = Σ[j=0]^(J) (a^j)/(j!) divided by a similar series with offset.
+7. In the extra composite term, incorporate a Gaussian radial basis function (for example, exp(–((a – 1)²)/(2·(0.25)²))) and a short chain (2–3 layers) of nested softplus functions (or softsign) to stabilize near zero.
+8. For the exponent modulation, add gentle oscillatory corrections (e.g., include small sin(2a) and cos(2a) terms) so that extreme values are compressed while maintaining local variation.
+9. Optionally add a small local correction term (such as 0.001 · z² for |z| below a threshold like 0.01) to improve sensitivity near zero.
+10. Set the finite learnable parameter bounds strictly as follows:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+11. Encourage out-of-the-box nonlinear functions: experiment with blends of softplus, logistic, and power‐law damping functions to smoothly transition across the entire domain, especially improving negative regime parameter recovery.
+12. Overall, strive for a model that yields lower BIC, better parameter recovery (with balanced correlations across parameters), and high accuracy in predicting responder acceptance.

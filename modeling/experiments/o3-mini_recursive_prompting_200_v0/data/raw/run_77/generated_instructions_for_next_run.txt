@@ -1,0 +1,27 @@
+<think>
+For run 78, update the extra blending composite by introducing an additional dynamic multiplicative factor based on the core sum "a" to further stabilize the transformation. In addition to lowering the softplus constant to 0.88 and intensifying the oscillatory damping with [1 – 0.0025 × cos(2.5 × a)], now include a mild scaling term [1 + 0.001 × a] inside the extra composite. Also, slightly increase the exponent in both stages—from 0.935 to 0.937—to allow a bit more flexibility in compressing the transformed signal. The remainder of the model structure remains unchanged. The three learnable parameters (beta, gamma, phi) retain their specified bounds. I encourage out‐of‐the‐box, creative modifications in the extra blending stage to maximize predictive performance, lower BIC, and enhance parameter recovery, while keeping computations efficient.
+</think>
+New Instructions for Run 78 of 200:
+1. Compute the core sum “a” as the sum of the fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by 1.08.
+4. Sequentially modulate the scaled value using the following five factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Let z denote the result after these sequential modulations.
+6. Define the adaptive transformation function f_adapt(z) as:
+  f_adapt(z) = { 0.01 × z if z < 0; min(z, 1 + ln(1 + z)) if z ≥ 0 }.
+7. For the extra blending composite, compute:
+  extra = ( exp(–a/0.1) × [z/(1 + |z|)] × [1 + 0.005 × sin(1/(1 + a))] × ln(1 + exp(0.88/(1 + a))) × [1 – 0.002 × cos(a)] × [1 – 0.0025 × cos(2.5 × a)] × [1 + 0.001 × a] + 1e–6 )^(0.937).
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × extra )^(0.937).
+9. Compute the latent utility: U = beta + gamma × f(x), and then obtain the acceptance probability via the logistic function: P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with these bounds:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+
+Focus on ensuring that the extra blending composite is both robust and stable by incorporating the additional dynamic scaling and the slight increase in the final exponent. Encourage creative, out‐of‐the‐box modifications in this composite while keeping computations efficient to yield improved accuracy, lower BIC, and better parameter recovery.

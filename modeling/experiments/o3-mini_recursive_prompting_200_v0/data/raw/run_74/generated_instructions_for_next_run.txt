@@ -1,0 +1,34 @@
+<think>
+For this run, instruct the model to retain the overall structure but further refine and simplify the extra blending stage to improve stability and parameter recovery. In particular, add an additional small oscillatory damping multiplier in the extra blending stage to counteract any over‐amplification. Also encourage adaptive scaling of the extra composite using a softplus term with a tuned constant. Emphasize that the extra blending composite should be computed as the product of:
+• exp(–a/0.1),
+• softsign(z) = z/(1+|z|),
+• [1 + 0.005×sin(1/(1+a))],
+• softplus(1/(1+a)) = ln(1 + exp(1/(1+a))),
+• and an additional damping term: [1 – 0.002×cos(a)].
+Multiply these together (times a fixed offset factor exactly 1.0), add a tiny constant (1e–6) for numerical stability, and raise the product to the power 0.92. Reiterate that the final transformed signal f(x) must be defined as f(x) = sign(z) × ( f_adapt(z) × [extra blending composite] )^(0.92) where f_adapt(z) is defined exactly as before. Clearly specify that the three learnable parameters must have bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5]. Encourage creative, out-of-the-box thinking in augmenting the extra blending stage while keeping computations parsimonious to help reduce overfitting and improve accuracy, BIC, and parameter recovery.
+</think>
+
+New Instructions for Run 75 of 200:
+1. Compute the core sum “a” by summing the 11 fixed components (F1 to F11) derived from task variables and adding a small constant delta.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by the constant 1.08.
+4. Sequentially modulate the scaled value using these five factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Let z be the result after these sequential modulations.
+6. Define f_adapt(z) using the hybrid adaptive ReLU-like function:
+  f_adapt(z) = { 0.01 × z, if z < 0; min(z, 1 + ln(1 + z)), if z ≥ 0 }.
+7. For the extra blending stage, compute the composite factor as:
+  extra = ( exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005 × sin(1/(1+a))] × ln(1 + exp(1/(1+a))) × [1 – 0.002 × cos(a)] + 1e–6 )^(0.92).
+8. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × extra )^(0.92).
+9. Compute the latent utility U = beta + gamma × f(x) and convert it to the acceptance probability using the logistic function.
+10. Use exactly three learnable parameters with these bounds:
+  beta ∈ [–10, 10],
+  gamma ∈ [0, 10],
+  phi ∈ [0.5, 1.5].
+
+Focus on designing the extra blending composite to be stable and robust so that accuracy, BIC, and parameter recovery improve. Think creatively about modulation while ensuring the overall computation remains efficient.

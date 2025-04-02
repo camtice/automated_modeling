@@ -1,0 +1,46 @@
+<think>
+For run 21, we aim to nudge the transformation function further out-of-the-box by slightly modifying the fixed nonlinear transformation while still using exactly three learnable parameters with the same bounds. Consider experimenting with a slight increase of the compression exponent (e.g., from 0.92 to 0.94) and/or introducing an extra fixed multiplicative factor (applied uniformly to the summed transformation terms) or an additional fixed cosine modulation term inside the nonlinear transformation. The objective is to allow a marginally different sensitivity profile to moderate versus extreme fairness gaps. Keep the overall structure intact—compute normalized offer, normalized fair share, the fairness gap F, scale by phi, and then apply your transformed function f(x) to yield the latent utility U = beta + gamma × f(F/phi), which is then passed through the logistic function. These unconventional tweaks are intended to further improve accuracy, lower BIC, and enhance parameter recovery.
+</think>
+
+For run 21 of 200, please develop a computational model for responder decision-making with the following requirements:
+
+1. Compute the normalized offer percentage:
+  N_offer = split_self / combined_earning,
+  and the normalized fair share:
+  N_share = token_self / (token_self + token_opp).
+
+2. Define the fairness gap as:
+  F = N_offer – N_share.
+
+3. Scale the fairness gap by phi (learnable within [0.5, 1.5]) and let x = F / phi.
+
+4. Apply a fixed nonlinear transformation f(·) to x that incorporates the following fixed terms:
+  • |x|^(0.5)
+  • ln(1 + 3.4 × |x|)
+  • 0.2 × atan(1.1 × |x|)
+  • 0.1 × (1 – exp(–|x|))
+  • 0.05 × (1 – exp(–2×|x|))
+  • 0.03 × tanh(|x|)
+  • 0.02 × sin(0.5 × |x|)
+  • 0.01 × (1 – cos(0.3 × |x|))
+  • An additional fixed term: 0.005 × exp(–|x|)
+Optionally, you may include an extra fixed cosine modulation term such as 0.005 × cos(2.0 × |x|) within the sum.
+Sum these terms, add a tiny constant (e.g. 1e-6) for numerical stability, then compress the overall magnitude by raising the sum to a fixed compression exponent—now set to 0.94 to explore an alternative sensitivity profile—while preserving the sign. Formally, define:
+  f(x) = sign(x) × ([|x|^(0.5) + ln(1 + 3.4×|x|) + 0.2×atan(1.1×|x|) + 0.1×(1 – exp(–|x|)) + 0.05×(1 – exp(–2×|x|)) + 0.03×tanh(|x|) + 0.02×sin(0.5×|x|) + 0.01×(1 – cos(0.3×|x|)) + 0.005×exp(–|x|) [ + 0.005×cos(2.0×|x|) ] + 1e-6])^(0.94).
+
+5. Use exactly three learnable parameters with the following bounds:
+  • beta (baseline bias) ∈ [–10, 10],
+  • gamma (sensitivity) ∈ [0, 10],
+  • phi (scaling) ∈ [0.5, 1.5].
+
+6. Define the latent utility as:
+  U = beta + gamma × f(F/phi).
+
+7. Convert U into a choice probability using the logistic function:
+  p_accept = 1 / (1 + exp(–U)).
+
+8. Provide the complete mathematical model specification between <MODEL> and </MODEL> tags, and detailed JSON-formatted variable descriptions between <VARIABLES> and </VARIABLES> tags.
+
+9. Clearly indicate the predicted target variable in <target_variable> tags (set to “accept”).
+
+Keep the structure intact while allowing these unconventional tweaks to guide improved accuracy, lower BIC, and enhanced parameter recovery.

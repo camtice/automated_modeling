@@ -1,0 +1,39 @@
+<think>
+For run 120, further refine the non‐linear transformations by encouraging the model to capture even more subtle curvature changes in the decision space. In particular, advise the modeling LLM to:
+• Continue computing the core sum “a” as before using F1–F11 plus a small constant δ.
+• Apply the standard multiplicative modulations (using sine and cosine terms) to yield z.
+• Define the weight w = (phi – 0.5)/phi.
+• For z ≥ 0, maintain the adaptive transformation as 1.002 × (z^w × (ln(1+z))^(1–w)), while for z < 0, replace the previous power transform with a higher‐order transformation (e.g. use z^7 instead of z^6) and consider adding a learnable offset (a shift) inside the function to better capture deep rejection responses.
+• Compute the dynamic threshold T as before.
+• In the extra blending composite, include an additional harmonic modulation factor [1 + 0.0025×cos(0.7×a)] as before but also allow an extra multiplicative factor that involves a hyperbolic tangent or arctanh to capture extreme deviations.
+• Finally, augment the overall exponent by incorporating an additional sine–cosine modulation term (for instance, [1 + 0.003×sin(2×a) + 0.001×cos(3×a) + 0.0025×cos(0.7×a)]), which will help enhance mid‐range sensitivity.
+• Keep the final structure as f(x) = sign(z) × { [f_adapt(z) × T × extra]^(Exponent) } and latent utility U = beta + gamma × f(x) with predicted probability P(accept=1) = 1/(1+exp(–U)).
+• Use exactly three learnable parameters with bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+Encourage creative, out‐of‐the‐box modifications beyond the obvious choices and try incorporating alternate nonlinear functions (e.g., tanh-based corrections) in extra if needed.
+</think>
+
+New Instructions for Run 120:
+1. Compute the core sum “a” as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Compute a_mod = a × [1 + 0.012 × sin(a + 0.045)] and then scale by 1.08.
+3. Sequentially modulate the result with:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+ Define the product as z.
+4. Define the weight w = (phi – 0.5) / phi.
+  • For z ≥ 0, set f_adapt(z) = 1.002 × [z^(w) × (ln(1+z))^(1–w)].
+  • For z < 0, set f_adapt(z) = phi × (z^7) (i.e. replace the quartic adjustment with a seventh power) and consider an optional learnable shift inside this branch.
+5. Define the dynamic threshold T as a polynomial in a of order 8:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ + 0.000001×a³.
+6. Define the extra blending composite extra as:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [1 + 0.002×cos(0.5×a)] × [1 + 0.003×cos(0.3×a)]² × [1 + 0.004×cos(0.3×a)]² × [1 + 0.0025×cos(0.7×a)] × [1.07×softplus(0.865/(1+a)) + 0.15×(0.865/(1+a)) + 0.5×(0.865/(1+a)) + 0.006×a] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 }^(0.9478 + 0.00018×ln(1+a)).
+7. Define the final exponent as:
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.003×sin(2×a) + 0.001×cos(3×a) + 0.0025×cos(0.7×a)].
+8. Define the final transformed signal as:
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and predicted probability P(accept=1) = 1/(1+exp(–U)).
+10. Use exactly three learnable parameters with bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+
+These enhancements—using a higher (seventh) power for negative z, an additional harmonic modulation inside the extra composite, and an augmented final exponent with further sine–cosine modulations—are designed to improve model accuracy, lower BIC, and yield stronger parameter recovery.

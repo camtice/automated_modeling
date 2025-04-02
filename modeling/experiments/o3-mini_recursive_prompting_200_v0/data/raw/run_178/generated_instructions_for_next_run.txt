@@ -1,0 +1,25 @@
+<new_instructions>
+1. Compute the core sum:                a = Σ[i=1 to 11] Fᵢ + δ.
+2. Apply a sinusoidal modulation:      a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Form the composite signal:       z = a_mod × [1 + 0.008 × cos(a + 0.065)] × [1 + 0.005 × sin(a + 0.115)] × [1 + 0.004 × cos(a + 0.085)] × [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))] × [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+4. Define the weight:             w = (phi – 0.5) / phi.
+5. For the adaptive transformation f_adapt(z), use a piecewise function:
+ • For z ≥ ε (set ε = 0.0001): let
+  f_adapt(z) = z + k₁·z² + ln(1 + z) + k₂·[z/(1 + z)]
+  where k₁ and k₂ are small constants (e.g. 0.01) to provide a local quadratic soft correction.
+ • For z < ε: use a steep penalty, for example,
+  f_adapt(z) = – max(0, –z – Δₛ)^p,
+  where Δₛ is a small shift (e.g. 0.05) and p > 1 (try p = 2 or higher) to ensure saturation.
+6. Define a dynamic threshold T using a high‐order Padé approximant: T = Σ[k=0 to K] (aᵏ × (1/2)ᵏ), with K chosen between 30 and 100.
+7. Define an extra modulation term “extra” that adds gentle oscillatory corrections and further smooths extreme values. For example, extra = softplus(softplus(0.001×a + 0.002)) + 0.0005×sin(a + 0.04), where softplus(u)=ln(1+exp(u)). You are encouraged to stack extra softplus or softsign functions if needed.
+8. Define the final exponent modulator as: Exponent = [0.9478 + 0.00018 × ln(1 + a)] × [1 + α₁ × sin(a) + α₂ × cos(2a) + α₃ × sin(3a)], where α₁, α₂, and α₃ are small constants (for example, 0.005, 0.001, 0.001).
+9. Compute the overall transformed signal: f(x) = sign(z) × { [ f_adapt(z) × T × extra × w ]^(Exponent) }.
+10. Compute latent utility: U = beta + gamma × f(x), and then predict acceptance probability as: P(accept) = 1 / [1 + exp(–U)].
+11. Use exactly three learnable parameters with strict finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+12. Additionally, consider adding a mild additive correction (e.g. a term proportional to z²) when |z| is very small to improve local sensitivity.
+13. Experiment with alternative penalty functions for the negative branch (for instance, using a higher-degree power or a nested softsign chain) to improve parameter recovery.
+14. Feel free to incorporate additional nested nonlinearities (e.g., stacking extra softplus functions) in the extra term to smooth extreme values and reduce variability.
+</new_instructions>
+<SUMMARY>
+This model computes a core sum from 11 fixed features, then applies sequential sinusoidal and cosine modulations followed by a piecewise adaptive transformation that blends a Padé‐like function with local quadratic corrections for small values and steep penalties for negatives. A dynamic threshold (via a high‐order Padé approximant) and an extra modulation term (augmented by nested softplus or softsign chains and additional sine/cosine corrections) further refine the signal. The final transformed value, raised to an adaptive exponent that itself incorporates extra oscillatory terms, is linearly combined with parameters beta and gamma to yield latent utility, which is mapped through a logistic function to predict acceptance.
+</SUMMARY>

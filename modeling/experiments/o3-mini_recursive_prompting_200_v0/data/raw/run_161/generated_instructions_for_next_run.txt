@@ -1,0 +1,49 @@
+<think>
+For run 162, we will push the model to capture even more fine‐grained and localized nonlinearities. In addition to the modifications in the previous instructions, include an extra multiplicative oscillatory factor using sin(4.6×a) to capture further cyclic variations. Also, add an extra multiplicative factor based on sigmoid (e.g., [1 + sigmoid(0.14×a)]) and an extra tanh factor (e.g., [1 + tanh(0.35×a)]) within the extra composite term if not already present. Increase the negative‐branch exponent in the adaptive function f_adapt from 48 to 50 and encourage incorporating an additional optional piecewise polynomial correction when |z| is near zero; for example, allow a small quadratic term when |z| < ε. Extend the dynamic threshold T by summing from k = 0 to 150 (or allow a flexible rational function alternative) to further capture wide-ranging scales. Lastly, modify the overall exponent modulation by also multiplying by [1 + 0.005×cos(0.9×a)] to capture additional cyclic patterns. Encourage designers to experiment with alternative piecewise nonlinearities (for example, using approximations of ReLU, hinge losses, or rational functions) within f_adapt, and to explore flexible formulations for T that may better adapt to different scales. These changes should help boost overall accuracy, lower the BIC, and improve parameter recovery.
+</think>
+
+New Instructions for Run 162:
+1. Compute the core sum a as the sum of fixed components F₁,…,F₁₁ plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Multiply a_mod sequentially by:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+ Define z as the final product.
+4. Set w = (phi − 0.5) / phi.
+  • For z ≥ 0, define f_adapt(z) = clip[1.002 × (z^w × (ln(1+z))^(1−w) × softsign(z)), −30, 30], where softsign(x) = x/(1+|x|).
+  • For z < 0, define f_adapt(z) = phi × [softsign(z + Δ_shift)]^(50), with Δ_shift = 1×10^(–6). Optionally, allow an extra local quadratic correction when |z| is very small.
+5. Define the dynamic threshold T as the sum from k = 0 to 150 of (a^k × (½)^k) (or via a flexible rational function for additional adaptability).
+6. Define the extra composite term extra as the product of:
+  • exp(–a/0.1),
+  • [z/(1+|z|)],
+  • [1 + 0.005 × sin(1/(1+a))],
+  • [1 + 0.002 × cos(0.5×a)],
+  • ([1 + 0.003 × cos(0.3×a)]²),
+  • ([1 + 0.004 × cos(0.3×a)]²),
+  • [1 + 0.0025 × cos(0.7×a)],
+  • [1 + tanh(0.05×a)],
+  • [1 + sigmoid(0.01×a)],
+  • [1 + 0.002 × cos(3×a)],
+  • [1 + 0.002 × (sin(2.5×a) + 0.001×cos(3.5×a) + 0.0015×sin(3×a))],
+  • [1 + sigmoid(0.03×a)],
+  • [1 + tanh(0.07×a)],
+  • [1 + cos(3.1×a)],
+  • [1 + sigmoid(0.04×a)],
+  • [1 + tanh(0.08×a)],
+  • [1 + cos(3.2×a)],
+  • [1 + sigmoid(0.05×a)],
+  • [1 + tanh(0.1×a)],
+  • [1 + cos(3.4×a)],
+  • [1 + sigmoid(0.06×a)]      (new),
+  • [1 + tanh(0.12×a)]      (new),
+  • [1 + cos(3.6×a)]       (new),
+  • [1 + sigmoid(0.08×a)]      (new),
+  • [1 + tanh(0.2×a)]       (new),
+  • [1 + cos(4.2×a)]       (new),
+  • [1 + sin(4.0×a)]        (new),
+  • [1 + sigmoid(0.12×a)]      (new),
+  • [1 + tanh(0.3×a)]        (new),
+  • [1 + sin(4.2×a)]        (new).\nThen, multiply extra by an additional factor: [1 + sigmoid(0.14×a)] × [1 + tanh(0.35×a)] × [1 + sin(4.6×a)]. Also, multiply extra by a Gaussian radial basis function exp(–((a – 1)²)/(2×(0.25)²)). Finally, apply a nested softplus chain with eight successive layers to 0.865/(1+a).\n7. Define the overall exponent modulation as:\n  Exponent = [0.9478 + 0.00018 × ln(1+a)] × [1 + 0.009 × tanh(0.5×a) + 0.004 × sin(3.5×a) + 0.003 × cos(2.7×a) + 0.002 × sin(4.0×a) + 0.005 × cos(0.9×a)].\n8. Compute the final transformed signal: f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.\n9. Compute latent utility U = beta + gamma × f(x), and convert it to the acceptance probability by P(accept=1) = 1/(1 + exp(–U)).\n10. Use exactly three learnable parameters, with fixed bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].\n\nEncourage out-of-the-box exploration: try adding additional piecewise rational adjustments or alternative nonlinear functions (e.g., hinge loss, ReLU approximations) within f_adapt or T, and experiment with extra multiplicative factors (such as additional cosine or sigmoid functions) in the extra composite term to capture any overlooked cyclic patterns.\n\nYour final model should be fully described using clear mathematical notation between <MODEL> tags, variable descriptions in JSON format between <VARIABLES> tags, and a concise summary between <SUMMARY> tags. The target variable is <target_variable>accept</target_variable>.\n

@@ -1,0 +1,49 @@
+<think>
+For run 25, encourage the model to experiment with additional subtle nonlinear modulation and fine-tune the compression exponent. Consider testing small variations in the fixed transformation terms beyond the provided ones—for instance, exploring a slight modification in the oscillatory components (e.g., adding an extra sin modulation with a slightly different frequency) or adjusting the weight multipliers on the trigonometric terms. Emphasize that while the overall structure remains the same (computing N_offer, N_share, F, then scaling with phi), novel alterations to the fixed nonlinear transformation f(·) that can reduce BIC, improve parameter recovery, and raise accuracy should be explored. Also remind that the three learnable parameters (beta, gamma, phi) must remain within their specified bounds but the function structure itself is open to creative tweaks. Encourage the model designer to not only keep the original sequence of fixed terms but also consider optional adaptive weighting between terms or additional smoothing modifications to capture complex responder behavior.
+</think>
+
+For run 25 of 200, please develop a computational model for responder decision-making that satisfies the following requirements:
+
+1. Compute the normalized offer percentage:
+  N_offer = split_self / combined_earning,
+  and the normalized fair share:
+  N_share = token_self / (token_self + token_opp).
+
+2. Define the fairness gap as:
+  F = N_offer – N_share.
+
+3. Scale the fairness gap using phi (with phi learnable within [0.5, 1.5]) to obtain:
+  x = F / phi.
+
+4. Apply a fixed nonlinear transformation f(·) to x incorporating the following fixed terms:
+  • |x|^(0.5)
+  • ln(1 + 3.4 × |x|)
+  • 0.2 × atan(1.1 × |x|)
+  • 0.1 × (1 – exp(–|x|))
+  • 0.05 × (1 – exp(–2 × |x|))
+  • 0.03 × tanh(|x|)
+  • 0.02 × sin(0.5 × |x|)
+  • 0.01 × (1 – cos(0.3 × |x|))
+  • 0.005 × exp(–|x|)
+Optionally, include additional modulation terms such as 0.005×cos(2.0×|x|), 0.005×sin(2.0×|x|), 0.002×cos(3.0×|x|), or even try an alternative term like 0.005×sin(2.2×|x|) to capture more subtle oscillatory effects.
+
+Multiply the entire summed value by a constant 1.08, add a tiny constant (e.g., 1e-6) for numerical stability, and then compress the magnitude by raising the resulting sum to a fixed compression exponent of 0.92, all while preserving the original sign. Formally, define:
+
+  f(x) = sign(x) × ( 1.08 × ([|x|^(0.5) + ln(1 + 3.4×|x|) + 0.2×atan(1.1×|x|) + 0.1×(1 – exp(–|x|)) + 0.05×(1 – exp(–2×|x|)) + 0.03×tanh(|x|) + 0.02×sin(0.5×|x|) + 0.01×(1 – cos(0.3×|x|)) + 0.005×exp(–|x|) [ + 0.005×cos(2.0×|x|) [ + 0.005×sin(2.0×|x|) ] + [ + 0.002×cos(3.0×|x|) or + 0.005×sin(2.2×|x|) ] ] + 1e-6))^(0.92).
+
+5. Use exactly three learnable parameters with the following bounds:
+  • beta (baseline bias) ∈ [–10, 10],
+  • gamma (sensitivity) ∈ [0, 10],
+  • phi (scaling factor) ∈ [0.5, 1.5].
+
+6. Define the latent utility as:
+  U = beta + gamma × f(F/phi).
+
+7. Convert U into a choice probability using the logistic function:
+  p_accept = 1 / (1 + exp(–U)).
+
+8. Provide the complete mathematical model specification between <MODEL> and </MODEL> tags, and detailed JSON-formatted variable descriptions between <VARIABLES> and </VARIABLES> tags.
+
+9. Clearly indicate the predicted target variable in <target_variable> tags (set to “accept”).
+
+The specification should be concise, mathematically rigorous, and encourage creative, out-of-the-box modifications to the fixed transformation function to further lower BIC, boost parameter recovery, and enhance overall accuracy.

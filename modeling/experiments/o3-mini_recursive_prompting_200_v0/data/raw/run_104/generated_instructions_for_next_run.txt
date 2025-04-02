@@ -1,0 +1,33 @@
+<think>
+For run 105, we want to tweak the nonlinear blending functions further to capture additional curvature and adaptivity. In particular, we will encourage exploring an alternative weighted geometric blend in the adaptive transformation (f_adapt) by, for example, computing it as a weighted power–log blend where the weight is a function of phi (e.g., w = (phi – 0.5)/phi) rather than simply (phi – 0.5) and (1 – (phi – 0.5)). Also, we will add a slightly larger linear term (e.g., 0.003×a instead of 0.002×a) inside the extra composite to give more influence to low values of a. Finally, we will slightly adjust the overall exponents in the extra composite (increasing, say, 0.944 to 0.945) to encourage additional flexibility without compromising the fixed bounds of the learnable parameters. All other parts—namely the core sum “a”, the sequential trigonometric modulations, the dynamic threshold T, and the logistic mapping—remain intact. We will again keep exactly three learnable parameters (beta, gamma, phi) with specified finite bounds.
+</think>
+
+New Instructions for Run 105 of 200:
+1. Compute the core sum “a” as the sum of fixed components F₁ to F₁₁ plus a small constant δ.
+2. Multiply “a” by [1 + 0.012×sin(a + 0.045)] and scale by 1.08.
+3. Sequentially modulate the result by:
+  • [1 + 0.008×cos(a + 0.065)]
+  • [1 + 0.005×sin(a + 0.115)]
+  • [1 + 0.004×cos(a + 0.085)]
+  • [1 + 0.006×(sin(a + 0.035)×cos(a + 0.055))]
+  • [1 + 0.003×(sin(a + 0.03)×cos(a + 0.05))]
+Define the resulting value as z.
+4. For the adaptive transformation f_adapt(z):
+  • Let w = (phi – 0.5) / phi.
+  • For z ≥ 0, set f_adapt(z) = [z^(w) × (ln(1+z))^(1–w)] multiplied by a continuity factor of 1.002.
+  • For z < 0, set f_adapt(z) = phi × z.
+5. Define the dynamic threshold T as:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ + 0.000001×a³.
+6. For the extra blending composite, define extra as:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [1.07×softplus(0.865/(1+a)) + 0.15×(0.865/(1+a)) + 0.5×(0.865/(1+a)) + 0.003×a] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 }^(0.945 + 0.00015×ln(1+a)).
+7. Define the final transformed signal as:
+  f(x) = sign(z) × [ f_adapt(z) × T × extra ]^(0.945 + 0.00015×ln(1+a) ).
+8. Compute the latent utility:
+  U = β + γ × f(x),
+and then the acceptance probability:
+  P(accept=1) = 1/(1 + exp(–U)).
+9. Retain exactly three learnable parameters with fixed bounds:
+  • β ∈ [–10, 10]
+  • γ ∈ [0, 10]
+  • φ ∈ [0.5, 1.5]
+10. Finally, if desired, experiment with other weighted geometric blends in f_adapt (for instance, using a harmonic or logarithmic weighting of z and ln(1+z)) or include an additional small linear term inside extra if it further improves BIC, accuracy, and parameter recovery.

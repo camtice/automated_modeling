@@ -1,0 +1,30 @@
+<think>
+For run 97, further explore alternative nonlinear activation functions and adaptive threshold modulation. Emphasize flexibility in the adaptive transformation (for example, using a leaky or parametric ReLU, or a convex combination of linear and logarithmic transforms) while keeping the overall structure intact. Also, encourage incorporating a small cubic or quartic term in the dynamic threshold and allow the blending of the standard softplus with a linear term to be weighted by a learnable factor. Remind designers that the three learnable parameters must remain: beta in [–10, 10], gamma in [0, 10], and phi in [0.5, 1.5]. Emphasize out-of-the-box modifications to further lower BIC, boost accuracy, and improve parameter recovery.
+</think>
+New Instructions for Run 97 of 200:
+1. Compute the core sum "a" as the sum of fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply "a" by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by 1.08.
+4. Sequentially modulate the scaled value using:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Let the resulting value be z.
+6. Define an adaptive transformation f_adapt(z) as: { 0.012 × z if z < 0; min(z, 1 + ln(1+z)) if z ≥ 0 }.
+  Designers are encouraged to experiment with alternative activations here, for instance testing leaky or parametric ReLU variants or adaptive blends that mix a linear and logarithmic response.
+7. Multiply f_adapt(z) by a dynamic threshold T defined as:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ + (optional cubic or quartic term, e.g. 0.000001×a³ or 0.0000001×a⁴).
+8. Compute the extra blending composite as:
+  extra = ( exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [softplus(0.865/(1+a)) + 0.1×(0.865/(1+a))] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 )^(0.944 + 0.00015×ln(1+a)).
+  Designers should experiment with blending the softplus function with a linear term (e.g. increasing the weight from 0.1×x) or even try a new composite activation.
+9. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × T × extra )^(0.944 + 0.00015×ln(1+a) ).
+10. Compute the latent utility U = beta + gamma × f(x) and obtain the acceptance probability by applying the logistic function:
+  P(accept = 1) = 1/(1 + exp(–U)).
+11. Retain exactly three learnable parameters with fixed bounds:
+  • beta ∈ [–10, 10]
+  • gamma ∈ [0, 10]
+  • phi ∈ [0.5, 1.5]
+Designers are strongly encouraged to creatively modify the adaptive transformation and extra blending composite (for example, by incorporating leaky/parametric ReLU variants, extra polynomial terms, or alternative softplus blends) to further reduce BIC, improve parameter recovery, and boost accuracy while keeping the overall model structure intact.

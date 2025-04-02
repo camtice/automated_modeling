@@ -1,0 +1,20 @@
+<new_instructions>
+1. Compute the core sum: a = Σ[i=1 to 11] Fᵢ + β, where the fixed features F₁…F₁₁ are normalized to avoid excessive scaling.
+2. Scale a using a sinusoidal modulation: a_mod = 1.08 · a · (1 + 0.012 · sin(a + 0.045)).
+3. Construct the composite signal:
+  z = a_mod · [1 + 0.008 · cos(a + 0.065)] · [1 + 0.005 · sin(a + 0.115)] · [1 + 0.004 · cos(a + 0.085)] · [1 + 0.006 · (sin(a + 0.035) · cos(a + 0.055))] · [1 + 0.003 · (sin(a + 0.03) · cos(a + 0.05))].
+4. Define the weight: w = (φ – 0.5) / φ.
+5. Define an adaptive transformation f_adapt(z) that smoothly distinguishes the positive and near-zero negative cases. For instance:
+  • For z ≥ ε (with ε set near 1e–3), use a blended transformation such as: f_adapt(z) = ln(1+z) + k₁·z²/(1+z) + tanh(z). Adjust the coefficient k₁ (e.g., around 0.05) to allow moderate quadratic correction.
+  • For z < ε, avoid overly extreme penalization by using a smooth saturating function like a two‐layer softplus or a logistic transformation with a moderate exponent (target an exponent between 2 and 4).
+6. Compute a dynamic threshold T using a Padé approximant (or a finite polynomial series) with order chosen in the range 30–50.
+7. In the extra composite term, incorporate a Gaussian radial basis function (e.g., exp(–((a – 1)²)/(2·(0.25)²))) and a short chain (2–3 levels) of nested softplus (or softsign) functions for stabilization in local regions.
+8. For the exponent modulation, add additional gentle oscillatory corrections (for example, include terms like sin(2a) and cos(2a) with small coefficients) so that extreme values are compressed but local variation is maintained.
+9. Optionally include a small local correction term (for instance, 0.001·z² for |z| below a threshold such as 0.01) to finely adjust sensitivity near zero.
+10. Set the strict finite bounds for the three learnable parameters:
+  • β ∈ [–10, 10],
+  • γ ∈ [0, 10],
+  • φ ∈ [0.5, 1.5].
+11. To improve parameter recovery in the negative regime, consider employing a smoother, less aggressive transformation (e.g., a two‐layer softplus with a modest effective exponent between 2 and 4) for negative z values.
+12. Finally, explore out-of-the-box nonlinear functions or mixtures (such as combining logistic functions with power‐law damping) that provide smooth transitions across the entire domain while capturing diminishing sensitivity. Experiment with combining these functions so that the transformed utility remains smooth and well-behaved.
+</new_instructions>

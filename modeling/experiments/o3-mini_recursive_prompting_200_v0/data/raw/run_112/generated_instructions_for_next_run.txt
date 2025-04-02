@@ -1,0 +1,40 @@
+<think>
+For Run 113, we want to tweak the model further to reduce BIC and improve parameter recovery and accuracy. In this version, we will:
+• Maintain the overall structure of computing a core sum “a” from fixed components and adding a small constant.
+• Retain the sequential harmonic modulations and the dynamic threshold T.
+• In the adaptive transformation f_adapt(z), for negative z values, consider applying a slight quadratic adjustment (i.e. use phi·z² instead of phi·z) to capture potential nonlinear scaling in rejection scenarios.
+• In the extra blending composite, add an additional harmonic modulation factor [1 + 0.003×cos(0.3×a)] to further tune mid-range sensitivity.
+• Modify the final exponent by including a secondary oscillatory factor, e.g., multiply the exponent by [1 + 0.001×sin(2×a)] (instead of [1+0.001×sin(a)]).
+• Ensure that the latent utility remains U = beta + gamma·f(x) and P(accept=1) = 1/(1+exp(–U)).
+• Retain the same fixed bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5].
+These adjustments are designed to provide extra flexibility in capturing nonlinear distortion in low utility ranges while preserving parameter interpretability.
+</think>
+
+New Instructions for Run 113:
+1. Compute the core sum “a” as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Multiply “a” by [1 + 0.012×sin(a + 0.045)] and scale by 1.08.
+3. Sequentially modulate the result with these factors:
+  • [1 + 0.008×cos(a + 0.065)]
+  • [1 + 0.005×sin(a + 0.115)]
+  • [1 + 0.004×cos(a + 0.085)]
+  • [1 + 0.006×(sin(a + 0.035)×cos(a + 0.055))]
+  • [1 + 0.003×(sin(a + 0.03)×cos(a + 0.05))]
+Define the product as z.
+4. Define the weight w = (phi – 0.5)/phi.
+  • For z ≥ 0, set f_adapt(z) = 1.002 × [z^(w) × (ln(1+z))^(1–w)].
+  • For z < 0, set f_adapt(z) = phi × (z^2) (using a quadratic adjustment).
+5. Define the dynamic threshold T as a high‐order polynomial in a:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ + 0.000001×a³.
+6. In the extra blending composite, define extra as:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [1 + 0.002×cos(0.5×a)] × [1 + 0.003×cos(0.3×a)] × [1.07×softplus(0.865/(1+a)) + 0.15×(0.865/(1+a)) + 0.5×(0.865/(1+a)) + 0.006×a] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 }^(0.9478+0.00018×ln(1+a)).
+7. Define the final transformed signal as:
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^([0.9478+0.00018×ln(1+a)] × [1+0.001×sin(2×a)]) }.
+8. Compute the latent utility:
+  U = beta + gamma × f(x),
+and then obtain the probability of acceptance as:
+  P(accept=1) = 1/(1+exp(–U)).
+9. The model must use exactly three learnable parameters with the following fixed bounds:
+  • beta ∈ [–10, 10]
+  • gamma ∈ [0, 10]
+  • phi ∈ [0.5, 1.5]
+10. You may experiment further with additional modulation if beneficial, but ensure the overall structure remains U = beta + gamma·f(x) with the specified fixed bounds.

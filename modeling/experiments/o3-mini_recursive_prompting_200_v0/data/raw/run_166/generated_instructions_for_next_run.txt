@@ -1,0 +1,46 @@
+<think>
+For run 167, let's further encourage the model designer to explore alternative local nonlinear approximations in the f_adapt function (for example, using a piecewise ReLU, hinge loss, or a rational function approximation) to improve the capture of local curvature in regions where |z| is small or z is negative. We also ask that the dynamic threshold T be defined either by extending the current summation range even further or by exploring a flexible rational function (for instance, a Padé approximant) that can adapt its curvature over a wide dynamic range of a. In the extra composite factor, add an additional multiplicative term such as [1 + 0.005×cos(0.9×a)] (the value 0.005 can be tuned) and encourage the use of smooth blending functions (like a smooth maximum) to better integrate the individual factors. Finally, ask the designer to consider incorporating an alternative softplus chain (or even a nested softsign chain) to further smooth extreme values. The goal is to lower the BIC, improve parameter recovery (particularly for phi), and achieve higher accuracy by capturing local nonlinearities more faithfully. 
+</think>
+
+New Instructions for Run 167:
+1. Compute the core sum a as the sum of fixed components F₁,…,F₁₁ plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Multiply a_mod sequentially by:
+  – [1 + 0.008 × cos(a + 0.065)],
+  – [1 + 0.005 × sin(a + 0.115)],
+  – [1 + 0.004 × cos(a + 0.085)],
+  – [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))],
+  – [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+ Define z as the product.
+4. Set w = (phi − 0.5) / phi.
+  – For z ≥ 0, define the adaptive transformation f_adapt(z) using an alternative local nonlinear approximation (e.g., a rational or hinge-inspired function, or a piecewise ReLU approximation) to better capture local curvature. Optionally, add a small quadratic correction if |z| falls below a threshold ε.
+  – For z < 0, define f_adapt(z) with a strongly weighted penalty (e.g., by raising softsign(z+Δ_shift) to a high exponent) to ensure negative deviations are captured sharply.
+5. For the dynamic threshold T, either extend the summation range (e.g., to k = 250) or define T using a flexible rational function (such as a Padé approximant) that adapts over a wide range of a.
+6. Define the extra composite factor extra as the product of the following factors:
+  • exp(−a/0.1),
+  • [z/(1+|z|)],
+  • [1 + 0.005 × sin(1/(1+a))],
+  • [1 + 0.002 × cos(0.5×a)],
+  • ([1 + 0.003×cos(0.3×a)]²),
+  • ([1 + 0.004×cos(0.3×a)]²),
+  • [1 + 0.0025 × cos(0.7×a)],
+  • [1 + tanh(0.05×a)],
+  • [1 + sigmoid(0.01×a)],
+  • [1 + 0.002 × cos(3×a)],
+  • [1 + 0.002 × (sin(2.5×a) + 0.001×cos(3.5×a) + 0.0015×sin(3×a))],
+  • [1 + sigmoid(0.03×a)],
+  • [1 + tanh(0.07×a)],
+  • [1 + cos(3.1×a)],
+  • [1 + sigmoid(0.04×a)],
+  • [1 + tanh(0.08×a)],
+  • [1 + cos(3.2×a)],
+  • [1 + sigmoid(0.05×a)],
+  • [1 + tanh(0.1×a)],
+  • [1 + cos(3.4×a)],
+  • [1 + sigmoid(0.06×a)],
+  • [1 + tanh(0.12×a)]        (new)\n  • [1 + cos(3.6×a)]        (new)\n  • [1 + sigmoid(0.08×a)]        (new)\n  • [1 + tanh(0.2×a)]         (new)\n7. Multiply extra by an additional factor [1 + 0.005×cos(0.9×a)] and then by a Gaussian radial basis function exp(−((a−1)²)/(2×(0.25)²)). Finally, apply an eight-layer nested softplus chain to 0.865/(1+a). 
+8. Define the overall exponent as: Exponent = [0.9478 + 0.00018 × ln(1+a)] × [1 + 0.009 × tanh(0.5×a) + 0.004 × sin(3.5×a) + 0.003 × cos(2.7×a) + 0.002 × sin(4.0×a) + 0.005 × cos(0.9×a)] × [1 + 0.005×cos(0.9×a)].
+9. Compute the final transformed signal: f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+10. Compute latent utility as U = beta + gamma × f(x), and convert U to an acceptance probability via the logistic function: P(accept=1) = 1/(1 + exp(–U)).
+11. Use exactly three learnable parameters: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+</previous_instructions>

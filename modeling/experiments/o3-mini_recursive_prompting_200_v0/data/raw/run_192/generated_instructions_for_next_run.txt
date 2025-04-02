@@ -1,0 +1,21 @@
+<think>
+We can improve the model by recommending a softer adaptive transformation for negative outcomes (using a nested softplus chain with an exponent between 2 and 6 instead of using very high powers), and by suggesting a dynamic threshold using a Padé approximant with a moderated number of terms (say, k between 30 and 50). Also, let’s add additional oscillatory modulation (sin and cos terms) into the exponent modulator to smooth the compression. We should also include an optional local correction term near zero to enhance sensitivity. Finally, we explicitly specify that the three learnable parameters (beta, gamma, phi) are bounded: beta in [–10, 10], gamma in [0, 10], and phi in [0.5, 1.5]. This should encourage out-of‐the‐box exploration and help improve BIC and parameter recovery while increasing accuracy.
+</think>
+<new_instructions>
+1. Compute the core sum: a = Σ[i=1 to 11] Fᵢ + δ.
+2. Apply sinusoidal scaling: a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Construct the composite signal by sequential multiplicative modulations:
+  z = a_mod × [1 + 0.008 × cos(a + 0.065)] × [1 + 0.005 × sin(a + 0.115)] × [1 + 0.004 × cos(a + 0.085)] × [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))] × [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+4. Define the weight: w = (phi – 0.5) / phi.
+5. For the adaptive transformation f_adapt(z), use a piecewise function that for z ≥ ε (set ε = 0.0001) applies a softened rational transformation augmented with a small quadratic term and softsign smoothing (e.g., f_adapt = ln(1+z) + 0.05·z²/(1+z) + tanh(z) + 0.001·z²) while for z < ε use a nested softplus chain with a moderate exponent (e.g., an exponent between 2 and 6, rather than extremely high powers).
+6. Replace the simple power series threshold T with an alternative Padé approximant or rational function with k adjustable between 30 and 50 to stabilize T.
+7. In the extra composite term, incorporate a Gaussian radial basis function term such as exp(–((a – 1)²)/(2·0.25²)) and allow stacking 2–4 nested softplus (or softsign) layers to robustly capture local nonlinearities.
+8. In the exponent modulator, incorporate additional oscillatory components (for example, include both sin(2a) and cos(2a)) to more smoothly compress extreme values.
+9. Optionally add a mild local correction term (e.g. a small multiple of z² when |z| is very small) to boost sensitivity in that region.
+10. Ensure exactly three learnable parameters with strict finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5].
+11. Encourage innovation, especially in the negative branch of f_adapt: explore a nested softplus chain with an exponent in the range 2–6.
+12. Finally, allow the exponent modulator to flexibly combine both sin() and cos() terms (e.g., sin(2a) and cos(2a)) for fine‐tuned compression.
+</new_instructions>
+<SUMMARY>
+The model computes a core sum from 11 fixed features and applies sequential sinusoidal and cosine modulations to yield an intermediate signal. A piecewise adaptive transformation then softly maps the signal using a rational (ln‐based) plus local quadratic correction for nonnegative values, while employing a nested softplus chain with a moderate exponent for negative values. The result is further stabilized by a dynamic threshold using a Padé approximant (with k between 30 and 50) and enhanced by an extra composite term featuring a Gaussian radial basis function and stacked softplus layers. The final transformed signal is raised to an adaptive exponent modulated by additional oscillatory terms and combined linearly with base (beta) and scaling (gamma) parameters. Three learnable parameters (beta ∈ [–10,10], gamma ∈ [0,10], and phi ∈ [0.5,1.5]) are used. This design is aimed at reducing BIC, improving parameter recovery, and increasing predictive accuracy.
+</SUMMARY>

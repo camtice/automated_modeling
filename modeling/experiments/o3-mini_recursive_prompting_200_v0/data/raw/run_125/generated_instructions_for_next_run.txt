@@ -1,0 +1,32 @@
+<think>
+For run 126, I will further encourage the model to incorporate robust nonlinear correction mechanisms in both the adaptive transformation and the extra composite parts. In particular, I want the model to include an additional softsign term on the positive branch, to clip extreme values explicitly, and to add extra high‐order polynomial terms (up to a^12) in the dynamic threshold T. In the extra composite, include an extra sigmoid factor (to dampen extreme high values) and an additional tanh multiplier. In addition, in the final exponent, add an extra sine–cosine modulation term (for instance, a term like [1 + 0.003*sin(2.5*a) + 0.002*cos(3.5*a) + 0.001*sin(3*a)]). This custom configuration should allow the model to flexibly adapt to extreme responses while further improving overall recovery metrics and accuracy. I will keep all three learnable parameters (beta, gamma, phi) exactly and maintain their bounds—beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+</think>
+New Instructions for Run 126:
+
+1. Compute the core sum “a” as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Compute a_mod = a × [1 + 0.012 × sin(a + 0.045)], then scale by 1.08.
+3. Sequentially modulate a_mod with:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+Define the product as z.
+4. Define the weight w = (phi – 0.5) / phi.
+  • For z ≥ 0, define f_adapt(z) = 1.002 × [z^w × (ln(1+z))^(1–w)] multiplied by an extra softsign correction (i.e. multiply by softsign(z), where softsign(x) = x/(1+|x|)) and then clip the result if extremely high.
+  • For z < 0, define f_adapt(z) = phi × [softsign(z + Δ_shift)]^7, where Δ_shift is a small constant.
+5. Define a dynamic threshold T as an extended polynomial in a:
+  T = 1 + 0.0005·a² + 0.00005·a³ + 0.000005·a⁴ + 0.0000001·a⁵ + 0.00000001·a⁶ + 0.000000001·a⁷ + 0.0000000001·a⁸ + 0.000001·a³ + 0.0000001·a⁹ + 0.00000001·a¹⁰ + 0.000000001·a¹¹ + 0.0000000001·a¹².
+6. Define the extra blending composite extra as:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005 × sin(1/(1+a))] × [1 + 0.002 × cos(0.5×a)] × ([1+0.003×cos(0.3×a)]²) × ([1+0.004×cos(0.3×a)]²) × [1 + 0.0025×cos(0.7×a)] × [1 + tanh(0.05×a)] × [1 + sigmoid(0.01×a)] × [1.07×softplus(0.865/(1+a)) + 0.15×(0.865/(1+a)) + 0.5×(0.865/(1+a)) + 0.006×a] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1+cosh(0.001×a)]^(2+0.0005×a) + 1e–6 }^(0.9478 + 0.00018×ln(1+a)) multiplied by an additional tanh multiplier [1 + tanh(0.05×a)].
+7. Define the final exponent as:
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.003×sin(2×a) + 0.001×cos(3×a) + 0.0025×cos(0.7×a) + 0.004×sin(2.5×a) + 0.002×cos(3.5×a) + 0.001×sin(2.5×a)×cos(3×a)].
+8. Define the final transformed signal as:
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and then compute the acceptance probability as P(accept=1) = 1 / (1 + exp(–U)).
+10. Retain exactly three learnable parameters with the following finite bounds:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+
+Encourage creative, flexible nonlinear combinations and out‐of–the box corrections (such as additional tanh or softsign factors) to capture extreme rejection responses and further lower the BIC while improving parameter recovery and accuracy.

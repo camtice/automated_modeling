@@ -1,0 +1,49 @@
+<think>
+For run 52, adapt the previous nonlinear model by introducing an adaptive ReLU-like transformation that is sensitive to the signal’s magnitude (for example, one that dynamically caps the output based on a log‐scale of the input). In addition, adjust all the phase offsets in the sinusoidal modulations by increasing them slightly (e.g., add 0.005 more than before) to induce minor shifts. Also, add an extra modulation stage that multiplies the signal by a composite factor: the product of a fixed exponential decay (with decay constant k = 0.1) and a softsign function of the intermediate modulated signal. Then, use the product of the original power–log blend (plus delta), all the sequential modulation stages (with the new phase shifts), the adaptive ReLU-like compression, and the extra exponential–softsign blend. Raise this entire blended signal to exponent E = 0.92. Finally, compute the latent utility as U = beta + gamma × f(x) (with x = F/phi) and transform it with the logistic function into an acceptance probability. Retain exactly three learnable parameters (beta, gamma, phi) with the bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5]. The instructions should encourage creative, non‐obvious integration of these nonlinear blending stages to push for improved accuracy, lower BIC, and more robust parameter recovery.
+</think>
+
+For run 52, please develop an innovative computational model for responder decision-making using the following instructions:
+
+1. Compute the normalized offer as:  N_offer = split_self / combined_earning.
+2. Compute the normalized fair share as:  N_share = token_self / (token_self + token_opp).
+3. Define the fairness gap:  F = N_offer − N_share.
+4. Scale the gap by the learnable scaling factor phi (bounded in [0.5, 1.5]):  x = F / phi.
+5. Let a = |x|. For a, compute the core nonlinear components:
+  • a^(0.5)
+  • ln(1 + 3.4 × a)
+  • 0.2 × arctan(1.1 × a)
+  • 0.1 × (1 − exp(−a))
+  • 0.05 × (1 − exp(−2 × a))
+  • 0.03 × tanh(a)
+  • 0.02 × sin(0.5 × a)
+  • 0.012 × (1 − cos(0.3 × a))
+  • 0.005 × exp(−a)
+  Optionally, include extra terms such as 0.005 × sin(2.2 × a) and 0.002 × cos(3.0 × a).
+6. Sum all these terms and add a constant delta = 0.01.
+7. Modulate the sum with the factor [1 + 0.012 × sin(a + 0.04)] (note the slight phase shift).
+8. Form an Intermediate_Signal by conceptually combining the multiplicative (power-law × logarithmic) term with the additive nonlinear components.
+9. Multiply the Intermediate_Signal by a fixed constant C (for example, C = 1.08).
+10. Apply sequential modulation stages with slight phase modifications:
+  a. Multiply by [1 + 0.008 × cos(a + 0.06)].
+  b. Multiply by [1 + 0.005 × sin(a + 0.11)].
+  c. Multiply by [1 + 0.004 × cos(a + 0.08)].
+  d. Multiply by [1 + 0.006 × (sin(a + 0.03) × cos(a + 0.05))].
+  e. Optionally, multiply by [1 + 0.003 × (sin(a + 0.025) × cos(a + 0.045))].
+11. Introduce an adaptive ReLU-like transformation to the modulated signal. That is, set f_relu(z) to a capped version of z (for example, f_relu(z) = min(max(0, z), 1 + ln(1 + z))) so that extreme values are sharply compressed in a dynamic, input-sensitive way.
+12. Further blend the signal using an extra modulation layer formed by multiplying:
+  • An exponential decay factor exp(−a/0.1), and
+  • A softsign mapping of the intermediate modulated signal (softsign(z) = z/(1 + |z|)).
+Combine these two factors to create a composite modulation.
+13. Add a small constant offset of 1e-6 for numerical stability.
+14. Compress the final blended signal by raising it to the fixed exponent E = 0.92.
+15. Define the final nonlinear transformation as:
+  f(x) = sign(x) × { [ C × (core nonlinear sum + delta) × (product of the sequential modulation factors, adaptive ReLU-like output, and the extra exponential–softsign blend) + 1e-6 ]^(0.92) }.
+16. Compute the latent utility by:  U = beta + gamma × f(x).
+17. Convert U to an acceptance probability using the logistic function:  p_accept = 1 / (1 + exp(−U)).
+
+Remember, there are exactly three learnable parameters:
+  • beta (baseline bias) ∈ [–10, 10],
+  • gamma (sensitivity) ∈ [0, 10],
+  • phi (scaling factor) ∈ [0.5, 1.5].
+
+Be creative in your design of the adaptive ReLU-like operation and the extra modulation layer. Consider blending alternative activation shapes or variable dynamic caps to explore out-of-the-box nonlinear behavior. Your goal is to improve predictive accuracy, lower the Bayesian Information Criterion, and achieve robust parameter recovery.

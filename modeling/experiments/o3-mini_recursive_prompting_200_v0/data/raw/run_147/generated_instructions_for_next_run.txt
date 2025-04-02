@@ -1,0 +1,50 @@
+<think>
+For run 148, we will boost nonlinearity further and allow even richer complexity while still only using the three learnable parameters (beta, gamma, phi). In the negative branch of f_adapt, increase the exponent from 26 to 28 to further emphasize extreme deviations. In the extra composite term, include three additional multiplicative factors: one for [1 + sigmoid(0.06×a)], one for [1 + tanh(0.12×a)], and one for [1 + cos(3.6×a)]. Also, nest an additional softplus function inside extra by multiplying the previous product by softplus(softplus(0.865/(1+a))). Extend the dynamic threshold T by summing from k = 0 to 60 instead of 55 to allow more flexibility in higher powers of a. Finally, amplify the final exponent modulation by including an extra multiplicative factor [1 + 0.005×sin(2.8×a) + 0.001×cos(3.8×a) + 0.003×sin(3.4×a) + 0.002×cos(4.4×a) + 0.001×sin(2.9×a) + 0.0005×cos(4.1×a) + 0.001×(sin(2.5×a)×cos(3.2×a)) + 0.002×cos(3.6×a)]. This extra factor should be multiplied with the previously specified exponent modulation. These modifications aim to capture even more subtle nonlinearities and complex behaviors, preserving the learnable parameters beta ∈ [–10,10], gamma ∈ [0,10], and phi ∈ [0.5,1.5]. Be creative in interleaving the nonlinear functions and maintain clarity in your specification.
+</think>
+New Instructions for Run 148:
+1. Compute the core sum a as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Sequentially modulate a_mod by multiplying by:
+ • [1 + 0.008 × cos(a + 0.065)]
+ • [1 + 0.005 × sin(a + 0.115)]
+ • [1 + 0.004 × cos(a + 0.085)]
+ • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+ • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+Let z be the resulting product.
+4. Compute w = (phi − 0.5) / phi.
+ • For z ≥ 0, define f_adapt(z) = clip[1.002 × (z^w × (ln(1+z))^(1−w) × softsign(z)), −30, 30], where softsign(z) = z/(1+|z|).
+ • For z < 0, set f_adapt(z) = phi × [softsign(z + Δ_shift)]^(28) with Δ_shift = 1×10⁻⁶.
+5. Define the dynamic threshold T as the sum for k = 0 to 60 of [a^k × (½)^k].
+6. Define the extra composite term extra as the product of the following factors:
+ • exp(−a/0.1)
+ • [z/(1+|z|)]
+ • [1 + 0.005 × sin(1/(1+a))]
+ • [1 + 0.002 × cos(0.5×a)]
+ • ([1 + 0.003 × cos(0.3×a)]²)
+ • ([1 + 0.004 × cos(0.3×a)]²)
+ • [1 + 0.0025 × cos(0.7×a)]
+ • [1 + tanh(0.05×a)]
+ • [1 + sigmoid(0.01×a)]
+ • [1 + 0.002 × cos(3×a)]
+ • [1 + 0.002 × sin(2.5×a) + 0.001 × cos(3.5×a) + 0.0015 × sin(3×a)]
+ • [1 + sigmoid(0.03×a)]
+ • [1 + tanh(0.07×a)]
+ • [1 + cos(3.1×a)]
+ • [1 + sigmoid(0.04×a)]
+ • [1 + tanh(0.08×a)]
+ • [1 + cos(3.2×a)]
+ • [1 + sigmoid(0.05×a)]
+ • [1 + tanh(0.1×a)]
+ • [1 + cos(3.4×a)]                 (added factor)\n • [1 + sigmoid(0.05×a)]                (added factor)\n • [1 + tanh(0.1×a)]                 (added factor)\n • [1 + cos(3.6×a)]                 (added factor)\n • Multiply by softplus( softplus(0.865/(1+a)) )\nRaise the entire product to the power [0.9478 + 0.00018×ln(1+a)].
+7. Define the final exponent modulation factor as:
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.005×sin(2.8×a) + 0.001×cos(3.8×a) + 0.003×sin(3.4×a) + 0.002×cos(4.4×a) + 0.001×sin(2.9×a) + 0.0005×cos(4.1×a) + 0.001×(sin(2.5×a)×cos(3.2×a)) + 0.002×cos(3.6×a)].
+8. Compute the final transformed signal f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and obtain the acceptance probability P(accept = 1) = 1/(1 + exp(–U)).
+10. Retain exactly three learnable parameters with the following bounds:
+  • beta ∈ [–10, 10]
+  • gamma ∈ [0, 10]
+  • phi ∈ [0.5, 1.5]
+Encourage creative interleaving of nonlinear functions throughout the model.
+<SUMMARY>
+A highly nonlinear utility model for binary acceptance that aggregates 11 fixed components with a stability constant. The model applies sequential trigonometric modulations, an adaptive transformation (with a further increased exponent for negative outputs), an extended dynamic threshold (summing powers up to k = 60), and an augmented extra composite term with additional [1+sigmoid(0.06×a)], [1+tanh(0.12×a)], and [1+cos(3.6×a)] factors as well as an additional nested softplus. A final exponent modulation incorporates an extra multiplicative factor capturing nuanced oscillatory behavior. The resulting transformed signal is linearly scaled by beta and gamma, and passed through a logistic function to yield acceptance probability.
+</SUMMARY>

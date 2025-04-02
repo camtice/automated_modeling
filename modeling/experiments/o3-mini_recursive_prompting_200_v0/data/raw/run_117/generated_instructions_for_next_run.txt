@@ -1,0 +1,52 @@
+<think>
+For this run, further improve the model’s ability to capture deep rejection and enhance mid‐range sensitivity. Retain the overall structure U = beta + gamma · f(x) with three learnable parameters (beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5]). The new instructions will still compute a core sum “a” from fixed components F1–F11 plus a small constant δ. Then “a” will be modulated by [1+0.012×sin(a+0.045)] and scaled by 1.08, followed by sequential multiplicative modulations with factors [1+0.008×cos(a+0.065)], [1+0.005×sin(a+0.115)], [1+0.004×cos(a+0.085)], [1+0.006×(sin(a+0.035)×cos(a+0.055))], and [1+0.003×(sin(a+0.03)×cos(a+0.05))] to yield z.
+
+Next, define weight w = (phi–0.5)/phi. For z ≥ 0, use the mixed power-log transformation f_adapt(z) = 1.002 × [z^(w) × (ln(1+z))^(1–w)]; for z < 0, use a quartic adjustment: f_adapt(z) = phi × (z^4).
+
+Define a dynamic threshold T as a polynomial in a:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ + 0.000001×a³.
+
+In the extra blending composite, further refine mid-range sensitivity by adding an extra harmonic modulation term [1 + 0.004×cos(0.3×a)] immediately after the existing terms. Thus, define extra as:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [1 + 0.002×cos(0.5×a)] × [1 + 0.003×cos(0.3×a)] × [1 + 0.003×cos(0.3×a)] × [1 + 0.004×cos(0.3×a)] × [1 + 0.004×cos(0.3×a)] × [1.07×softplus(0.865/(1+a)) + 0.15×(0.865/(1+a)) + 0.5×(0.865/(1+a)) + 0.006×a] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 }^(0.9478+0.00018×ln(1+a)).
+
+Then update the final exponent to further modulate compression:
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.003×sin(2×a) + 0.001×cos(3×a)].
+
+Finally, define the final transformed signal as:
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+Compute latent utility as U = beta + gamma × f(x) and derive the predicted probability as P(accept=1) = 1/(1+exp(–U)).
+
+These modifications introduce extra harmonic modulation in the extra composite and an additional cosine modulation in the final exponent, encouraging greater nonlinear curvature in the rejection regime and enhanced sensitivity in the mid‐range.
+</think>
+
+New Instructions for Run 118:
+1. Compute the core sum “a” as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Multiply “a” by [1 + 0.012×sin(a + 0.045)] and scale the result by 1.08.
+3. Sequentially modulate the outcome with:
+  • [1 + 0.008×cos(a + 0.065)]
+  • [1 + 0.005×sin(a + 0.115)]
+  • [1 + 0.004×cos(a + 0.085)]
+  • [1 + 0.006×(sin(a + 0.035)×cos(a + 0.055))]
+  • [1 + 0.003×(sin(a + 0.03)×cos(a + 0.05))]
+Define the product as z.
+4. Define the weight w = (phi – 0.5) / phi.
+  • For z ≥ 0, set f_adapt(z) = 1.002 × [z^(w) × (ln(1+z))^(1–w)].
+  • For z < 0, set f_adapt(z) = phi × (z^4).
+5. Define the dynamic threshold T as:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷ + 0.0000000001×a⁸ + 0.000001×a³.
+6. In the extra blending composite, define extra as:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [1 + 0.002×cos(0.5×a)] × [1 + 0.003×cos(0.3×a)] × [1 + 0.003×cos(0.3×a)] × [1 + 0.004×cos(0.3×a)] × [1 + 0.004×cos(0.3×a)] × [1.07×softplus(0.865/(1+a)) + 0.15×(0.865/(1+a)) + 0.5×(0.865/(1+a)) + 0.006×a] × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1 + cosh(0.001×a)]^(2+0.0005×a) + 1e–6 }^(0.9478+0.00018×ln(1+a)).
+7. Define the final exponent as:
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.003×sin(2×a) + 0.001×cos(3×a)].
+8. Define the final transformed signal:
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility as:
+  U = beta + gamma × f(x),
+and then obtain:
+  P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with these fixed bounds:
+  • beta ∈ [–10, 10],
+  • gamma ∈ [0, 10],
+  • phi ∈ [0.5, 1.5].
+
+These instructions encourage creative, out‐of‐the‐box nonlinear transformations to better capture extreme rejection and fine‐tune mid‐range sensitivity.

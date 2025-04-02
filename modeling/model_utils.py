@@ -6,7 +6,7 @@ from scipy.optimize import minimize
 import pandas as pd
 
 
-def stable_logistic(utility, temperature=2):
+def stable_logistic(utility, temperature=1):
     """Compute a stable logistic function to avoid overflow."""
     epsilon = 1e-10
     temperature = max(temperature, epsilon)
@@ -78,9 +78,9 @@ def negative_log_likelihood_utility(
         # Calculate log likelihood
         total_ll = 0
         for utility, trial in zip(result, trial_data):
-            p_accept = stable_logistic(utility)
+            p_correct = stable_logistic(utility)
             actual_decision = trial[target_value_name]
-            p = p_accept if actual_decision == 1 else (1 - p_accept)
+            p = p_correct if actual_decision == 1 else (1 - p_correct)
             total_ll += np.log(p + 1e-10)
 
         return -total_ll
@@ -122,15 +122,17 @@ def mean_squared_error(
         # Calculate MSE
         total_squared_error = 0
         valid_trials = 0
-        
+
         for predicted, trial in zip(predicted_values, trial_data):
             try:
                 actual_value = trial[target_value_name]
-                
+
                 # Skip trials where target value is nan or None
-                if actual_value is None or (isinstance(actual_value, float) and math.isnan(actual_value)):
+                if actual_value is None or (
+                    isinstance(actual_value, float) and math.isnan(actual_value)
+                ):
                     continue
-                
+
                 actual_value = float(actual_value)
                 squared_error = (predicted - actual_value) ** 2
                 total_squared_error += squared_error
@@ -142,12 +144,73 @@ def mean_squared_error(
         # Check if we have any valid trials
         if valid_trials == 0:
             raise ValueError("No valid trials found for MSE calculation")
-            
+
         mse = total_squared_error / valid_trials
         return mse
 
     except Exception as e:
         raise ValueError(f"Error in MSE calculation: {str(e)}\nParams: {param_dict}")
+
+
+def calculate_accuracy(
+    params: Dict[str, float],
+    trial_data: List[Dict],
+    simulation_code: str,
+    target_value_name: str,
+) -> float:
+    """Calculate prediction accuracy for binary choice models by simulating decisions.
+
+    Args:
+        params: Dictionary of parameter names and values
+        trial_data: List of dictionaries containing trial data
+        simulation_code: Python code string for the simulation model
+        target_value_name: Name of the target variable in the trial data
+
+    Returns:
+        float: Accuracy as proportion of correctly predicted decisions
+    """
+    try:
+        # Create a local namespace for execution
+        local_vars = {"math": math, "random": random}
+
+        # Execute simulation code with current parameters
+        exec(simulation_code, local_vars)
+        utilities = local_vars["simulate_model"](trial_data, **params)
+
+        if not isinstance(utilities, list):
+            raise ValueError(
+                f"simulate_model returned {type(utilities)}, expected list"
+            )
+
+        correct_predictions = 0
+        total_predictions = 0
+
+        # Simulate decisions based on model probabilities and compare to actual decisions
+        for utility, trial in zip(utilities, trial_data):
+            # Calculate probability from utility using stable logistic
+            p_choose = stable_logistic(utility)
+
+            # Simulate decision based on probability
+            simulated_decision = 1 if random.random() < p_choose else 0
+
+            # Get actual decision
+            actual_decision = trial[target_value_name]
+
+            # Count correct predictions
+            if simulated_decision == actual_decision:
+                correct_predictions += 1
+
+            total_predictions += 1
+
+        # Calculate accuracy
+        accuracy = (
+            correct_predictions / total_predictions if total_predictions > 0 else 0
+        )
+        return accuracy
+
+    except Exception as e:
+        print(f"Error in accuracy calculation: {e}")
+        return 0.0
 
 
 def fit_participant(
@@ -264,12 +327,24 @@ def fit_participant(
 
         # Store appropriate metric in results
         if optimization_goal == "likelihood":
+            # Calculate accuracy for utility models
+            param_dict = {
+                name: value for name, value in zip(param_names, best_result.x)
+            }
+            model_accuracy = calculate_accuracy(
+                params=param_dict,
+                trial_data=participant_data,
+                simulation_code=simulation_code,
+                target_value_name=target_value_name,
+            )
+
             fit_results.update(
                 {
                     "success": best_result.success,
                     "log_likelihood": -best_result.fun,  # Convert back to log likelihood from negative log likelihood
                     "optimization_message": best_result.message,
                     "prediction_type": "utility",
+                    "accuracy": model_accuracy,  # Add accuracy to results
                 }
             )
         else:  # MSE

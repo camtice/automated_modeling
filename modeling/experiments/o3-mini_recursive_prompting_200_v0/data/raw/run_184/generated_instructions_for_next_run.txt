@@ -1,0 +1,22 @@
+<new_instructions>
+1. Compute the core sum:               a = Σ[i=1 to 11] Fᵢ + δ.
+2. Apply a sinusoidal scaling transformation:   a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Form the composite signal by sequential multiplicative modulations:   z = a_mod × [1 + 0.008 × cos(a + 0.065)] × [1 + 0.005 × sin(a + 0.115)] × [1 + 0.004 × cos(a + 0.085)] × [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))] × [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+4. Define the weight:   w = (phi – 0.5) / phi.
+5. For the adaptive transformation f_adapt(z), use a piecewise function that:
+ • For z ≥ ε (set ε = 0.0001), instead of using a pure Padé‐like function, blend a rational (ln-based) function with a local quadratic correction; for example, use f_adapt(z) = z + k₁·z² + ln(1 + z) + k₂·[z/(1 + z)].
+ • For z < ε, avoid overly steep penalties by experimenting with a nested softsign or softplus chain with a moderate exponent (try an exponent between 2 and 6) to avoid instability.
+6. Define a dynamic threshold T using a Padé approximant sum: T = Σ[k=0 to K] aᵏ × (1/2)ᵏ with K chosen from 30 to 50.
+7. Define an extra modulation term “extra” that incorporates additional nested nonlinearities. For example, try a design that stacks several softplus layers (and/or softsign functions) optionally multiplied by a gentle sinusoidal or Gaussian radial basis term. This term should be tunable and help smooth extreme values.
+8. Define the final exponent modulator as: Exponent = [0.9478 + 0.00018 × ln(1 + a)] × [1 + α₁ × sin(a) + α₂ × cos(2a) + α₃ × sin(3a)]. Consider allowing slight alternatives here (e.g., by including cosine or tanh functions) to improve the sensitivity of the model.
+9. Compute the final transformed signal: f(x) = sign(z) × { [f_adapt(z) × T × extra × w] + correction }^(Exponent), where “correction” is a mild additive term (e.g., proportional to z² when |z| is very small) to improve local sensitivity.
+10. Compute latent utility as: U = beta + gamma × f(x) and predict acceptance probability via the logistic function: P_accept = 1 / [1 + exp(–U)].
+11. Use exactly three learnable parameters with strict finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+12. Experiment with alternative penalty or smoothing functions for the negative branch of f_adapt (for example, using a nested softplus chain with a moderate exponent rather than a very high power) to improve parameter recovery.
+13. Encourage out-of-the-box modifications in the extra term; consider adding a Gaussian radial basis term (e.g., exp(–((a – μ)²)/(2σ²))) to capture nonlinearity near an important operating point (for instance, near a = 1).
+14. Optionally, experiment with incorporating additional oscillatory modulation directly in the exponent modulator to further fine-tune the compression of extreme values.
+
+</new_instructions>
+<SUMMARY>
+This model derives a core sum from 11 fixed features and applies sequential sinusoidal and cosine modulations to compute an intermediate signal. It then uses a piecewise adaptive transformation that blends a Padé‐like logarithmic function with a local quadratic correction for nonnegative values and smooth nested nonlinearities for negatives. A dynamic threshold via a finite summation and an extra modulation term (which may include nested softplus and a Gaussian RBF) further refine the signal. Finally, the transformed value is raised to an adaptive exponent—including additional oscillatory modulation—and linearly combined with beta and gamma to yield latent utility, which is mapped via a logistic function to predict acceptance.
+</SUMMARY>

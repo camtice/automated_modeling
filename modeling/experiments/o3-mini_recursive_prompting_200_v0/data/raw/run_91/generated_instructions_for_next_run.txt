@@ -1,0 +1,32 @@
+<think>
+For this new run, we want to further fine‐tune the dynamic behavior of the threshold and extra blending factors. In addition to retaining all the prior modulation factors, we will add a seventh‐order term to the threshold T to more strongly control extreme “a” values and modify the extra composite exponent by increasing its sensitivity to “a” (for example, using 0.944 + 0.00015×ln(1+a)). We also encourage an alternative formulation for the softplus component: using softplus(x) = ln(1+exp(x)) is acceptable but consider blending it with an additional linear term if appropriate. Finally, remind the model designer to consider any out‐of‐the‐box ideas (e.g., nonlinear activation functions or even adaptive learning of subcomponents) to further lower the BIC and improve parameter recovery while ensuring the three learnable parameters remain with bounded ranges.
+</think>
+
+New Instructions for Run 92 of 200:
+1. Compute the core sum a as the sum of fixed components F₁ through F₁₁ plus a small constant δ.
+2. Multiply a by [1 + 0.012×sin(a + 0.045)].
+3. Scale the result by 1.08.
+4. Sequentially modulate the scaled value using:
+  • [1 + 0.008×cos(a + 0.065)]
+  • [1 + 0.005×sin(a + 0.115)]
+  • [1 + 0.004×cos(a + 0.085)]
+  • [1 + 0.006×(sin(a + 0.035)×cos(a + 0.055))]
+  • [1 + 0.003×(sin(a + 0.03)×cos(a + 0.05))]
+5. Let the result be z.
+6. Define the adaptive transformation f_adapt(z) as:
+  f_adapt(z) = { 0.012×z if z < 0; min(z, 1 + ln(1+z)) if z ≥ 0 }.
+7. Multiply f_adapt(z) by a dynamic threshold factor T defined as:
+  T = 1 + 0.0005×a² + 0.00005×a³ + 0.000005×a⁴ + 0.0000001×a⁵ + 0.00000001×a⁶ + 0.000000001×a⁷.
+8. Compute the extra blending composite as:
+  extra = ( exp(–a/0.1) × [z/(1 + |z|)] × [1 + 0.005×sin(1/(1+a))] × softplus(0.865/(1+a)) × [1 – 0.002×cos(a)] × [1 – 0.0025×cos(2.5×a)] × [1 + 0.001×a] × [1+cosh(0.001×a)]^(2+0.0005×a) + 1e–6 )^(0.944 + 0.00015×ln(1+a)).
+  (Note: softplus(x) = ln(1+exp(x)); designers may blend this with an additional linear term if desired.)
+9. Define the final transformed signal as:
+  f(x) = sign(z) × ( f_adapt(z) × T × extra )^(0.944 + 0.00015×ln(1+a) ).
+10. Compute the latent utility U = beta + gamma×f(x), then convert it into an acceptance probability via the logistic function:
+  P(accept = 1) = 1/(1 + exp(–U)).
+11. Retain exactly three learnable parameters with these bounds:
+  • beta ∈ [–10, 10]
+  • gamma ∈ [0, 10]
+  • phi ∈ [0.5, 1.5]
+
+Please explore any nontraditional modulation or activation functions if they offer improved model performance while keeping the overall structure intact.

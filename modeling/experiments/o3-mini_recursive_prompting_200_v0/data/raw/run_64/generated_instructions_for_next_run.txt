@@ -1,0 +1,54 @@
+<think>
+For this run, instruct the model to keep the basic structure of the previous design but with a refined extra blending stage. Emphasize the following: 
+1. Compute the core nonlinear sum from the 11 fixed components plus the delta offset.
+2. Multiply this sum by [1 + 0.012 × sin(a + 0.045)] and then scale by the constant 1.08.
+3. Sequentially modulate the result with the five multiplicative factors as before:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+4. Apply the hybrid adaptive ReLU-like function f_adapt(z), defined as:
+  f_adapt(z) = { 0.01 × z, if z < 0; min(z, 1 + ln(1 + z)), if z ≥ 0 }.
+5. For the extra blending stage, simplify by computing the composite factor as the product of:
+  • exponential decay: exp(–a/0.1)
+  • the softsign of the sequentially modulated signal (i.e. z/(1+|z|))
+  • an adaptive reciprocal sine modulation: [1 + 0.005 × sin(1/(1 + a))]
+  • a single softplus transformation on 1/(1+a): ln(1 + exp(1/(1+a))).
+Multiply these together (times a fixed offset factor exactly 1.0, within [0.999,1.001]) and add a small constant (1e–6) for numerical stability; then raise the result to the fixed power 0.92.
+6. Define the final transformed signal f(x) as the sign of z multiplied by the product (f_adapt × extra_blend) raised to 0.92.
+7. Compute U = beta + gamma × f(x) and convert it to the acceptance probability using the logistic function.
+Enforce exactly three learnable parameters with bounds:
+  beta ∈ [–10, 10],
+  gamma ∈ [0, 10],
+  phi ∈ [0.5, 1.5].
+Encourage creative, unconventional design within these constraints while being parsimonious in computations to reduce overfitting, improve prediction accuracy, lower BIC, and enhance parameter recovery.
+</think>
+
+New Instructions for Run 65 of 200:
+1. Compute the core nonlinear sum “a” by summing the 11 fixed components derived from task variables and adding a delta constant.
+2. Multiply “a” by [1 + 0.012 × sin(a + 0.045)].
+3. Scale the result by the fixed constant 1.08.
+4. Sequentially modulate the scaled value using the following five multiplicative factors:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+5. Apply a hybrid adaptive ReLU-like function defined as:
+  f_adapt(z) = { 0.01 × z, if z < 0; min(z, 1 + ln(1 + z)), if z ≥ 0 }.
+6. For the extra blending stage, compute the composite factor by multiplying:
+  • exp(–a/0.1),
+  • softsign(z) where softsign(z) = z/(1 + |z|),
+  • [1 + 0.005 × sin(1/(1 + a))],
+  • softplus(1/(1 + a)) where softplus(1/(1+a)) = ln(1 + exp(1/(1+a))).
+Multiply these components together, multiply by a fixed offset factor exactly 1.0, add a small constant 1e–6 for stability, and then raise this product to the power 0.92.
+7. Define f(x) as: f(x) = sign(z) × ( f_adapt(z) × [extra blending composite] )^(0.92).
+8. Compute the latent utility U = beta + gamma × f(x) and map it via the logistic function to obtain p_accept.
+9. Use only three learnable parameters with the following bounds:
+  beta ∈ [–10, 10],
+  gamma ∈ [0, 10],
+  phi ∈ [0.5, 1.5].
+
+Encourage the model to think creatively within these guidelines while being parsimonious to avoid overfitting and to improve accuracy, BIC, and parameter recovery.
+<target_variable>accept</target_variable>

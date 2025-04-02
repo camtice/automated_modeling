@@ -1,0 +1,31 @@
+<think>
+For run 135, we want to boost nonlinearity even further by subtly tightening the positive clipping limit and increasing the sensitivity of the negative branch. In particular, reduce the clipping limit from ±33 to ±31 and update the negative exponent from 12 to 13. Extend the dynamic threshold polynomial T to include fixed coefficients for terms up to a²⁵ (for example, using a geometric progression or another fixed sequence that captures increasing nonlinearity). In the extra composite term, introduce two additional multiplicative factors: [1 + sigmoid(0.04×a)] and [1 + tanh(0.08×a)], and also incorporate an extra cosine modulation term, for example, cos(3.2×a). Finally, modify the final exponent by multiplying by an extra modulation factor [1 + 0.002×sin(2.5×a) + 0.001×cos(3.5×a) + 0.0018×sin(3.1×a) + 0.0008×cos(4×a)] so that the response curve becomes even more flexible. Retain exactly three learnable parameters with bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5]. Encourage creative use of additional built‐in functions such as softplus, softsign, sigmoid, tanh, and cosine in any part of the model.
+</think>
+
+New Instructions for Run 135:
+1. Compute the core sum “a” as the sum of fixed components F1 through F11 plus a small constant δ.
+2. Compute a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Sequentially modulate a_mod with:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+Define the resulting value as z.
+4. Compute w = (phi − 0.5) / phi.
+  • For z ≥ 0, define the adaptive transformation as:  
+   f_adapt(z) = 1.002 × [z^w × (ln(1+z))^(1−w)] × softsign(z),  
+   where softsign(z) = z/(1+|z|); then clip f_adapt(z) to range ±31.
+  • For z < 0, define  
+   f_adapt(z) = phi × [softsign(z + Δ_shift)]^13, with Δ_shift = 1×10⁻⁶.
+5. Define the dynamic threshold T as a fixed polynomial in a that includes terms from a⁰ up to a²⁵ with pre‑specified coefficients (e.g. a geometric series) to capture even subtler nonlinear scaling.
+6. Define the extra composite term extra as follows:
+  extra = { exp(–a/0.1) × [z/(1+|z|)] × [1 + 0.005×sin(1/(1+a))] × [1 + 0.002×cos(0.5×a)] × ([1 + 0.003×cos(0.3×a)]²) × ([1 + 0.004×cos(0.3×a)]²) × [1 + 0.0025×cos(0.7×a)] × [1 + tanh(0.05×a)] × [1 + sigmoid(0.01×a)] × [1 + 0.002×cos(3×a)] × [1 + 0.002×sin(2.5×a) + 0.001×cos(3.5×a) + 0.0015×sin(3×a)] × [1 + sigmoid(0.03×a)] × [1 + tanh(0.07×a)] × [1 + cos(3.1×a)] × [1 + sigmoid(0.04×a)] × [1 + tanh(0.08×a)] × [1 + cos(3.2×a)] }^(0.9478+0.00018×ln(1+a)) multiplied by [1 + tanh(0.05×a)].
+7. Modify the final exponent by incorporating an extra modulation factor:  
+  Exponent = [0.9478 + 0.00018×ln(1+a)] × [1 + 0.002×sin(2.5×a) + 0.001×cos(3.5×a) + 0.0018×sin(3.1×a) + 0.0008×cos(4×a)].
+8. Define the final transformed signal as:
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x), and then compute the probability of acceptance as P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with bounds:  
+  beta ∈ [–10, 10], gamma ∈ [0, 10], and phi ∈ [0.5, 1.5].
+Encourage innovative out-of-the-box use of additional nonlinear functions (e.g. softplus, softsign, sigmoid, tanh, cosine) and creative modulation strategies to improve prediction accuracy, lower the BIC, and enhance parameter recovery.

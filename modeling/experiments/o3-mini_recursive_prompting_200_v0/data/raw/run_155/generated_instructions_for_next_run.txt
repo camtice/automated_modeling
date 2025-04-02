@@ -1,0 +1,58 @@
+<think>
+For run 156, further refine the model by steepening the penalty on extreme unfair (negative) proposals and enhancing the nonlinear modulation at several stages. Increase the negative‐branch exponent from 40 to 42 for f_adapt. In the extra composite term, multiply by two new factors [1 + sigmoid(0.12×a)] and [1 + tanh(0.3×a)], and also include an oscillatory factor [1 + sin(4.0×a)]. In addition, nest one more softplus layer so that softplus is applied six times in a row instead of five. Extend the dynamic threshold T by summing from k = 0 to 95. Finally, adjust the final exponent modulation by multiplying by the extra factor [1 + 0.008×tanh(0.5×a) + 0.003×sin(3.2×a) + 0.002×cos(2.5×a)] (instead of its previous value) to capture even subtler interactions. Optionally, consider introducing a small Gaussian radial basis term (e.g. exp(–((a–1)²)/(2×0.25))) as an additional multiplicative factor in extra to capture localized effects. These modifications should lead to better accuracy, lower BIC, and improved parameter recovery.
+</think>
+
+New Instructions for Run 156:
+1. Compute the core sum a as the sum of fixed components F₁,…,F₁₁ plus a small constant δ.
+2. Define a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+3. Multiply a_mod sequentially by:
+  • [1 + 0.008 × cos(a + 0.065)]
+  • [1 + 0.005 × sin(a + 0.115)]
+  • [1 + 0.004 × cos(a + 0.085)]
+  • [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))]
+  • [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))]
+Let z be the resulting product.
+4. Compute w = (phi − 0.5) / phi.
+  • For z ≥ 0, define f_adapt(z) = clip[1.002 × (z^w × (ln(1+z))^(1−w) × softsign(z)), –30, 30], with softsign(x) = x/(1+|x|).
+  • For z < 0, set f_adapt(z) = phi × [softsign(z + Δ_shift)]^(42), with Δ_shift = 1×10⁻⁶.
+5. Define the dynamic threshold T as the sum from k = 0 to 95 of (a^k × (½)^k).
+6. Define the extra composite term extra as the product of:
+  • exp(–a/0.1)
+  • [z/(1 + |z|)]
+  • [1 + 0.005 × sin(1/(1+a))]
+  • [1 + 0.002 × cos(0.5×a)]
+  • ([1 + 0.003 × cos(0.3×a)]²)
+  • ([1 + 0.004 × cos(0.3×a)]²)
+  • [1 + 0.0025 × cos(0.7×a)]
+  • [1 + tanh(0.05×a)]
+  • [1 + sigmoid(0.01×a)]
+  • [1 + 0.002 × cos(3×a)]
+  • [1 + 0.002 × (sin(2.5×a) + 0.001×cos(3.5×a) + 0.0015×sin(3×a))]
+  • [1 + sigmoid(0.03×a)]
+  • [1 + tanh(0.07×a)]
+  • [1 + cos(3.1×a)]
+  • [1 + sigmoid(0.04×a)]
+  • [1 + tanh(0.08×a)]
+  • [1 + cos(3.2×a)]
+  • [1 + sigmoid(0.05×a)]
+  • [1 + tanh(0.1×a)]
+  • [1 + cos(3.4×a)]
+  • [1 + sigmoid(0.06×a)]       (new)
+  • [1 + tanh(0.12×a)]          (new)
+  • [1 + cos(3.6×a)]           (new)
+  • [1 + sigmoid(0.08×a)]         (new)
+  • [1 + tanh(0.2×a)]           (new)
+  • [1 + cos(4.2×a)]           (new)
+  • [1 + sin(4.0×a)]            (new)
+  • [1 + sigmoid(0.12×a)]         (new)
+  • [1 + tanh(0.3×a)]            (new)
+Nest one more softplus layer so that softplus is applied six times in succession to 0.865/(1+a).
+Raise the entire product to the power [0.9478 + 0.00018 × ln(1+a)].
+7. Define the final exponent modulation factor as:
+  Exponent = [0.9478 + 0.00018 × ln(1+a)] × [1 + 0.008 × tanh(0.5×a) + 0.003 × sin(3.2×a) + 0.002 × cos(2.5×a)].
+8. Compute the final transformed signal: f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+9. Compute latent utility U = beta + gamma × f(x) and then let P(accept = 1) = 1/(1 + exp(–U)).
+10. Use exactly three learnable parameters with finite bounds: beta ∈ [–10, 10], gamma ∈ [0, 10], phi ∈ [0.5, 1.5].
+11. Optionally, consider adding a Gaussian radial basis term of the form exp(–((a–1)²)/(2×0.5²)) multiplicatively to extra to capture localized effects on extreme proposals.
+
+These modifications aim to sharpen the penalty when proposals are very unfair, capture additional cyclic patterns, extend high-order behaviors, and enhance subtle interactions. They should collectively lead to improved accuracy, lower BIC, and better parameter recovery.

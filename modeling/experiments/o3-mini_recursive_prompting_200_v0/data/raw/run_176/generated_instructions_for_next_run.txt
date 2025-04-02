@@ -1,0 +1,48 @@
+<new_instructions>
+1. Compute the core sum by summing the 11 fixed features:  
+  a = Σ[i=1 to 11] Fᵢ + δ.
+
+2. Transform the core sum as:  
+  a_mod = 1.08 × a × [1 + 0.012 × sin(a + 0.045)].
+
+3. Compute the composite signal z as the product:  
+  z = a_mod × [1 + 0.008 × cos(a + 0.065)] × [1 + 0.005 × sin(a + 0.115)] × [1 + 0.004 × cos(a + 0.085)] × [1 + 0.006 × (sin(a + 0.035) × cos(a + 0.055))] × [1 + 0.003 × (sin(a + 0.03) × cos(a + 0.05))].
+
+4. Define the weight as:  
+  w = (phi – 0.5) / phi.
+
+5. Let f_adapt(z) be the adaptive transformation. For nonnegative z (using a threshold, e.g. z ≥ 0.0001), use a Padé-like blend:
+  f_adapt(z) = z + k₁·z² + ln(1+z) + k₂·[z/(1+z)],
+and for z below the threshold, use a steep saturation:
+  f_adapt(z) = – max(0, –z – Δₛ)ᵖ.
+Feel free to adjust the constants k₁, k₂, Δₛ, and exponent p for robustness. Consider blending a local quadratic correction with the saturated logarithm.
+
+6. Define a simple dynamic threshold using a rational (Padé) approximation:
+  T = (a + 1) / (a + 1.5).
+
+7. Define an extra modulation term extra that adds a gentle oscillatory correction:
+  extra = 1 + 0.005 × cos(0.9 × a) + 0.002 × sin(2 × a).
+You may explore nested softsign or arctan chains if needed.
+
+8. Define the final exponent modulator as:  
+  Exponent = [0.9478 + 0.00018 × ln(1+a)] × [1 + 0.001 × sin(a) + 0.0005 × cos(2×a)].
+
+9. Compute the overall transformed signal as:  
+  f(x) = sign(z) × { [ f_adapt(z) × T × extra ]^(Exponent) }.
+
+10. Set the latent utility U = beta + gamma × f(x) and compute the acceptance probability as:  
+  P(accept) = 1 / [1 + exp(–U)].
+
+11. Use exactly three learnable parameters with the following strict bounds:
+  beta ∈ [–10, 10],
+  gamma ∈ [0, 10],
+  phi ∈ [0.5, 1.5].
+
+12. Think out of the box: Consider incorporating additional local corrections (e.g. quadratic terms in f_adapt when inputs are small) or adding stable nested nonlinearities (like extra softsign or softplus chains) in the extra modulation. Experiment with slight modifications to the exponent modulator to further stabilize parameter recovery.
+
+Remember: Include only the mathematical model between <MODEL> and </MODEL> and the variable descriptions in JSON format between <VARIABLES> and </VARIABLES>. The target variable is <target_variable>accept</target_variable>. Your model should predict a latent utility that is mapped via a logistic function to yield a binary acceptance decision.
+</new_instructions>
+
+<think>
+I have updated the instructions to encourage the integration of a local quadratic correction into the adaptive transformation and to include suggestions for experimenting with nested nonlinear functions in the extra modulation term. The final instructions specify a dynamic threshold using a simple rational form and require exactly three learnable parameters with strict bounds. I emphasize the use of out-of-the-box modifications to improve accuracy, lower BIC, and enhance parameter recovery.
+</think>
