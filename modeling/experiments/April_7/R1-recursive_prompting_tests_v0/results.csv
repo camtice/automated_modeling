@@ -1,0 +1,114 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,beta_0_recovery,theta_recovery
+2,47.026328621615626,,,0.5876068376068376,U = beta_0 + theta * (split_self - 3 * token_self),"A logistic choice model where acceptance probability depends on a linear combination of baseline tendency and sensitivity to deviations from contribution-based fairness. The utility compares the proposed share (split_self) to the participant's contribution (3 * token_self), with learnable parameters for intercept (beta_0) and fairness sensitivity (theta). The model captures both general acceptance bias and context-sensitive responses to equitable offers.",v0,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.491592093760076,0.3571239525167385
+1,,,,,"tags would be:
+
+U = alpha * (splitperc_self - (token_self / (token_self + token_opp)) * 100) + beta
+
+But to make it more concise, perhaps we can define fair_perc as (token_self / (token_self + token_opp)) * 100, and then U = alpha * (splitperc_self - fair_perc) + beta. However, in the model formula, we need to use the variables as per the dataset. 
+
+Alternatively, since the dataset includes splitperc_self and splitperc_opp, but fair_perc isn't a variable, we need to compute it from token_self and token_opp. 
+
+So, the model formula would directly compute fair_perc as (token_self / (token_self + token_opp)) * 100. 
+
+Therefore, the mathematical model is:
+
+U = alpha * (splitperc_self - (token_self / (token_self + token_opp)) * 100) + beta
+
+This way, all variables used are from the dataset (splitperc_self, token_self, token_opp) and the parameters alpha and beta. 
+
+Now, the variables section in JSON should describe each variable in the model. 
+
+splitperc_self is a data variable (int64), token_self and token_opp are data variables (int64). alpha and beta are learnable parameters with specified ranges. 
+
+For alpha, since it's a sensitivity parameter, it should be positive. So the range is min 0, max perhaps 10, inclusive. Beta can be between -5 and 5. 
+
+The variables JSON would look like:
+
+{
+  ""variables"": {
+    ""alpha"": {
+      ""description"": ""Sensitivity to deviation from fair percentage"",
+      ""range"": {
+        ""min"": 0,
+        ""max"": 10,
+        ""inclusive_min"": true,
+        ""inclusive_max"": true
+      },
+      ""learnable"": true,
+      ""source"": ""learnable""
+    },
+    ""beta"": {
+      ""description"": ""Baseline utility bias"",
+      ""range"": {
+        ""min"": -5,
+        ""max"": 5,
+        ""inclusive_min"": true,
+        ""inclusive_max"": true
+      },
+      ""learnable"": true,
+      ""source"": ""learnable""
+    },
+    ""splitperc_self"": {
+      ""description"": ""Proposed percentage share for the participant"",
+      ""range"": {
+        ""min"": 0,
+        ""max"": 100,
+        ""inclusive_min"": true,
+        ""inclusive_max"": true
+      },
+      ""learnable"": false,
+      ""source"": ""data""
+    },
+    ""token_self"": {
+      ""description"": ""Number of tokens found by the participant"",
+      ""range"": {
+        ""min"": 0,
+        ""max"": ""inf"",
+        ""inclusive_min"": true,
+        ""inclusive_max"": false
+      },
+      ""learnable"": false,
+      ""source"": ""data""
+    },
+    ""token_opp"": {
+      ""description"": ""Number of tokens found by the opponent"",
+      ""range"": {
+        ""min"": 0,
+        ""max"": ""inf"",
+        ""inclusive_min"": true,
+        ""inclusive_max"": false
+      },
+      ""learnable"": false,
+      ""source"": ""data""
+    }
+  }
+}
+
+The target variable is 'accept', so enclosed in <target_variable> tags.
+
+The summary should describe the model concisely. It's a utility model combining fairness deviation and baseline bias. The fairness deviation is the difference between the proposed percentage and the participant's contribution-based fair percentage. The utility is a linear function of this deviation with sensitivity and bias parameters, predicting acceptance probability via logistic function.
+
+So, the summary would be:
+
+A linear utility model combining the deviation from the contribution-based fair percentage and a baseline bias. The model uses two learnable parameters: a sensitivity parameter (alpha) constrained to [0,10] and a baseline utility parameter (beta) in [-5,5]. The utility is calculated as the sensitivity-weighted fairness deviation plus the baseline, determining the probability of accepting the proposal via logistic transformation.
+
+This model has two learnable parameters, which is manageable for parameter recovery, and the variables are all present in the dataset. The model directly addresses the fairness consideration based on the participant's contribution, which is crucial for predicting responder behavior.
+</think>
+
+<MODEL>
+U = alpha * (splitperc_self - (token_self / (token_self + token_opp)) * 100) + beta","A linear utility model where acceptance probability depends on the deviation between the proposed percentage and the participant's contribution-based fair share. The model uses two parameters: a sensitivity to fairness deviations (alpha) and a baseline utility bias (beta). The utility is converted to acceptance probability via a logistic function, with negative utilities corresponding to <50% acceptance likelihood.",v0,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",,
+1,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,

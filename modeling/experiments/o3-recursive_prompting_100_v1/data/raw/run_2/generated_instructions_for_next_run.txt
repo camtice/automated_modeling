@@ -1,0 +1,46 @@
+<think>
+Okay, let's look at the previous results. The second model had a BIC of 42.83, which is better than the first, but the parameter recovery for alpha dropped to 0.3, which is pretty low. Beta's recovery was 0.618. The accuracy improved to 67.3%, which is decent but there's room for improvement.
+
+The main issues here are the low recovery for alpha and the potential for improving accuracy. The previous instructions suggested adding non-linear terms, hybrid fairness norms, and loss aversion. But the model from run 2 still used a linear combination. Maybe the model needs more nuanced components.
+
+The parameter recovery for alpha being low suggests that the model isn't capturing the true drivers of fairness sensitivity. Perhaps the alpha term is conflated with other factors. For example, if participants have different fairness reference points depending on trial_type (equal, opponent more, participant more), the model might need to account for that. 
+
+Also, the previous model used split_opp - split_self for inequity, but maybe participants react differently when they're getting more vs. less than the opponent. Splitting beta into two parameters for advantageous and disadvantageous inequity could help. That way, beta_adv applies when split_self > split_opp, and beta_dis when split_opp > split_self. This could improve parameter recovery by separating the effects.
+
+Another angle is the loss aversion idea. Participants might be more sensitive to receiving less than their fair share (3*token_self) compared to getting more. Adding a loss aversion parameter that amplifies negative deviations (split_self < 3*token_self) could capture this. For example, using a term like gamma * max(0, 3*token_self - split_self) with gamma as a learnable parameter. This would make the model non-linear and might better fit the data.
+
+Additionally, the model could consider the total combined earning. For instance, the utility might depend on the proportion of the total that split_self represents, not just the absolute value. Or maybe participants compare their split to both their contribution and the equal split. Introducing a parameter that weights between contribution-based and equal-split fairness could help. For example, U = alpha * [w*(split_self - 3*token_self) + (1-w)*(split_self - combined_earning/2)] + beta terms. Here, w is a weight between 0 and 1, learnable.
+
+To address parameter identifiability, the model should ensure that terms are orthogonal. For example, if the fairness term and inequity term are correlated, the parameters might be harder to recover. Using interaction terms or non-overlapping components could reduce covariance.
+
+The instructions should encourage testing these ideas: asymmetric inequity parameters, loss aversion, hybrid fairness norms, and interaction with trial_type. Also, suggest keeping the number of parameters to 2-3 to balance complexity. Maybe allow for non-linear transformations like sigmoidal functions to model thresholds in decision-making.
+
+Emphasize improving parameter recovery for alpha by making its term more distinct. For example, if the fairness component is split into loss and gain relative to the fair share, each with their own parameters, that could isolate alpha's effect better.
+
+Finally, stress the importance of balancing model complexity with identifiability. Even if adding a third parameter, ensure it's justified by a clear psychological mechanism and improves fit significantly.
+</think>
+
+**Instructions for Run 3/200:**  
+Design a model that implements *asymmetric value encoding* with these priorities:  
+1. **Dynamic Fairness Weighting**  
+   - Introduce a parameter (γ) controlling the relative importance of contribution-based fairness vs. equal split norms  
+   - Example: `fairness_term = γ*(split_self - 3*token_self) + (1-γ)*(split_self - combined_earning/2)`  
+
+2. **Non-Linear Disadvantage Coding**  
+   - Apply separate parameters for:  
+     a) Absolute deficit from fair share: `max(0, 3*token_self - split_self)`  
+     b) Relative inequity penalty when `split_opp > split_self`  
+
+3. **Contextual Modulation**  
+   - Let trial_type (1=equal, 2=opponent more, 3=self more tokens) gate fairness expectations through multiplicative terms  
+
+4. **Identifiability Safeguards**  
+   - Use piecewise functions to isolate parameter effects (e.g., α only activates when split_self < fair share)  
+   - Enforce parameter orthogonality through term scaling (e.g., divide fairness deviation by token_self)  
+
+*Radical Suggestion:* Test a prospect theory-inspired model where utility depends on *changes* from expected fairness rather than absolute values, with separate loss/gain sensitivities.  
+
+**Constraints:**  
+- Maximum 3 parameters  
+- All parameters must have distinct psychological interpretations  
+- BIC target <40 through strategic non-linear compression of effects

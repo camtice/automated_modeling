@@ -1,0 +1,62 @@
+<think>
+Okay, let's analyze the previous model's performance to figure out how to improve the instructions for the next run. The previous model had a BIC of around 47.92, which is okay, but there's room for improvement. The accuracy was about 59.4%, which is slightly better than chance but not great. The parameter recovery for alpha was moderate (r=0.631) and better for beta (r=0.729). 
+
+First, the model used two parameters: alpha for sensitivity to deviation from contribution-based fairness and beta for inequity aversion. The BIC is a function of both the likelihood and the number of parameters. Since the model has two parameters, maybe adding another parameter could help if it significantly improves the fit, but we need to balance that with BIC's penalty for complexity. However, the current accuracy is low, so perhaps the model isn't capturing some key psychological factors.
+
+Looking at the parameter recovery, alpha's lower correlation suggests that it's harder to estimate accurately. This could be due to covariance between alpha and beta, or maybe the model's structure doesn't properly isolate the effects of each parameter. For example, if the terms involving alpha and beta are correlated in the data, the parameters might be harder to recover. 
+
+The previous instructions emphasized avoiding high covariance between parameters and a slight bias towards fewer parameters. The model had two parameters, which is reasonable. However, the moderate recovery and accuracy suggest that the model might be missing important components of the decision-making process.
+
+Possible improvements:
+
+1. **Non-linear Terms**: The current model is linear in alpha and beta. Introducing non-linear interactions (e.g., multiplicative terms, thresholds) might better capture how these factors combine. For example, maybe the effect of inequity aversion (beta) is only relevant when the participant's share is below a certain threshold.
+
+2. **Reference Points**: The model uses 3*token_self as the fair share. Perhaps participants have different reference points, such as equal split (combined_earning/2) or a combination of contribution and equal split. Adding a parameter to weight between these reference points could help.
+
+3. **Loss Aversion**: Participants might be more sensitive to losses (getting less than fair) than gains. Introducing a loss aversion parameter that amplifies the negative deviations could improve fit.
+
+4. **Intercept Term**: Including a baseline tendency to accept or reject (e.g., a constant term in the utility) might capture general response biases not explained by fairness or inequity.
+
+5. **Separate Parameters for Advantageous and Disadvantageous Inequity**: The current model uses a single beta for the difference (split_opp - split_self), which could be positive or negative. But people might react differently to being ahead vs. behind. Splitting beta into two parameters (e.g., beta_adv for when split_self > split_opp and beta_dis for the opposite) could capture this.
+
+6. **Interaction with Trial Type**: The trial_type variable indicates whether contributions were equal, opponent more, or participant more. Including interaction terms with trial_type might capture how fairness perceptions vary in these contexts.
+
+7. **Alternative Fairness Calculations**: The model assumes fairness is strictly proportional to contribution. Maybe participants consider other factors, like the ratio of contributions or absolute differences. For example, (token_self - token_opp) could be a term affecting fairness perception.
+
+8. **Temperature Parameter in Logistic Function**: The current model uses a logistic function with temperature 1. Adding a temperature parameter could allow varying decision noise, improving fit.
+
+However, adding parameters increases model complexity, which could hurt BIC unless the fit improves enough. The challenge is to find a balance. Since the previous model had two parameters, maybe adding one more could be justified if it significantly boosts accuracy and recovery.
+
+Another angle: The current model's terms might not be scaled properly. For example, split_self - 3*token_self could be a large value compared to split_opp - split_self, leading to one parameter dominating. Standardizing the terms or introducing scaling factors might help.
+
+Also, the model doesn't account for the total combined earning. Maybe participants care about the absolute amount they receive relative to the total. For example, split_self/combined_earning could be a term, but that's similar to splitperc_self, which is already a variable. However, including it might interact with fairness perceptions.
+
+In the next instructions, I should encourage exploring these possibilities. Specifically, suggest considering non-linear interactions, alternative reference points, and separating advantageous/disadvantageous inequity. Also, mention the possibility of adding an intercept or temperature parameter. However, caution against overcomplicating the model without justification. Emphasize testing models that address potential covariance issues (e.g., orthogonal terms) and improve parameter identifiability.
+
+Additionally, since the previous model had moderate parameter recovery for alpha, suggest ways to make the alpha term more identifiable. Maybe by including a term that only affects alpha's component, reducing its correlation with beta.
+
+Finally, encourage creativity but stress the importance of maintaining a balance between complexity and identifiability. Maybe suggest models with 2-3 parameters, exploring different psychological mechanisms beyond the initial fairness and inequity factors.
+</think>
+
+**Revised Instructions for Run 2/200:**
+
+Design a model that explicitly addresses *non-linear interactions* between fairness and inequity components. Consider these enhancements:  
+1. **Mechanistic Innovations**  
+   - Explore asymmetric responses to advantageous vs. disadvantageous inequity (e.g., separate parameters for split_opp > split_self vs. split_self > split_opp)  
+   - Test hybrid fairness norms (e.g., weighted combinations of contribution-based and equal-split fairness)  
+   - Introduce a loss aversion coefficient for deviations below contribution-based fairness  
+
+2. **Identifiability Constraints**  
+   - Use orthogonal utility components (e.g., interaction terms that reduce covariance between parameters)  
+   - If adding parameters, ensure they control distinct behavioral phenomena (e.g., baseline acceptance bias vs. context-sensitive fairness)  
+
+3. **Parameterization Guidance**  
+   - Prioritize models with 2-3 parameters maximum  
+   - Allow non-linear transformations (e.g., sigmoidal scaling of fairness deviations)  
+   - Consider bounded parameters with psychological interpretability (e.g., [0,1] for weighting terms)  
+
+4. **Behavioral Plausibility**  
+   - Explicitly model how trial_type (contribution asymmetry) modulates fairness expectations  
+   - Account for magnitude effects (e.g., proportional vs. absolute inequity)  
+
+*Key Objective:* Improve parameter recovery (target r > 0.8) while maintaining BIC <45 through strategic non-linearities that better match human sensitivity thresholds.

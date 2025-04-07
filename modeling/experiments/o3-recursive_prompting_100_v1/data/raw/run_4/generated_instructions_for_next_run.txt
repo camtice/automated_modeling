@@ -1,0 +1,58 @@
+<think>
+
+Okay, let's analyze the previous run's results. The model had a BIC of around 47.93, which is higher than the best previous model (31.04), and the accuracy was about 59.9%, which is lower than the third model's 81.6%. The parameter recovery for alpha was very low (r=0.104) and beta was moderate (0.521). This suggests that the model structure from the previous run isn't capturing the underlying decision processes effectively, especially for alpha.
+
+The previous instructions focused on prospect theory with reference points, non-linear transformations, and trial_type scaling. However, the results didn't improve, indicating that the model might be overcomplicating things or the parameters aren't orthogonal enough. The low alpha recovery suggests that the reference point calculation (gamma) might not be identifiable, or the terms are collinear.
+
+To improve, the next model should simplify the reference point or make parameters more identifiable. Maybe fixing gamma to a specific value (like 0.5) to reduce parameters. Alternatively, using a different approach to reference points, such as a fixed fair share (3*token_self) instead of a dynamic mix. Also, the non-linear transformations (σ and ρ) might be causing issues if they're fixed but not appropriate for the data. Perhaps removing them or making them learnable with tight bounds could help.
+
+Another angle: The trial_type scaling for beta (θ) wasn't part of the previous model's parameters, but maybe including it as a learnable parameter could help capture context effects. However, adding parameters increases BIC, so need to balance. Alternatively, using trial_type to modulate the reference point instead of loss aversion.
+
+The radical constraint in the previous run fixed σ and ρ, but maybe allowing them to vary slightly within a narrow range could capture individual differences without adding too many parameters. Or, using a different form of non-linearity, like logarithmic scaling for gains and losses.
+
+To improve orthogonality, ensure that each parameter's term is scaled by different variables. For example, scaling the loss term by token_self and the inequity term by combined_earning. This could reduce covariance between parameters.
+
+The new instructions should encourage a balance between prospect theory elements and simplicity. Maybe a hybrid model that uses a fixed reference point (3*token_self) with loss aversion and gain sensitivity, while incorporating trial_type into the inequity term. Also, simplifying the non-linear transformations to avoid overcomplicating the utility function.
+
+Potential steps:
+1. Use a fixed reference point (3*token_self) to eliminate gamma.
+2. Separate loss and gain sensitivities (lambda and kappa) with fixed exponents (σ=0.88, ρ=1.25) to maintain parsimony.
+3. Incorporate trial_type into the inequity term (beta) by scaling it when trial_type=3 (participant contributed more).
+4. Ensure terms are orthogonal by scaling each parameter's component with different variables (e.g., loss term scaled by token_self, inequity by combined_earning).
+
+This approach reduces the number of parameters (lambda, kappa, beta) while maintaining identifiability. The trial_type scaling on beta could improve its recovery by isolating its effect in specific contexts.
+</think>
+
+**Instructions for Run 5/200:**  
+Design a *hybrid prospect-theoretic fairness model* with these innovations:  
+
+1. **Simplified Reference Architecture**  
+   - Anchor utility to an *immutable contribution standard*:  
+     `reference = 3*token_self` (eliminate γ parameter)  
+   - Implement *asymmetric outcome valuation*:  
+     ```  
+     U = κ*(split_self - reference)^+ - λ*(reference - split_self)^+  
+            - β*(split_opp - split_self)^+/(combined_earning/10)  
+     ```  
+     Where `(x)^+ = max(0,x)`  
+
+2. **Context-Contingent Inequality Penalty**  
+   - Amplify β sensitivity in trials where participants contributed more tokens:  
+     ```  
+     β_effective = β * [1 + trial_type*(trial_type==3)]  
+     ```  
+     (Intrinsic 3x β weighting when token_self > token_opp)  
+
+3. **Neuroeconomic Compression**  
+   - Apply *fixed behavioral economics priors* to curvature parameters:  
+     - κ gains: Linear (σ=1.0 locked)  
+     - λ losses: Convex (ρ=1.33 locked from meta-analysis)  
+
+**Identifiability Safeguards:**  
+- Z-score split_self relative to token_self before exponentiation  
+- Confine λ to [0,8], κ to [0,3] to match prospect theory magnitude ratios  
+
+**Success Metrics:**  
+- Target BIC <25 through κ/λ synergy effects  
+- Achieve β recovery r >0.65 via trial_type contrast enhancement  
+- Maintain λ recovery r >0.85 through convex loss architecture

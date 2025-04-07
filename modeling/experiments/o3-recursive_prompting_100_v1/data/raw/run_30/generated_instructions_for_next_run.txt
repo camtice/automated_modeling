@@ -1,0 +1,62 @@
+<think>
+Okay, let's look at the previous results. The model had a BIC of 42.36, which is okay but not great. The accuracy was 70.1%, which is decent but could be better. The parameter recovery for alpha_gain was low (0.272), alpha_loss was better (0.78), and beta was moderate (0.693). So the main issues are improving alpha_gain's recovery and lowering BIC.
+
+The previous model used separate gain and loss parameters (alpha_gain and alpha_loss) and a beta for inequity. The low recovery for alpha_gain suggests that the gain term isn't capturing enough variance or is collinear with other terms. Maybe the gain term isn't as influential as the loss term, leading to poor identifiability.
+
+To improve, perhaps simplify the model by combining gain and loss into a single parameter with a loss aversion ratio. For example, use a single alpha for the difference (split_self - reference) and a lambda parameter that scales the loss term. This reduces the number of parameters, which can lower BIC and improve identifiability.
+
+Also, the beta term's recovery was moderate. The previous model included trial_type modulation, but maybe the way it's incorporated isn't optimal. Instead of a multiplicative factor, maybe use trial_type to adjust the reference point or the inequity term differently. For example, in trials where the participant contributed more (trial_type=3), the inequity aversion could be more sensitive.
+
+Another idea: Introduce a non-linear transformation for the loss term, like a power function with a fixed exponent (e.g., squared term) to capture diminishing sensitivity. This could help with parameter recovery by making the loss term more distinct.
+
+Additionally, the model normalized the inequity term by combined_earning/10. Maybe scaling it differently, like by the square root of combined_earning, could better capture the context without overcomplicating the model.
+
+Also, considering that the reference point is fixed at 3*token_self, perhaps include an interaction term between split_self and token_self to account for proportional fairness. For example, (split_self / (3*token_self)) - 1, which measures the percentage deviation from the fair share.
+
+But to keep the model parsimonious, maybe focus on refining the existing components. Let's outline the new instructions:
+
+1. **Unified Loss Aversion Parameter**: Replace alpha_gain and alpha_loss with a single alpha (fairness sensitivity) and lambda (loss aversion multiplier). This reduces parameters and enforces lambda > 1, aligning with prospect theory.
+
+2. **Dynamic Inequity Modulation**: Use trial_type to adjust the inequity term. For trial_type=3 (participant contributed more), apply a multiplier to beta to increase sensitivity to unfair splits.
+
+3. **Non-Linear Loss Scaling**: Apply a convex transformation (e.g., squared term) to the loss component to enhance identifiability of lambda.
+
+4. **Proportional Fairness Adjustment**: Scale the gain/loss terms by the reference point to account for proportional deviations, improving sensitivity across different token amounts.
+
+5. **Parameter Bounds**: Set stricter bounds based on behavioral priors—lambda between [1, 5], alpha [0, 3], beta [0, 10]—to guide estimation and improve recovery.
+
+By simplifying the parameters, introducing non-linear loss, and dynamically adjusting inequity based on trial_type, the model should better capture decision processes, leading to lower BIC, higher accuracy, and improved parameter recovery.
+</think>
+
+**Instructions for Run 31/200:**  
+Design a *neurocognitive fairness model* with these innovations:  
+
+1. **Prospect-Theoretic Fusion**  
+   - Replace gain/loss separation with *unified fairness sensitivity*:  
+     ```  
+     U = α*(split_self - 3*token_self) - λ*[max(3*token_self - split_self, 0)]^1.5  
+     ```  
+     Where λ >1 enforces loss aversion (λ ∈ [1,5]) and α ∈ [0,3]  
+
+2. **Context-Aware Inequity Penalty**  
+   - Implement *trial-type dependent normalization*:  
+     ```  
+     inequity_penalty = β * (split_opp - split_self) / (3*token_self if trial_type==3 else combined_earning)  
+     ```  
+     Penalize opponent advantage relative to contribution when participant contributed more  
+
+3. **Dynamic Reference Scaling**  
+   - Convert absolute splits to *proportional fairness deviations*:  
+     ```  
+     gain_term = split_self / (3*token_self + ε) - 1  
+     ```  
+     (ε=0.01 prevents division by zero)  
+
+**Orthogonality Constraints:**  
+- Fix loss exponent to 1.5 (diminishing sensitivity) while keeping gain linear  
+- Confine α to [0,3], λ to [1,5], β to [0,10] using prospect theory meta-analysis priors  
+
+**Success Targets:**  
+- Achieve β recovery r >0.8 via context-aware normalization  
+- Drive λ recovery r >0.9 through convex loss architecture  
+- Target BIC <35 via fused parameter architecture

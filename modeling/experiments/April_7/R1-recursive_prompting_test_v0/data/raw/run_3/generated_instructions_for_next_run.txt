@@ -1,0 +1,83 @@
+<think>
+
+Okay, let's analyze the previous results. The last model had a BIC of around 33.6, accuracy of ~79.5%, and parameter recovery for gamma improved to 0.812. Alpha and beta recovery were 0.777 and 0.705, respectively. The goal now is to further improve all metrics.
+
+The previous instructions introduced dynamic nonlinear scaling, but the model still uses three parameters. Gamma's recovery is better, but beta's is lower. Maybe beta is still entangled with other terms. To improve beta's recovery, we need to make its effect more distinct.
+
+The previous model used separate nonlinear transforms for equity and equality deviations. However, using tanh and cubic terms might not be the most effective. Perhaps introducing asymmetric sensitivity for over vs. under offers in both equity and equality could help. For example, people might be more sensitive to receiving less than the equity reference but less sensitive to receiving more. Similarly for equality.
+
+But with a 3-parameter limit, we need a way to capture asymmetry without adding too many parameters. Maybe use a single parameter to control the asymmetry. For instance, a parameter that scales the negative deviations more than positive ones.
+
+Another angle: incorporate the trial_type variable. The model hasn't used it yet. For example, in trial_type 3 (participant contributed more), responders might weight equity more heavily. But how to integrate this without adding parameters? Maybe modulate alpha based on trial_type. For example, alpha = base_alpha + delta * (trial_type == 3), but delta would be a new parameter. Alternatively, use trial_type as a multiplier in the utility function without adding parameters.
+
+Alternatively, use the ratio of token_self to token_opp as a dynamic weight. For example, alpha could be a function of this ratio, but that would require a learnable parameter to scale it. Maybe alpha = sigmoid(theta * (token_self - token_opp)), where theta is a parameter. But that adds a parameter, exceeding the limit.
+
+Wait, the design constraint is max 3 parameters. So, need to work within that. Let's think of a way to make beta capture different sensitivities based on the direction of the deviation. For example, beta could be split into beta_positive and beta_negative, but that would require two parameters. Instead, use a single parameter to represent the ratio between positive and negative sensitivities. For instance, beta_negative = beta * gamma, but that might complicate interpretation.
+
+Alternatively, use an asymmetric function like beta * (deviation) if deviation >0 else (beta * delta) * deviation, where delta is a new parameter. But again, parameter count is an issue.
+
+Another idea: introduce a nonlinear interaction between alpha and the deviation. For example, U = beta * [split_self - (alpha * equity_ref + (1-alpha) * equality_ref)] + gamma * alpha. This ties gamma to alpha, which might not help. Alternatively, gamma could be modulated by the fairness deviation's sign.
+
+Alternatively, model the utility as a piecewise function. For example, if the offer is below the equity reference, use beta_equity_under; if above, beta_equity_over. Similarly for equality. But with 3 parameters, this would require combining terms. Maybe have one beta for under both references and another for over, but that's two parameters plus gamma.
+
+Alternatively, use the product of alpha and beta to create interaction effects, allowing beta to have different effects based on alpha's value. But this might not directly address parameter recovery.
+
+To improve beta's recovery, perhaps make it context-dependent on the trial's characteristics. For example, beta could increase when the participant's contribution is higher, using token_self as a multiplier: beta_effective = beta * (1 + token_self / K), where K is a constant. But this introduces a hyperparameter (K) which isn't learnable, so it's not ideal.
+
+Another approach: use the absolute value of the deviation scaled by beta, but with a separate term for the sign. For example, U = beta * |deviation| + gamma * sign(deviation). This separates the magnitude and direction effects, but requires two parameters (beta and gamma), leaving room for a third, perhaps alpha.
+
+Wait, the current model has alpha, beta, gamma. If we reparameterize to have beta_magnitude and beta_sign, but that would exceed three parameters. Alternatively, combine gamma with the sign term: U = beta * |deviation| + (gamma * sign(deviation)). This uses two parameters, leaving room for alpha. But how does this fit with fairness norms?
+
+Alternatively, model the utility as a combination of two separate fairness deviations (equity and equality), each with their own asymmetric sensitivity parameters. For example:
+
+U = [beta_equity_under * (equity_dev < 0) * equity_dev + beta_equity_over * (equity_dev >=0) * equity_dev] + [beta_equality_under * (equality_dev <0) * equality_dev + beta_equality_over * (equality_dev >=0) * equality_dev] + gamma
+
+But this requires four parameters, which is too many. To stay within three, perhaps combine the under/over sensitivities for equity and equality into a single parameter each, but that's still two parameters plus gamma. Not feasible.
+
+Alternative idea: Use a single asymmetry parameter that scales the negative deviations differently. For example, U = beta * (deviation + lambda * min(deviation, 0)), where lambda is a learnable parameter. This way, negative deviations (unfavorable) are scaled by beta*(1 + lambda), while positive deviations remain scaled by beta. This introduces lambda as a third parameter, replacing gamma. But gamma was important for baseline bias. Maybe this trade-off isn't worth it.
+
+Alternatively, keep gamma and introduce a single asymmetry parameter for beta. For example, U = beta * (deviation + alpha * min(deviation, 0)) + gamma. But this uses alpha for asymmetry, conflicting with its original role. Not ideal.
+
+Hmm. Given the constraints, perhaps the best approach is to introduce a nonlinear transformation of the deviation that naturally decouples parameters. For example, using a hyperbolic tangent (tanh) to capture diminishing sensitivity to large deviations. This would allow beta to scale the entire curve, while gamma remains a baseline. The model would be:
+
+U = beta * tanh(deviation / scale) + gamma
+
+But 'scale' is a new parameter. To avoid adding parameters, fix 'scale' as a constant (e.g., 10), but that's arbitrary. Alternatively, absorb it into beta: U = beta * tanh(deviation) + gamma. This might work, as tanh is bounded, and beta scales the sensitivity. However, this could limit the model's ability to capture large deviations, potentially reducing accuracy.
+
+Alternatively, use an exponential function: U = beta * (exp(deviation) - 1) + gamma. This introduces nonlinear scaling, which might help differentiate beta and gamma. But the exponential could cause numerical issues.
+
+Another angle: Include an interaction term between the fairness deviation and the contribution ratio. For example, U = beta * deviation * (token_self / (token_self + token_opp)) + gamma. This makes beta's effect depend on the participant's contribution proportion, which could improve identifiability. However, this introduces a data-dependent modulation of beta without adding parameters.
+
+Wait, this approach uses existing variables (token_self, token_opp) to modulate beta's effect. For example, if the participant contributed more, their sensitivity to deviations might be higher. This could help beta capture more context-dependent effects, improving recovery.
+
+Putting this together:
+
+U = beta * (split_self - (alpha * 3 * token_self + (1 - alpha) * 0.5 * combined_earning)) * (token_self / (token_self + token_opp)) + gamma
+
+Here, beta is scaled by the participant's contribution ratio. This could make beta's effect more pronounced when the participant contributed more, potentially improving its identifiability. Additionally, gamma remains a separate baseline.
+
+This model still uses three parameters (alpha, beta, gamma) but introduces a data-driven modulation of beta. This might help in decoupling beta and gamma, as beta's effect is now context-dependent, while gamma remains a constant bias. This could improve parameter recovery for beta and gamma.
+
+Another possibility is to make gamma depend on the trial_type. For example, gamma could be higher in trials where the participant contributed more (trial_type 3). But without adding parameters, this would require using trial_type as a multiplier. For example:
+
+gamma_effective = gamma * (1 + trial_type == 3)
+
+But trial_type is categorical (1,2,3), so this might not be directly applicable. Alternatively, use trial_type as a dummy variable. However, this would require additional parameters unless trial_type is used as a fixed effect without a learnable weight.
+
+Alternatively, allow gamma to vary with the contribution ratio:
+
+gamma_effective = gamma * (token_self / (token_self + token_opp))
+
+This again uses existing data to modulate gamma, making it context-dependent without adding parameters. This could help gamma capture varying baseline acceptance based on contribution, improving its recovery.
+
+Combining these ideas, the model could be:
+
+U = beta * deviation + gamma * (token_self / (token_self + token_opp))
+
+Where deviation is split_self minus the weighted fairness reference. This ties gamma to the contribution ratio, potentially making it more identifiable.
+
+Alternatively, both beta and gamma could be modulated:
+
+U = (beta * (token_self / (token_self + token_opp))) * deviation + gamma
+
+This way, beta's sensitivity and gamma's baseline

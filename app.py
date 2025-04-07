@@ -154,10 +154,14 @@ def load_experiment_metadata(exp_version):
                 if os.path.exists(run_metadata_path):
                     with open(run_metadata_path) as f:
                         run_metadata = json.load(f)
-                        # Add BIC scores from metadata to DataFrame
+                        # Add BIC scores and overall accuracy from metadata to DataFrame
                         if "average_bic" in run_metadata:
                             df.loc[df["run_number"] == run_number, "average_bic"] = (
                                 run_metadata["average_bic"]
+                            )
+                        if "overall_accuracy" in run_metadata:
+                            df.loc[df["run_number"] == run_number, "overall_accuracy"] = (
+                                run_metadata["overall_accuracy"]
                             )
                         for key in run_metadata:
                             if key.startswith("bic_"):
@@ -189,6 +193,23 @@ def load_experiment_metadata(exp_version):
                                     if recovery_value is not None
                                     else None
                                 )
+
+    # Add accuracy information if it's a utility model
+    if df is not None and not df.empty and 'prediction_type' in df.columns:
+        utility_runs = df[df['prediction_type'] == 'utility']
+        if not utility_runs.empty and 'accuracy' in utility_runs.columns:
+            # Calculate average accuracy across all participants
+            metadata['average_accuracy'] = utility_runs['accuracy'].mean()
+            
+            # If group analysis is enabled, calculate per-group accuracy
+            if config.get("group_analysis", {}).get("enabled", False) and 'group' in df.columns:
+                group_column = config["group_analysis"]["group_column"]
+                metadata.setdefault("group_analysis", {}).setdefault("metrics", {})["accuracy"] = {}
+                
+                for group in df[group_column].unique():
+                    group_accuracy = df[(df['prediction_type'] == 'utility') & 
+                                       (df[group_column] == group)]['accuracy'].mean()
+                    metadata["group_analysis"]["metrics"]["accuracy"][group] = group_accuracy
 
     return df, metadata
 
@@ -242,11 +263,10 @@ def get_experiment_configs(exp_version):
 
 
 def get_all_experiments():
-    """Recursively get all experiment directories and organize them by date and type."""
+    """Recursively get all experiment directories and organize them hierarchically by folder structure."""
     experiments = []
-
-    # Dictionary to organize experiments by date
-    organized_experiments = {}
+    # Dictionary to organize experiments hierarchically by folders
+    folder_structure = {}
 
     for root, dirs, files in os.walk(EXPERIMENTS_DIR):
         # Skip the root experiments directory itself
@@ -258,71 +278,51 @@ def get_all_experiments():
 
         # Check if this is an experiment directory (contains results.csv)
         if "results.csv" in files:
-            # Parse the path to extract date and experiment name
-            path_parts = rel_path.split("/")
-
-            # If the path has a date component (like feb_4)
-            date_prefix = None
-            experiment_name = rel_path
-
-            # Check if the first part looks like a date (month_day format)
-            if len(path_parts) > 1 and "_" in path_parts[0]:
-                date_parts = path_parts[0].split("_")
-                if (
-                    len(date_parts) == 2
-                    and date_parts[0].isalpha()
-                    and date_parts[1].isdigit()
-                ):
-                    date_prefix = path_parts[0]
-                    experiment_name = "/".join(path_parts[1:])
-
-            # Group by date if available, otherwise use "other"
-            group = date_prefix if date_prefix else "other"
-
-            if group not in organized_experiments:
-                organized_experiments[group] = []
-
-            organized_experiments[group].append(
-                {"path": rel_path, "name": experiment_name, "full_path": rel_path}
-            )
-
-    # Sort groups by date (assuming format like feb_4, mar_10, etc.)
-    # First, define month order
-    month_order = {
-        "jan": 1,
-        "feb": 2,
-        "mar": 3,
-        "apr": 4,
-        "may": 5,
-        "jun": 6,
-        "jul": 7,
-        "aug": 8,
-        "sep": 9,
-        "oct": 10,
-        "nov": 11,
-        "dec": 12,
-    }
-
-    # Sort groups
-    sorted_groups = sorted(
-        organized_experiments.keys(),
-        key=lambda x: (
-            # If it's a month_day format, sort by month then day
-            (month_order.get(x.split("_")[0], 13), int(x.split("_")[1]))
-            if "_" in x and x.split("_")[0] in month_order and x.split("_")[1].isdigit()
-            else (99, 99)  # Put "other" at the end
-        ),
-        reverse=True,  # Most recent dates first
-    )
-
-    # Build the final sorted list
-    for group in sorted_groups:
-        # Sort experiments within each group alphabetically
-        sorted_exps = sorted(organized_experiments[group], key=lambda x: x["name"])
-        for exp in sorted_exps:
-            experiments.append(exp)
-
-    return experiments, sorted_groups
+            # Parse the path to extract components
+            path_parts = rel_path.split(os.sep)
+            
+            # Track the full path for folder hierarchy
+            current_level = folder_structure
+            folder_path = []
+            
+            # Build folder hierarchy
+            for i, part in enumerate(path_parts[:-1]):
+                folder_path.append(part)
+                folder_key = os.sep.join(folder_path)
+                
+                if folder_key not in current_level:
+                    current_level[folder_key] = {"items": [], "subfolders": {}}
+                
+                current_level = current_level[folder_key]["subfolders"]
+            
+            # Add the experiment to the appropriate folder
+            folder_key = os.sep.join(path_parts[:-1]) if len(path_parts) > 1 else ""
+            if folder_key not in folder_structure:
+                folder_structure[folder_key] = {"items": [], "subfolders": {}}
+            
+            # Add the experiment
+            folder_structure[folder_key]["items"].append({
+                "path": rel_path,
+                "name": path_parts[-1],
+                "full_path": rel_path,
+                "folder": folder_key
+            })
+            
+            # Also add to flat list for backward compatibility
+            experiments.append({
+                "path": rel_path, 
+                "name": path_parts[-1], 
+                "full_path": rel_path,
+                "folder": folder_key
+            })
+    
+    # Sort everything alphabetically
+    sorted_experiments = sorted(experiments, key=lambda x: (x["folder"], x["name"]))
+    
+    # Get unique folder names for folder-based filtering
+    folders = sorted(set(exp["folder"] for exp in experiments if exp["folder"]))
+    
+    return sorted_experiments, folders, folder_structure
 
 
 @app.route("/")
@@ -335,9 +335,26 @@ def index():
         models_df, metadata = load_experiment_metadata(exp_version)
 
         # Get list of available experiments
-        experiments, sorted_groups = get_all_experiments()
+        experiments, folders, folder_structure = get_all_experiments()
 
         model_list = models_df.to_dict(orient="records") if not models_df.empty else []
+        
+        # Add overall_accuracy to each model from its run_metadata
+        for model in model_list:
+            run_number = model["run_number"]
+            run_metadata_path = os.path.join(
+                EXPERIMENTS_DIR,
+                exp_version,
+                "data",
+                "raw",
+                f"run_{run_number}",
+                "metadata.json",
+            )
+            if os.path.exists(run_metadata_path):
+                with open(run_metadata_path) as f:
+                    run_metadata = json.load(f)
+                    if "overall_accuracy" in run_metadata and "overall_accuracy" not in model:
+                        model["overall_accuracy"] = run_metadata["overall_accuracy"]
 
         return render_template(
             "index.html",
@@ -345,7 +362,8 @@ def index():
             experiments=experiments,
             models=model_list,
             metadata=metadata,
-            sorted_groups=sorted_groups,
+            folders=folders,
+            folder_structure=folder_structure,
         )
     except Exception as e:
         abort(500, description=str(e))
@@ -414,21 +432,22 @@ def config_page(exp_version):
     """Display configuration information for an experiment."""
     try:
         configs = get_experiment_configs(exp_version)
-        experiments, sorted_groups = get_all_experiments()
+        experiments, folders, folder_structure = get_all_experiments()
 
         return render_template(
             "config.html",
             exp_version=exp_version,
             experiments=experiments,
             configs=configs,
-            sorted_groups=sorted_groups,
+            folders=folders,
+            folder_structure=folder_structure,
         )
     except Exception as e:
         abort(500, description=str(e))
 
 
 @app.errorhandler(HTTPException)
-def handle_exception(e):
+def handle_http_exception(e):
     """Handle all HTTP exceptions."""
     return render_template(
         "error.html", error_code=e.code, error_description=e.description

@@ -1,0 +1,62 @@
+<think>
+
+Okay, let's analyze the previous results. The last model had a BIC of 33.44, accuracy around 0.797, and parameter recovery for alpha (0.637), beta (0.780), and theta (0.356). Theta's recovery was particularly low, indicating issues with identifiability or model structure. The model included three parameters: alpha (sensitivity to deviation), beta (baseline acceptance), and theta (opponent contribution weighting).
+
+The problem seems to be that theta isn't being recovered well. Maybe the way theta is incorporated into the fairness calculation isn't capturing the right dynamics. Also, the baseline beta might be collinear with alpha, making it harder to estimate both. The previous instructions tried a more complex model with lambda, beta, gamma, kappa, and rho, but that might have been too complex, leading to higher BIC.
+
+To improve parameter recovery and lower BIC, we need a model that better disentangles the parameters. Let's consider removing the baseline beta parameter to reduce collinearity. Instead, model the baseline as part of the utility function through another mechanism. Also, rethinking the fairness calculation to make theta's role more distinct.
+
+Another angle: The previous model used a linear combination of deviation from fair share plus a baseline. Maybe introducing nonlinearities, like prospect theory's value function, could better capture how participants perceive gains and losses relative to their fairness reference. This would separate gain and loss sensitivities, which might improve parameter recovery.
+
+Additionally, the low recovery for theta suggests that the way opponent contributions are weighted isn't aligning with participants' actual behavior. Perhaps participants adjust their fairness expectations based on the trial type (e.g., whether they contributed more, less, or equal). Incorporating trial_type into the model could help, but that adds parameters. Alternatively, use a dynamic weighting that depends on the relative contributions.
+
+Here's a plan for the new instructions:
+
+1. **Dynamic Fairness Weighting:** Replace theta with a function that adjusts the weight on opponent's tokens based on the relative contribution. For example, use a sigmoid function to smoothly transition between weighting schemes depending on whether the participant contributed more or less.
+
+2. **Prospect-Theoretic Utility:** Split the deviation into gains and losses relative to the fair share, applying different power functions for each. This introduces separate parameters for gain and loss sensitivity, which can improve identifiability.
+
+3. **Trial-Type Modulation:** Allow the fairness calculation to be modulated by the trial_type (equal, opponent more, participant more) through interaction terms, but keep the number of parameters manageable.
+
+4. **Remove Baseline Parameter:** Eliminate the beta parameter to reduce collinearity and focus the model on the deviation from fairness.
+
+By implementing these changes, the model can better capture the underlying decision processes, leading to improved parameter recovery and lower BIC.
+
+</think>
+
+**Instructions for Run 10:**  
+Design a **neuroeconomic bargaining model** that implements *adaptive norm enforcement* through these mechanisms:  
+
+1. **Dynamic Contribution Elasticity:**  
+   ```  
+   fairness_weight = 1 / (1 + exp(-τ*(token_self - token_opp)))  
+   fair_share = [fairness_weight * token_self + (1 - fairness_weight) * η] / [fairness_weight * (token_self + token_opp) + (1 - fairness_weight)*2η] * combined_earning  
+   ```  
+   - τ ∈ [0.1,5] controls *sensitivity to contribution asymmetry*  
+   - η ∈ [1,10] represents *minimum acceptable equality floor*  
+
+2. **Dual-Channel Disappointment Coding:**  
+   ```  
+   U = β_gain*(split_self - fair_share)^γ - β_loss*|fair_share - split_self|^{1.7} + π*log(1 + split_self/historical_median)  
+   ```  
+   - γ ∈ [0.3,0.9] governs *diminishing returns for advantageous inequality*  
+   - β_gain ∈ [0.5,3] and β_loss ∈ [0.5,3] control asymmetric sensitivity  
+   - π ∈ [-2,2] captures *greed acclimation* relative to `historical_median`  
+
+3. **Adaptive Reference Updating:**  
+   ```  
+   historical_median = percentile_trimmed_mean(split_self_prev, 0.2)  
+   ```  
+   Where `percentile_trimmed_mean` discards extreme 20% of previous offers  
+
+**Radical Constraints:**  
+- Use exactly 6 parameters: τ, η, β_gain, β_loss, γ, π  
+- Enforce β_loss > β_gain through parameterization β_loss = β_gain + δ where δ ∈ [0.1,2]  
+- Force γ < 0.9 through hard optimization constraints  
+
+**Validation Targets:**  
+- Achieve τ-γ correlation > 0.9 in parameter recovery  
+- Keep BIC < 32 through strategic nonlinearity  
+- Test if π > 0 predicts 15% higher acceptance of unfavorable offers after generous sequences  
+
+**Provocation:** Could responders be modeling proposer *intent* through offer sequences rather than static fairness? Encode implicit theory-of-mind in π parameter.

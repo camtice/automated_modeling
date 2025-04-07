@@ -1,0 +1,53 @@
+<think>
+
+Okay, let's analyze the previous run. The BIC was 41.36, which is higher than previous models, indicating worse fit. Accuracy was 0.675, lower than the previous average of ~0.79. Parameter recovery for alpha was 0.75 and theta 0.648, which is decent but could be better. The model used a prospect-theoretic approach with alpha and theta, but maybe the structure is causing issues.
+
+The previous instructions suggested dynamic alpha anchoring with a logistic function, valence-specific utility, and prospect-theoretic transformation. However, the result was worse. Why? Maybe the model is too complex with three parameters (theta, beta_over, gamma) leading to overfitting. Or the nonlinear components (sigmoid and power function) made parameter recovery harder.
+
+To improve, perhaps simplify the model. Instead of using a sigmoid for alpha, maybe use a direct ratio but introduce a nonlinearity in the deviation. For example, use a piecewise function with different exponents for gains and losses. Also, ensure parameters are orthogonal. Maybe separate the sensitivity to gains and losses with different parameters and apply a power function to each.
+
+Another angle: The previous model had theta for fairness anchoring, beta_over for gains, and gamma for curvature. But combining these might create interactions that are hard to recover. Maybe use two parameters for gain and loss sensitivities, each with their own curvature. For example, U = beta_over * (max(deviation,0))^gamma_over + beta_under * (min(deviation,0))^gamma_under. But this adds four parameters. To keep it to three, fix gamma_under = 1 or tie gamma_over and gamma_under.
+
+Alternatively, use a single curvature parameter but different sensitivities. For example, U = beta_over * (max(deviation,0))^gamma + beta_under * (min(deviation,0))^gamma. This way, gamma affects both gains and losses but in different directions. However, beta_over and beta_under can capture asymmetric sensitivities.
+
+Another idea: Replace the logistic function for alpha with a simpler interaction term. For example, alpha = theta * (token_self - token_opp)/(token_self + token_opp). This directly scales the contribution difference into the fairness reference, making theta a learnable weight.
+
+Also, the previous model might not account for the total combined earning properly. Maybe participants care about absolute amounts more than percentages. So, the deviation should be in absolute terms, not relative. But the model already uses split_self minus fair_share in pounds.
+
+To improve parameter recovery, ensure that each parameter affects a distinct aspect of the utility. For example, theta could control the fairness reference's dependence on contributions, beta_over scales positive deviations, and beta_under scales negative deviations. This separation might help in recovery.
+
+In summary, the next model should:
+
+1. Simplify the dynamic fairness anchoring to a linear function of contribution difference.
+2. Use separate parameters for gain and loss sensitivities with a shared curvature.
+3. Apply power transformations to both gains and losses to capture diminishing sensitivity.
+4. Ensure parameters are orthogonal by design.
+
+This approach reduces complexity, improves identifiability, and maintains the prospect-theoretic elements.
+</think>
+
+**Instructions for Run 8:**  
+Design a model that **explicitly separates gain/loss curvature while using contribution-ratio-dependent fairness thresholds**. Implement these innovations:  
+
+1. **Linearized Fairness Threshold:**  
+   Define the fairness reference as:  
+   `fair_share = (token_self + λ * token_opp) / (token_self + token_opp) * combined_earning`  
+   where λ ∈ [0,2] controls how much opponents’ contributions are weighted (λ=1 → strict proportionality).  
+
+2. **Dual-Curvature Utility:**  
+   Apply independent power transformations to gains/losses:  
+   ```  
+   U = β_gain * (max(deviation,0))^γ_gain + β_loss * (min(deviation,0))^γ_loss  
+   ```  
+   Constrain γ_gain ∈ [0.3,0.9] (concave gains) and γ_loss ∈ [1.1,2] (convex losses) to enforce prospect-theoretic shape.  
+
+3. **Identifiability Enforcement:**  
+   - Fix β_gain ∈ [0,5] and β_loss ∈ [-5,0] to force orthogonal effects  
+   - Prohibit baseline terms (no intercepts)  
+
+**Key Targets:**  
+- Achieve γ_gain/γ_loss recovery r > 0.7 while keeping BIC < 35  
+- Test if λ > 1 implies participants overvalue opponents’ contributions  
+- Use exactly 4 parameters: λ, β_gain, β_loss, γ_gain (fix γ_loss = 2 - γ_gain to reduce dimensionality)  
+
+**Radical Suggestion:** Explore whether letting λ dynamically vary with trial type (e.g., λ increases when token_opp > token_self) improves fit without overparameterization.

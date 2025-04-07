@@ -1,0 +1,25 @@
+<think>
+For run 2, we want to push performance by reducing covariance between parameters and introducing a flexible transformation that may capture non-linearities in the fairness expectation. The idea is to allow the model to account for diminishing sensitivity or curvature in the evaluation of fairness, which could be important given how contributions translate to expectations. Adding an extra learnable parameter (e.g., gamma) to shape the token ratio exponent can still keep the model parsimonious if implemented carefully. At the same time, we must ensure that the new parameter’s bounds are generous yet realistic so that the model can explore different curvatures without becoming unstable in estimation. We also emphasize clear variable mapping so that all components from the task are used. Keep the standard logistic transformation for linking utility to choice.
+</think>
+
+Please use the following updated instructions for Run 2:
+
+1. Develop a computational model to predict the utility underlying the binary choice (accept/reject) that incorporates a non-linear transformation of the fairness expectation. In addition to the baseline bias parameter (beta0) and fairness sensitivity parameter (lambda_param), introduce a new learnable parameter (gamma) that modulates the contribution ratio. This will allow the model to capture potential non-linearities (e.g., diminishing sensitivity) when comparing the actual split to the expected fair share.
+
+2. The expected share should be computed as:
+   (token_self / (token_self + token_opp))^gamma * combined_earning.
+   Then, the decision utility is calculated as:
+   U = beta0 + lambda_param * (split_self - expected_share).
+
+3. Be very considerate of potential high covariance among learnable parameters. By introducing gamma in a way that reparameterizes the fairness expectation (instead of forcing a strictly linear effect), you can potentially decrease the correlation between beta0, lambda_param, and gamma. Set generous yet realistic bounds for all learnable parameters:
+   - beta0: between –10 and 10,
+   - lambda_param: between –20 and 20,
+   - gamma: between 0.5 and 2.0.
+
+4. Present your model using clear mathematical notation between <MODEL> and </MODEL> tags and list variable descriptions in JSON format between <VARIABLES> and </VARIABLES> tags. Ensure each variable used is mapped correctly to observable data and that the target variable is specified with <target_variable>accept</target_variable>.
+
+5. In your summary (<SUMMARY> tags), concisely describe the model’s purpose: its use of a baseline bias, fairness sensitivity, and a non-linear modulation (via gamma) of the fairness expectation to adjust for potential diminishing sensitivity effects. Emphasize that the model aims to reduce parameter covariance while improving parameter recovery, overall accuracy, and lowering the BIC.
+
+6. Encourage out-of-the-box thinking. Do not hesitate to include a brief rationale (if needed outside of the formal model code) for why a non-linear transformation might better capture participant processing of fairness, and how this may lead to better performance metrics without overcomplicating the model.
+
+These updated instructions should guide you towards a model design that improves accuracy, BIC, and parameter recovery through thoughtful reparameterization and a slight expansion of learnable parameters.

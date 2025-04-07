@@ -1,0 +1,51 @@
+<think>
+
+Okay, let's analyze the previous results. The last model had a BIC of around 33.94, which is okay, but there's room for improvement. The parameter recovery for alpha was decent (r=0.783), beta was excellent (0.956), and gamma was lower (0.682). The accuracy was around 0.785. The main area to improve is gamma's recovery and possibly BIC by simplifying or enhancing the model's structure.
+
+The previous model used a linear combination of equity and equality with separate parameters for positive and negative deviations. However, gamma's lower recovery suggests that the baseline bias isn't being captured well. Maybe gamma is conflated with other parameters. To address this, perhaps introduce a non-linear interaction between gamma and the deviation terms. For example, gamma could modulate the baseline differently based on the direction of the deviation.
+
+Another angle: The model could incorporate trial_type information to adjust alpha dynamically. For instance, in trials where the participant contributed more (trial_type=3), alpha might be more influential. This could be done by scaling alpha with a function of trial_type without adding new parameters. For example, alpha_effective = alpha * (1 + (trial_type == 3)), but since trial_type is a data variable, this doesn't add parameters. This could help alpha's recovery by making it context-sensitive.
+
+Alternatively, use a softmax function for alpha to ensure it stays within [0,1] while allowing it to vary based on trial features. For example, alpha = sigmoid(theta * (token_self - token_opp)), where theta is a learnable parameter. This would tie alpha to the actual contribution difference, making it more interpretable and improving recovery. However, this introduces a new parameter (theta), so we need to replace one of the existing parameters. Maybe replace gamma with theta, but that might reduce accuracy.
+
+Wait, the constraint is to keep three parameters. So, perhaps replace gamma with a parameter that controls the dynamic weighting of alpha. For example, U = beta * [max(deviation,0) + gamma * min(deviation,0)] + delta, but that adds delta. Not allowed.
+
+Another idea: Use a single parameter to control the asymmetry between positive and negative deviations. For example, U = beta * (split_self - fair_ref) + gamma * (split_self - fair_ref) * (split_self > fair_ref). This way, gamma only affects positive deviations, creating an interaction. But this might not capture the full asymmetry.
+
+Alternatively, model the utility as a piecewise function where beta applies to positive deviations and gamma to negative, but without using max/min functions. For example, U = beta * (split_self - fair_ref) * (split_self >= fair_ref) + gamma * (split_self - fair_ref) * (split_self < fair_ref). This explicitly separates the effects, which could help in parameter recovery.
+
+Additionally, consider the role of combined_earning. The current model uses 0.5 * combined_earning for equality, but maybe participants have a different equality reference, like 50% of the combined earning scaled by a parameter. However, that would add another parameter. Instead, perhaps allow alpha to also scale the equality term nonlinearly. For example, fair_ref = alpha * 3 * token_self + (1 - alpha) * (0.5 * combined_earning)^theta, where theta is a learnable parameter. But again, this adds a parameter.
+
+Given the three-parameter limit, the best approach might be to refine the asymmetry in the current model. Perhaps introduce a curvature parameter by applying a power function to the deviation. For example, U = beta * (split_self - fair_ref)^2 + gamma. This quadratic term could capture diminishing or increasing sensitivity to larger deviations. However, this might worsen BIC due to increased complexity without sufficient benefit.
+
+Alternatively, use an absolute value with separate coefficients: U = beta * |split_self - fair_ref| + gamma * sign(split_self - fair_ref). This separates the magnitude and direction effects, allowing beta to control sensitivity to deviation size and gamma to baseline direction bias. This could disentangle gamma's role, improving its recovery.
+
+In summary, the key improvements could be:
+
+1. Explicitly separate magnitude and direction of deviations into different parameters.
+2. Introduce dynamic weighting of alpha based on trial features (like contribution ratio) without adding parameters.
+3. Apply nonlinear transformations to deviations to better capture human sensitivity.
+
+These adjustments should enhance parameter identifiability, especially for gamma and alpha, leading to better recovery and potentially lower BIC.
+</think>
+
+**Instructions for Run 6:**  
+
+Design a model that **explicitly decouples magnitude and direction sensitivity** while incorporating **dynamic fairness weighting**. Use these strategies:  
+
+1. **Directional Baseline Bias:** Replace the global bias term (γ) with a parameter that *only activates when offers fall below the fairness reference*. For example:  
+   `U = β * |deviation| + θ * (deviation < 0)`  
+   where θ acts as a rejection penalty for unfair offers.  
+
+2. **Contribution-Weighted α:** Dynamically scale α by the participant’s relative contribution:  
+   `α_effective = α * (token_self / (token_self + token_opp))`  
+   This grounds fairness expectations in objective contribution ratios without new parameters.  
+
+3. **Diminishing Sensitivity:** Apply a logarithmic or square root transformation to |deviation| to capture human nonlinear valuation (e.g., `log(1 + |deviation|)`).  
+
+**Constraints:**  
+- Use ≤3 learnable parameters (e.g., α, β, θ).  
+- Ensure parameters have distinct roles (magnitude vs. directional bias vs. fairness type).  
+- Bounds: Keep α ∈ [0,1], β ∈ [0,10], θ ∈ [-5,0] to reflect penalty semantics.  
+
+**Goal:** Improve γ/θ recovery (r > 0.8) while maintaining BIC < 33.

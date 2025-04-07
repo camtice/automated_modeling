@@ -1,0 +1,46 @@
+<think>
+Okay, let's look at the previous run's results. The BIC was 31.04, which is pretty good, and accuracy was 81.6%. The parameter recovery for alpha was strong (r=0.821), but beta was lower (0.523). So the main area to improve is beta's recovery and possibly pushing BIC even lower.
+
+The previous model used a dual-reference utility model with penalties for being below contribution-based fairness and opponent's share. The high alpha recovery suggests that the contribution-based term is well-defined, but beta's lower recovery might mean the inequity term isn't capturing the right dynamics. Maybe participants react differently based on trial context or there's an interaction with other variables.
+
+The new instructions should encourage models that better isolate the beta parameter. Maybe splitting the inequity term into different components based on trial_type or using non-linear transformations. Also, considering how the total combined earning affects the perception of fairness could help. For example, a larger total might make absolute differences less impactful, so using relative measures.
+
+Another angle is to incorporate trial_type into the model. For instance, in trials where the participant contributed more (trial_type=3), they might have higher expectations, so the sensitivity to inequity could be different. Adding a parameter that modulates beta based on trial_type could improve recovery.
+
+The radical suggestion in the previous instructions mentioned prospect theory. Maybe framing the utility in terms of losses and gains relative to a reference point (like expected fair share) with different sensitivities for losses and gains. This could involve separate parameters for loss aversion and gain sensitivity, which might better capture decision-making.
+
+Also, the previous model used max functions for penalties. Maybe introducing a non-linear scaling factor, like a power term, could allow the model to capture diminishing or increasing sensitivity to larger inequities. For example, raising the inequity term to a power determined by a parameter.
+
+To improve identifiability, ensuring that each parameter's term is orthogonal. For example, scaling the contribution-based term by token_self and the inequity term by combined_earning might reduce covariance between alpha and beta.
+
+The instructions should push for models that test these ideas: reference-dependent utility, trial_type interactions, non-linear scaling of terms, and separation of loss/gain sensitivities. Keeping the parameter count at 3 to balance complexity and identifiability.
+</think>
+
+**Instructions for Run 4/200:**  
+Design a model implementing *neuroeconomic prospect theory principles* with these innovations:  
+1. **Reference-Dependent Utility**  
+   - Define utility relative to a dynamic reference point: `reference = γ*(3*token_self) + (1-γ)*(combined_earning/2)`  
+   - Encode gains/losses asymmetrically: `Δ = split_self - reference`  
+   - Apply separate parameters for loss aversion (λ) and gain sensitivity (κ):  
+     `U = κ*max(0,Δ) - λ*max(0,-Δ) - β*max(0, split_opp - split_self)`  
+
+2. **Contextual Parameter Scaling**  
+   - Let trial_type multiplicatively scale loss aversion:  
+     `λ_effective = λ * (1 + θ*(trial_type==3))`  
+     (θ amplifies loss sensitivity when participant contributed more tokens)  
+
+3. **Non-Linear Value Warping**  
+   - Apply concave gain and convex loss transformations:  
+     `U = κ*(max(0,Δ))^σ - λ*(max(0,-Δ))^ρ`  
+     (σ <1 for diminishing gains, ρ >1 for increasing loss sensitivity)  
+
+**Radical Constraint:**  
+- Use exactly 3 parameters (λ, κ, β) with σ=0.88 and ρ=1.25 fixed (empirically derived constants)  
+- Enforce orthogonality by:  
+  a) Z-scoring Δ before exponentiation  
+  b) Scaling β by combined_earning/10 to prevent magnitude coupling  
+
+**Targets:**  
+- BIC <28 through strategic non-linear compression  
+- β recovery r >0.7 via trial_type-driven isolation  
+- Maintain α-equivalent loss sensitivity (λ) recovery r >0.8

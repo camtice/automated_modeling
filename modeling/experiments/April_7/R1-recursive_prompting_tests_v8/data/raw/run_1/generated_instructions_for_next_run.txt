@@ -1,0 +1,42 @@
+<think>
+Okay, let's analyze the previous results and think about how to improve the instructions. The previous model had a BIC of around 46 and an accuracy of about 59%, which isn't terrible but there's room for improvement. The parameter recovery for alpha was a correlation of 0.565, which is moderate but could be better. 
+
+First, the model used a single parameter (alpha) to capture sensitivity to unfairness based on the deviation from the fair percentage. The parameter recovery here might be low because the model is too simplistic. Maybe adding another parameter could help capture more variance in the data, but we need to avoid high covariance. Alternatively, the model might not be considering other factors that influence decisions, like the absolute amount offered or the context of the trial type (e.g., whether the participant contributed more or less than the opponent).
+
+The previous instructions emphasized minimizing the number of parameters to avoid covariance. However, the current model might be underfitting. Perhaps allowing a slightly more complex model with two parameters could improve recovery and accuracy without introducing too much covariance. For example, adding a parameter that accounts for the participant's sensitivity to advantageous inequality (when they get more than fair) versus disadvantageous inequality (when they get less).
+
+Another angle is the functional form of the utility. The linear model might not capture non-linear responses. For instance, participants might be highly sensitive to small deviations below the fair share but less so for larger deviations. Using a non-linear transformation (like a sigmoid) could help, but that might complicate the model. Alternatively, using a piecewise function with different alphas for positive and negative deviations.
+
+Also, the previous model didn't consider the trial_type variable, which indicates whether contributions were equal, opponent more, or participant more. Maybe participants behave differently in these scenarios. For example, when they contributed more, they might be more sensitive to unfair splits. Incorporating interaction terms with trial_type could improve the model.
+
+The instructions should encourage exploring these possibilities. Suggesting models that include trial_type interactions, non-linear terms, or additional parameters for different inequality types. However, the instructions need to balance complexity and parameter recovery. Maybe allowing up to two parameters if they are orthogonal in their effects.
+
+Additionally, the model's utility directly translates to the probability via a logistic function. If the utility's scale is off, the probabilities might not be well-calibrated. Including a temperature parameter (beta) to scale the utility before applying the logistic function could help. For example, U = beta * (alpha * delta), where beta controls the steepness of the probability curve. This adds a parameter but might improve fit.
+
+Another consideration is the reference point. The fair percentage is based on contributions, but participants might have different reference points, like expecting an equal split regardless of contributions. Including a parameter that weights contribution-based fairness versus equal split could capture individual differences.
+
+The new instructions should encourage testing these variations while still being cautious about parameter covariance. Emphasize exploring both linear and non-linear relationships, considering trial context, and possibly introducing a second parameter if justified. Also, suggest checking if including absolute terms (like split_self) alongside relative terms improves the model.
+
+Finally, the previous model's accuracy was around 59%, which is better than chance but leaves room for improvement. Encouraging the model to think beyond simple fairness models, like incorporating risk aversion or social preferences, might help. For example, participants might reject low offers not just due to fairness but to punish the proposer, which could be modeled with a different mechanism.
+</think>
+
+**Revised Instructions for Run 2/5:**
+
+1. **Expand Psychological Mechanisms**: Explore models that account for both *disadvantageous inequality* (rejecting low offers) and *advantageous inequality* (guilt effects for high offers). Consider piecewise utility functions or dual parameters (e.g., α₁ for below-fair splits, α₂ for above-fair splits) to capture asymmetric sensitivity.
+
+2. **Contextual Sensitivity**: Incorporate trial context (e.g., `trial_type` indicating contribution asymmetry) via interaction terms. Example:  
+   `U = α * (splitperc_self − fair_percent) * trial_type_weight`  
+   where `trial_type_weight` modulates sensitivity based on who contributed more.
+
+3. **Non-Linear Transformations**: Test non-linear responses to unfairness (e.g., logistic/scaling parameters for diminishing sensitivity):  
+   `U = α * tanh(splitperc_self − fair_percent)`  
+   or threshold-based models where small deviations are ignored.
+
+4. **Absolute vs. Relative Utility**: Hybrid models combining percentage fairness *and* absolute monetary amounts (e.g., `split_self`). Example:  
+   `U = α * (splitperc_self − fair_percent) + β * split_self`.
+
+5. **Parameter Constraints**: Allow up to **2 learnable parameters** if they target orthogonal effects (e.g., fairness sensitivity + baseline acceptance bias). Use bounded ranges (e.g., [−2, 5] for asymmetric effects) to guide identifiability.
+
+6. **Temperature Parameter**: Introduce a scaling parameter to the logistic function (e.g., `P(accept) = 1 / (1 + exp(−β * U))`) to better calibrate probability slopes.
+
+**Key Focus**: Prioritize models with interpretable parameters that map to distinct psychological processes. Test whether trial-by-trial variation in contribution asymmetry (`token_self` vs. `token_opp`) predicts residuals in the previous model.

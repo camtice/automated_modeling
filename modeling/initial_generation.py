@@ -127,17 +127,13 @@ Your model should directly predict a numerical value (not a binary choice). The 
             raise ValueError(f"Invalid prediction type: {prediction_type}")
 
         # Combine the task description with desired output description
+
         output_description = state.metadata["output_description"]
 
-        # Read instructions from metadata
         current_instructions = state.metadata.get("instructions")
         if not current_instructions:
-            # Fallback or error if instructions somehow weren't set in metadata
             logging.error("Instructions not found in state metadata!")
-            # Handle appropriately - maybe use a default or raise error
-            current_instructions = (
-                "Default instructions if metadata missing."  # Example fallback
-            )
+            raise ValueError("Instructions not found in state metadata!")
 
         # Check if output_description already contains "Previous Models:"
         if "Previous Models:" in output_description:
@@ -175,8 +171,7 @@ Please think through this step by step, then provide your model specification an
         # Generate using custom model
         output = await custom_model.generate(state.messages)
         state.output = output
-        state.messages.append(output.message)
-        # Log the complete interaction for debugging
+
         state.metadata.setdefault("complete_model_interaction", []).append(
             {
                 "solver": "model_design_solver",
@@ -184,9 +179,8 @@ Please think through this step by step, then provide your model specification an
                 "output": output.completion,
             }
         )
-
-        # Extract model, variable descriptions, and summary using regex
-        import re
+        state.messages.append(output.message)
+        # Log the complete interaction for debugging
 
         # Extract model
         model_match = re.search(

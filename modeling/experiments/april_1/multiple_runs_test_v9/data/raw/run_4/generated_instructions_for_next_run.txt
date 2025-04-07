@@ -1,0 +1,54 @@
+<think>
+
+Okay, let's analyze the previous run results. The BIC improved to 46.81 from 55.98, which is a good sign, but the accuracy dropped to 65.5%, which is concerning. The parameter recovery for alpha and beta is really low, especially beta at -0.002, which suggests that the model isn't capturing the true parameters effectively. Theta's recovery is better but still moderate.
+
+Looking at the previous instructions, the model included trial_type as a multiplier for beta, but the parameter recovery for beta is near zero. This might indicate that the trial_type interaction isn't working as intended. Maybe trial_type isn't a good moderator for the fairness term, leading to collinearity or overcomplication. Also, the orthogonality constraint might not have been properly enforced, causing parameters to be unidentifiable.
+
+The accuracy drop suggests the model isn't fitting the data well. The dual normalization might not be capturing the right aspects. The intercept term theta's recovery is okay, but alpha and beta are problematic. The bounds for alpha (0-25) and beta (0-2) might be too wide, making optimization difficult. Alternatively, the quadratic term's scaling could be off, leading to instability.
+
+To address this, perhaps simplify the model by removing the trial_type interaction. Instead of using trial_type as a multiplier, consider using it as a categorical variable with separate beta weights for each trial type. This would allow the model to capture different fairness sensitivities per trial type, improving identifiability. However, this adds more parameters, which might affect BIC. Alternatively, remove trial_type entirely if it's not a significant predictor.
+
+Another angle: the quadratic term might not be the right functional form. Maybe a linear term for unfairness would be more stable. Or use a different normalization, like dividing by fair_share instead of combined_earning to make the unfairness term relative to the participant's contribution.
+
+Also, check the orthogonality between monetary and fairness terms. If they're still correlated, the model can't disentangle alpha and beta. Maybe include a centering step or standardize the terms before fitting.
+
+Adjusting the parameter bounds: if beta's recovery is near zero, maybe the upper bound is too high, and the optimization isn't finding the right value. Narrowing beta's range based on prior knowledge or pilot data could help. Similarly, for alpha, if the values are too large, the logistic function might saturate, leading to poor gradient signals.
+
+Including a softmax temperature parameter could help, but that adds complexity. Alternatively, use a probit link instead of logistic for better parameter recovery in certain cases.
+
+Another thought: the intercept theta might be absorbing variance that should be explained by alpha and beta. Maybe removing theta and letting the other parameters account for baseline tendencies could help, but that risks lower accuracy.
+
+In summary, the new instructions should focus on:
+
+1. Simplify the model by removing trial_type interaction to reduce collinearity.
+2. Adjust normalization of fairness term (e.g., relative to fair_share).
+3. Narrow parameter bounds based on recovery issues.
+4. Enforce orthogonality through preprocessing or model structure.
+5. Consider alternative functional forms for the fairness term if quadratic isn't working.
+</think>
+
+Focus on stabilizing parameter estimation through these key changes:
+
+1. **Simplified fairness calculation** - Replace quadratic penalty with linear disadvantage sensitivity:
+   `fairness_term = max((3*token_self - split_self)/combined_earning, 0)`
+   
+2. **Trial-type stratification** - Implement separate β parameters per trial_type category:
+   ```python
+   β = β1*(trial_type==1) + β2*(trial_type==2) + β3*(trial_type==3)
+   ```
+   With β bounds [0,1.5] for each
+
+3. **Monetary utility scaling** - Apply logistic compression to prevent saturation:
+   `monetary_term = α * (2/(1 + exp(-split_self/combined_earning)) - 1)`
+
+4. **Tighter parameterization**:
+   - α: [0, 10] (reduced upper bound)
+   - θ: [-3, 3] (narrower baseline range)
+   - Remove combined_earning denominator from fairness term
+
+5. **Orthogonality pre-processing** - Require z-score normalization of monetary/fairness components before parameter estimation
+
+Implementation targets:
+- β parameter recovery >0.8 across all trial types
+- BIC <40 through reduced complexity
+- Accuracy >75% with stabilized gradients

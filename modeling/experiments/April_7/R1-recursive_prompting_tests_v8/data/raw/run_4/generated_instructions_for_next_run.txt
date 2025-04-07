@@ -1,0 +1,49 @@
+<think>
+
+Okay, let's look at the previous run results. The best model so far had a BIC of 62.78, which is better than the earlier models but still has room for improvement. The accuracy was 0.78, which is pretty good, but parameter recovery for beta was low (r=0.239), while alpha was excellent (r=0.923). This suggests that the model's beta parameter isn't being estimated well, possibly because it's not capturing a meaningful effect or there's collinearity with other terms.
+
+The previous model combined fairness deviation (alpha) and absolute amount (beta). Since beta's recovery is poor, maybe the absolute amount isn't a strong driver of decisions, or it's confounded with the fairness term. To improve beta's recovery, the model needs to better isolate the effect of the absolute amount. Alternatively, replace beta with a different term that's more orthogonal to alpha's effect.
+
+The high recovery for alpha indicates that the fairness component is well-specified. However, beta's low recovery suggests that the model might be missing a key factor that participants consider, or the current specification of beta isn't capturing it effectively.
+
+Looking at the previous instructions, they suggested non-linear transformations for disadvantageous inequality, trial-type contextualization, etc. But in the best model, the disadvantageous term was linear. Maybe introducing non-linearity there could help, but since alpha is already well-recovered, perhaps the focus should be on improving beta.
+
+Another angle: participants might care about the relative amount compared to the opponent. For example, the ratio of split_self to split_opp, or the difference. Including such a term instead of the absolute split_self might capture more variance and improve beta's recovery.
+
+Alternatively, the absolute amount might interact with the fairness term. For instance, participants might tolerate unfairness more if the absolute amount is high. An interaction term like alpha * (splitperc_self - fair_percent) * split_self could capture this, but that adds a non-linear term and might complicate parameter estimation.
+
+Given the constraint of two parameters, perhaps beta should be redefined to capture a different aspect, such as sensitivity to the opponent's share, or the total combined earning. For example, beta could represent sensitivity to the total pot size, which might influence acceptance decisions independently of fairness.
+
+Another idea is to model the utility as a function of both the percentage deviation and the proportional split. For example, U = alpha * (splitperc_self - fair_percent) + beta * (split_self / combined_earning). This way, beta captures the proportion of the total pot offered, which might be more salient than the absolute amount.
+
+Alternatively, use a non-linear function for the absolute term, like log(split_self), to capture diminishing sensitivity to larger amounts. This could help if participants care more about percentage changes in the amount rather than absolute changes.
+
+Trial-type contextualization without adding parameters: For trials where the participant contributed more (trial_type=3), maybe they have a higher sensitivity to fairness. We could modify the alpha term by a factor based on trial_type, like alpha * (1 + 0.5*(trial_type==3)). This doesn't add a new parameter but allows alpha to vary contextually, potentially improving fit without increasing BIC much.
+
+Another approach is to introduce a threshold for the absolute amount. For example, beta only affects utility when split_self is above a certain value. This could be modeled as beta * max(split_self - threshold, 0), where threshold is fixed (e.g., £30). This might better capture participants' focus on meaningful amounts.
+
+Considering the need to maintain two parameters and improve beta's recovery, the new instructions should encourage models that redefine the beta term to capture a different, orthogonal aspect of the decision, possibly incorporating non-linear transformations, interaction with trial context, or alternative reference points.
+</think>
+
+**Final Instructions for Run 5/5:**  
+**Radical Experimentation Phase** – Break symmetry between parameters and exploit dataset structure:  
+
+1. **Asymmetric Non-Linear Operators**:  
+   - For disadvantageous inequality (*splitperc_self < fair_percent*), use **concave transformations** (e.g., `sqrt(max(fair_percent − splitperc_self, 0))`) to model "diminishing disutility" for extreme unfairness.  
+   - For advantageous inequality (*splitperc_self > fair_percent*), use **convex transformations** (e.g., `(splitperc_self − fair_percent)^2`) to model "guilt aversion acceleration".  
+
+2. **Trial-Type Modulated Bounds**:  
+   - Restrict α (fairness sensitivity) to `[−5, 15]` but **halve its effective range** for `trial_type=1` (equal contribution) via `α_effective = α * (2 if trial_type != 1 else 1)`. No new parameters – uses existing trial_type data.  
+
+3. **Dynamic Reference Points**:  
+   - Replace static fair percentage with `fair_percent + γ * split_self`, where γ is a **fixed small constant** (e.g., 0.01) to implicitly link absolute offers to fairness expectations.  
+
+4. **Beta Redefinition**:  
+   - Redefine β to capture **non-monotonic responses to absolute offers**:  
+     `β * sin(split_self / 10)` (periodic sensitivity) or `β * (split_self > 30)` (threshold effect).  
+
+**Constraints**:  
+- Keep **2 parameters** but force them into **orthogonal roles** (e.g., α ∈ [−5, 15], β ∈ [−π, π]).  
+- Use **non-differentiable operations** (e.g., floor/ceil, conditional multipliers) to test robustness.  
+
+**Success Condition**: Prioritize models where β recovery exceeds *r > 0.7* while maintaining α recovery *r > 0.8*. Sacrifice BIC (< 60) if needed to achieve this.

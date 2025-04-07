@@ -1,0 +1,64 @@
+<think>
+
+Okay, let's analyze the previous run results. The model had a BIC of 168.32, which is higher than the previous runs, indicating worse model fit. However, the accuracy improved to 62.9%, which is better. The parameter recovery for alpha_advantageous was good (r=0.851), but alpha_disadvantageous was poor (r=0.179). This suggests that the model's structure might be capturing advantageous inequality well but not disadvantageous.
+
+The high BIC suggests that adding two parameters (alpha_disadvantageous and alpha_advantageous) might have overfit the data, especially since the previous single-parameter models had lower BIC. However, the accuracy improved, so there's a trade-off. The poor recovery for alpha_disadvantageous indicates that this parameter isn't being estimated reliably, possibly due to collinearity with other terms or insufficient data in certain conditions.
+
+To improve, the next model should aim to maintain or increase accuracy while reducing BIC and improving parameter recovery. Since the previous model used two parameters but had mixed recovery, maybe introducing a non-linear transformation or interaction term could help. For example, using a sigmoid function for disadvantageous inequality to capture threshold effects, where participants only react strongly beyond a certain unfairness level.
+
+Another angle: the model could incorporate trial_type as a moderator. For instance, in trials where the participant contributed more (trial_type=3), their sensitivity to disadvantageous inequality might be higher. Adding an interaction term between trial_type and the inequality terms could help. However, this would add more parameters, which might not be ideal given the BIC. Alternatively, use trial_type to split the data into subgroups, but that's not feasible here.
+
+Alternatively, consider a hybrid model that combines absolute and relative terms. For example, include both the percentage deviation and the absolute amount offered (split_self). This could capture participants who care about both fairness and the actual monetary gain. However, this adds another parameter, which might not be allowed due to the two-parameter constraint.
+
+Wait, the previous instructions allowed up to two parameters. So, perhaps one parameter for disadvantageous and another that combines advantageous with an absolute term. For example: U = alpha_disadvantageous * max(fair_percent - splitperc_self, 0) + alpha_advantageous * (splitperc_self - fair_percent + theta * split_self). But theta would be a third parameter, which isn't allowed. Alternatively, fix theta to a small value, but that's not learnable.
+
+Another idea: use a non-linear function for disadvantageous inequality, like a quadratic term, to capture increasing sensitivity as offers get more unfair. For example: U = alpha_disadvantageous * (max(fair_percent - splitperc_self, 0))^2 + alpha_advantageous * max(splitperc_self - fair_percent, 0). This might better capture the psychology where small unfairness is tolerated, but larger deviations are punished more harshly. This keeps two parameters but introduces non-linearity.
+
+Alternatively, use a piecewise linear function with a breakpoint. For example, different alphas for different ranges of disadvantageous inequality. But that would require more parameters.
+
+The temperature parameter (tau) could be reintroduced to scale the utility before the logistic function. This adds a third parameter, but if the constraint is strict, maybe combine it with one of the existing parameters. However, the previous instructions said max two parameters, so this might not be feasible.
+
+Given the constraints, the best approach might be to keep two parameters but modify the model structure to better capture disadvantageous inequality. For example, using a non-linear transformation for the disadvantageous term while keeping the advantageous term linear. This could improve parameter recovery for alpha_disadvantageous by making the model more sensitive to variations in that term.
+
+Another possibility is to include a baseline acceptance bias. For example, U = alpha_disadvantageous * max(...) + alpha_advantageous * max(...) + beta. Here, beta is a constant bias term. But this adds a third parameter. Alternatively, fix beta to zero, but that's not helpful.
+
+Wait, the previous model didn't include a bias term. Maybe participants have a general tendency to accept or reject offers regardless of fairness. Adding a bias term (beta) could capture this, but again, it's a third parameter. If the constraint is strict, this isn't allowed. So, perhaps the model needs to find a way to capture this within two parameters.
+
+Alternatively, model the utility as U = alpha * (splitperc_self - fair_percent) + gamma * split_self. Here, alpha captures fairness sensitivity, and gamma captures sensitivity to absolute gains. This uses two parameters. However, this abandons the asymmetric approach but might improve BIC if it's a better fit.
+
+Considering the poor recovery of alpha_disadvantageous, perhaps the model should focus on a different functional form for disadvantageous inequality. For example, using a logarithmic function to represent diminishing sensitivity: U = alpha_disadvantageous * log(1 + max(fair_percent - splitperc_self, 0)) + alpha_advantageous * max(...). This could help in cases where small deviations are less impactful, improving parameter estimation.
+
+In summary, the new instructions should encourage models that:
+
+1. Introduce non-linear transformations for disadvantageous inequality to improve parameter recovery.
+2. Consider hybrid terms combining relative and absolute fairness.
+3. Use trial_type as a moderator for sensitivity parameters without adding extra learnable parameters.
+4. Experiment with different functional forms (e.g., quadratic, logarithmic) for inequality terms.
+5. Maintain a maximum of two learnable parameters to avoid overfitting.
+
+Specific suggestions could include using a sigmoid for disadvantageous inequality, incorporating absolute terms with one parameter, or using trial_type to adjust sensitivity without additional parameters.
+</think>
+
+**Revised Instructions for Run 4/5:**  
+
+1. **Non-Linear Disadvantageous Sensitivity**: Replace linear terms for disadvantageous inequality with *saturating functions* (e.g., `log(1 + x)`, `sqrt(x)`) to model diminishing sensitivity to extreme unfairness. Example:  
+   `U = α₁ * log(1 + max(fair_percent − splitperc_self, 0)) + α₂ * max(splitperc_self − fair_percent, 0)`  
+
+2. **Trial-Type Contextualization**: Use `trial_type` to *non-parametrically* scale sensitivity:  
+   - For `trial_type=3` (participant contributed more), multiply disadvantageous sensitivity by 2x (no new parameters).  
+   - Example: `U = α₁ * [1 + I_{trial_type=3}] * max(fair_percent − splitperc_self, 0) + α₂ * max(...)`  
+
+3. **Absolute Fairness Threshold**: Add a fixed threshold (e.g., 10%) where disadvantageous sensitivity *only activates* below it:  
+   `U = α₁ * max(fair_percent − splitperc_self − 10, 0) + α₂ * max(...)`  
+
+4. **Hybrid Logistic-Nonlinear**: Apply logistic transformation *directly to fairness deviation* before scaling:  
+   `U = α₁ * (1 / (1 + exp(−(fair_percent − splitperc_self)))) + α₂ * max(...)`  
+
+5. **Dynamic Reference Points**: Let the fair percentage include a *learnable bias* (δ) shared across parameters:  
+   `fair_percent_adj = fair_percent + δ` (δ ∈ [−10, 10], counts as 1 of 2 parameters).  
+
+**Critical Constraints**:  
+- Retain **2 learnable parameters** with *orthogonal roles* (e.g., one for nonlinear fairness, one for absolute gains).  
+- Use *non-overlapping bounds* (e.g., α₁ ∈ [0, 5], α₂ ∈ [−2, 2]) to prevent identifiability issues.  
+
+**Key Focus**: Radically simplify the disadvantageous term’s structure while testing whether explicit trial-type logic (without new parameters) improves recovery. Prioritize models where α₁ recovery exceeds r > 0.6.

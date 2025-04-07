@@ -1,0 +1,65 @@
+<think>
+
+Okay, let's look at the previous run's results. The BIC was 33.43, accuracy around 79.6%, which is better than the first model. The parameter recovery for alpha improved to 0.804, beta to 0.761, and gamma to 0.625. So alpha's recovery is much better now, but gamma's is lower. The main goal now is to further improve accuracy and BIC while maintaining or enhancing parameter recovery, especially for gamma.
+
+The previous instructions focused on nonlinear fairness integration, asymmetric sensitivity, context-dependent weighting, and parameter orthogonality. The model from run 2 added a third parameter (gamma) which helped alpha's recovery but gamma's recovery is moderate. Maybe gamma is not capturing a distinct psychological process, leading to some covariance with other parameters.
+
+To improve gamma's recovery, the model needs to ensure that gamma represents a unique component not explained by other parameters. Perhaps gamma is a baseline acceptance bias that's independent of the fairness calculation. However, if the model's utility function already includes a term that captures baseline tendencies, maybe gamma is redundant or not well-identified.
+
+Another angle: the current model uses a linear combination of fairness terms scaled by beta and added to gamma. If beta and gamma are correlated, their recovery might suffer. To decouple them, perhaps introduce a nonlinear interaction between beta and the fairness deviation, or allow beta to have different components for different aspects.
+
+The previous run's instructions suggested using trial_type-dependent fairness rules. The current model doesn't use trial_type, so incorporating it could help. For example, when trial_type is 3 (participant contributed more), alpha could be higher, but that would require an interaction term with trial_type, adding parameters. However, the design constraint is a maximum of 3 parameters. So maybe use trial_type to modulate alpha without adding new parameters. For instance, alpha = sigmoid(delta * trial_type), where delta is a learnable parameter. But that would require a new parameter, which exceeds the limit. Alternatively, use trial_type as a multiplier in the utility function.
+
+Alternatively, use the ratio of token_self to token_opp as a dynamic weight for alpha. For example, alpha could be calculated as token_self / (token_self + token_opp), which is data-driven and doesn't require a learnable parameter. But that would remove alpha as a learnable parameter, which might not be ideal. Alternatively, scale alpha by this ratio, introducing a multiplicative term.
+
+Another idea: introduce a nonlinear transformation of the fairness deviation. For example, take the absolute value of the deviation, or square it, to capture different sensitivity to the magnitude of unfairness. This could be controlled by a new parameter, but again, parameter count is limited. Maybe replace the linear beta scaling with a power function, e.g., beta * (deviation)^gamma, but that would repurpose gamma, which might not be ideal.
+
+To improve gamma's recovery, perhaps make it context-dependent. For example, gamma could vary with trial_type, but that would require additional parameters. Alternatively, split gamma into two terms: one for when the offer is above the reference and one for below. But that adds parameters.
+
+Given the constraint of 3 parameters, the model needs to find a way to better differentiate the roles of alpha, beta, and gamma. Maybe gamma should interact with another variable that's orthogonal to the fairness calculation. For example, include a term that's only active when the offer is extremely low or high, allowing gamma to capture baseline acceptance in those cases.
+
+Alternatively, use a nonlinear function for the utility, such as a logistic transformation of the fairness deviation before scaling by beta. This could help in cases where the utility has diminishing returns, which might separate the effects of beta and gamma.
+
+Another approach is to model the utility as a combination of two separate fairness deviations: one for equity and one for equality, each scaled by their own sensitivity parameters. Then, gamma is added as a baseline. This would require two sensitivity parameters (beta_equity, beta_equality) and gamma, totaling three parameters. This way, alpha is replaced by the relative scaling of the two betas, but that might not directly help. Alternatively, keep alpha as the weight between equity and equality, but have separate sensitivities for each, leading to more parameters. But with the 3-parameter limit, this isn't feasible.
+
+Wait, the current model has alpha, beta, gamma. Maybe reparameterize to have beta_equity and beta_equality instead of alpha and beta. For example: U = beta_equity * (split_self - 3*token_self) + beta_equality * (split_self - 0.5*combined_earning) + gamma. This model uses two sensitivity parameters for equity and equality deviations, and a baseline. This could allow for better parameter recovery if the two betas are orthogonal. However, this would replace alpha with two parameters, totaling three (beta_equity, beta_equality, gamma). This might capture the same information as the alpha-weighted model but with different parameterization. Whether this improves recovery depends on the data structure.
+
+Alternatively, use a multiplicative term between alpha and beta to reduce covariance. For example, U = (alpha * beta) * (split_self - 3*token_self) + ((1 - alpha) * beta) * (split_self - 0.5*combined_earning) + gamma. This ties beta to both terms, which might not help. Alternatively, have separate beta terms for equity and equality: U = beta_equity * (split_self - 3*token_self) + beta_equality * (split_self - 0.5*combined_earning) + gamma. This model has three parameters and might allow better identification if equity and equality deviations are not perfectly correlated.
+
+Another thought: the current model's fairness reference is a weighted average. Perhaps participants use a different reference, such as the maximum of equity and equality. Or a nonlinear combination. For example, U = beta * (split_self - max(3*token_self, 0.5*combined_earning)) + gamma. This would change the reference point but might not require additional parameters. However, the max function is non-differentiable, which could complicate parameter estimation. Alternatively, use a softmax function with a temperature parameter, but that adds another parameter.
+
+Considering the instructions for run 3, the focus should be on further improving parameter recovery (especially gamma) and accuracy. The new instructions should encourage models that:
+
+1. Introduce orthogonal terms to decouple gamma from alpha and beta.
+2. Explore nonlinear transformations of the fairness deviation to capture different sensitivity effects.
+3. Utilize trial_type or token ratios to modulate fairness calculations without adding parameters.
+4. Test alternative reference points (e.g., hybrid max/mean, context-dependent thresholds).
+5. Consider asymmetric sensitivity parameters for over vs. under offers relative to both equity and equality norms.
+
+By guiding the model towards these directions, the next iteration might achieve better performance.
+</think>
+
+**Instructions for Run 3/10:**  
+Introduce *dynamic nonlinear scaling* to disentangle gamma from fairness computations. Prioritize:  
+
+1. **Reference Point Specialization**  
+   - Implement distinct parameters for deviations above/below *both* equity and equality norms  
+   - Example: `U = β_equity_under*(fairness_gap_equity)⁻ + β_equity_over*(gap)⁺ + ... + γ`  
+
+2. **Contextual Baseline Modulation**  
+   - Make gamma sensitive to absolute contribution ratios:  
+     `γ = γ_base + γ_scale * (token_self/(token_self+token_opp))`  
+
+3. **Dual-Path Fairness**  
+   - Process equity/equality violations through separate nonlinear transforms before combining:  
+     ```  
+     U_equity = β1 * tanh(split_self - equity_ref)  
+     U_equality = β2 * (split_self - equality_ref)^3  
+     U = α*U_equity + (1-α)*U_equality + γ  
+     ```  
+
+4. **Parameter Constraints**  
+   - Enforce β_equity > β_equality when token_self > token_opp via:  
+     `β_equity = β_base * (1 + relu(token_self - token_opp))`  
+
+*Design constraint:* Maximum 3 learnable parameters. Sacrifice symmetry in fairness terms if it improves identifiability.

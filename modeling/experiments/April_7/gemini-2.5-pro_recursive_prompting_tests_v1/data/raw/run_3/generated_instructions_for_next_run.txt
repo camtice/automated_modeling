@@ -1,0 +1,37 @@
+Okay, the previous run was highly successful! The model using proportions (`split_perc`, `fair_perc`) and a single inequity aversion parameter (`k`) achieved excellent parameter recovery (k: r = 0.855), surpassing the target, along with the best BIC (42.20) and accuracy (0.600) so far. This confirms that simplifying the inequity structure and using relative measures helped address the identifiability issues seen in earlier models.
+
+For the next run, the goal is to **further improve the model's fit (lower BIC) and predictive accuracy**, while **maintaining the excellent parameter recovery** (ideally r > 0.7 for all parameters) achieved previously. We can now try to carefully reintroduce complexity or mechanisms that might capture more nuances in the decision-making process, building upon the successful proportional framework.
+
+Here are some directions and suggestions:
+
+1.  **Incorporate Choice Stochasticity (Temperature):** The previous successful model used a fixed temperature (tau=1) in the logistic function. A very common way to improve model fit is to allow choice stochasticity to vary between individuals by introducing a learnable temperature parameter (`tau`).
+    *   **Hypothesis:** Now that the utility (`U`) is calculated based on proportions (ranging roughly between -k and 1), its scale might be more consistent across trials compared to models using absolute monetary values. This improved scaling might make `tau` identifiable when paired with the simplified `k`-based inequity term.
+    *   **Model Idea:** Start with the previous best model and add `tau`.
+        *   `fair_perc = (token_self / (token_opp + token_self)) if (token_opp + token_self) > 0 else 0.5`
+        *   `split_perc = split_self / combined_earning if combined_earning > 0 else 0`
+        *   `U = split_perc - k * abs(split_perc - fair_perc)`
+        *   `P_accept = 1 / (1 + exp(-U / tau))`
+    *   **Parameters:** `k` (inequity aversion, e.g., [0, 10]), `tau` (temperature/noise, e.g., [0.01, 5]). Ensure `tau` is strictly positive.
+    *   **Priority:** This is likely the most promising direction for improving fit while potentially maintaining good recovery.
+
+2.  **Explore Mixed Fairness References:** The current model assumes the *only* reference point is the proportional fair share based on tokens. Is it possible participants also consider a simpler 50/50 split heuristic?
+    *   **Model Idea:** Model the effective fair share as a weighted average of the proportional share and an equal split share (0.5).
+        *   `fair_perc_prop = (token_self / (token_opp + token_self)) if (token_opp + token_self) > 0 else 0.5`
+        *   `fair_perc_equal = 0.5`
+        *   `effective_fair_perc = w * fair_perc_prop + (1 - w) * fair_perc_equal`
+        *   `U = split_perc - k * abs(split_perc - effective_fair_perc)`
+        *   (Optionally, add `tau` here too: `P_accept = 1 / (1 + exp(-U / tau))`)
+    *   **Parameters:** `k` (inequity aversion), `w` (weight on proportional fairness, [0, 1]), potentially `tau`.
+    *   **Rationale:** This acknowledges that fairness perception might be multifaceted. Adding `w` increases complexity, so monitor recovery closely. Perhaps test this first *without* `tau` (i.e., tau=1) to isolate the effect of `w`.
+
+3.  **Revisit Asymmetric Inequity Aversion (Use Proportions):** The original Fehr-Schmidt model with separate `alpha` and `beta` had poor recovery. However, that model used *absolute* monetary differences. Could asymmetry be recoverable when applied to *proportions*?
+    *   **Model Idea:** Adapt the Fehr-Schmidt idea to the proportional framework.
+        *   `U = split_perc - alpha * max(0, fair_perc - split_perc) - beta * max(0, split_perc - fair_perc)`
+        *   (Optionally, add `tau`: `P_accept = 1 / (1 + exp(-U / tau))`)
+    *   **Parameters:** `alpha` (disadvantageous inequity aversion, e.g., [0, 10]), `beta` (advantageous inequity aversion, e.g., [0, 1]), potentially `tau`. Note the typical constraint `alpha >= beta >= 0`.
+    *   **Caution:** This brings back two inequity parameters, which previously caused identifiability problems. Approach this cautiously. Test it first *without* `tau` (tau=1). It might only be worth pursuing if the single `k` models (with or without `tau` or `w`) fail to significantly improve fit.
+
+**Focus:**
+Prioritize Model Idea 1 (adding `tau` to the best previous model) as it's a standard refinement. Consider Model Idea 2 (mixed reference point) as an interesting conceptual extension. Be more cautious with Model Idea 3 (asymmetric proportions) due to past recovery issues.
+
+Always justify your chosen model structure and parameters, especially regarding how they build on the previous success and why you expect them to remain identifiable while improving fit/accuracy. Ensure parameter bounds are sensible and finite.

@@ -1,0 +1,57 @@
+<think>
+Okay, let's analyze the previous results. The second model had a higher BIC (164.39) compared to the first (124.65), which is worse. The accuracy slightly dropped to 0.844. The parameter recovery for theta was really low at 0.507, which is a problem. So the main issues are the increased BIC and poor theta recovery.
+
+The previous instructions suggested nonlinear penalties, contextual modulation, etc., but the second model didn't implement those. Maybe the model needs to enforce more distinct roles for parameters. Theta's low recovery suggests it's not being well-identified in the data. Perhaps the penalty term isn't capturing enough variance or is confounded with beta.
+
+To improve theta's recovery, the model needs a component that theta uniquely influences. Maybe introducing a nonlinearity in the penalty term, like squaring the deficit, would make theta's effect more pronounced when offers are very unfair. Alternatively, using a piecewise function where theta has different effects based on the deficit's magnitude.
+
+Another angle: the current model uses split_self directly. Maybe participants evaluate fairness relative to both their own and the opponent's contributions. For example, the fair share could be (3 * token_self) / (3 * (token_self + token_opp)) * combined_earning. But combined_earning is 3*(token_self + token_opp), so that simplifies to split_self should be 3*token_self. Wait, that's what's already used. Hmm.
+
+Alternatively, participants might compare their split to the opponent's split. If split_opp is much higher, they might feel unfair. But in the responder role, split_opp is determined by the proposer. Including split_opp in the model could add another term, like theta_opp * split_opp, but that adds a parameter. However, maybe a ratio of split_self to split_opp could capture relative fairness without adding parameters if combined with existing terms.
+
+Another idea: use the percentage split (split_perc_self) instead of absolute values. The fair percentage would be (token_self / (token_self + token_opp)) * 100. The deficit could be the difference between split_perc_self and this fair percentage. This might align better with how participants perceive fairness.
+
+Also, trial_type indicates whether contributions are equal, which might affect sensitivity. For trial_type=3 (participant contributed more), theta could be higher. Adding an interaction term between trial_type and the penalty could help. For example, theta * (3*token_self - split_self) * (trial_type == 3). This would introduce a new parameter for the interaction, but maybe improves theta's identifiability.
+
+To keep the number of parameters low, maybe use a single additional parameter for the interaction. Alternatively, allow theta to vary by trial_type with separate parameters. But that increases the parameter count, which could affect BIC. However, if the fit improves significantly, the BIC might still be better.
+
+Another approach: model the utility as split_self minus a nonlinear function of the deficit. For example, using a quadratic term: theta * (max(3*token_self - split_self, 0))^2. This would make the penalty increase more steeply for larger deficits, which might better capture strong aversion to very unfair offers. This could help theta's recovery because the effect becomes more distinct in cases of large deficits.
+
+Additionally, the baseline beta might be influenced by the total combined earnings. For example, in higher stakes (larger combined_earning), participants might be more cautious. Adding an interaction between beta and combined_earning could model this, but again adds a parameter. Alternatively, scale split_self by combined_earning to make the utility relative to the total amount.
+
+In summary, the revised instructions should encourage:
+
+1. Nonlinear transformations of the fairness penalty (e.g., quadratic).
+2. Interaction terms between trial_type and the penalty.
+3. Relative fairness measures (percentage-based or ratio-based).
+4. Ensuring parameters have distinct roles to improve recovery.
+5. Keeping the number of parameters ≤3 to balance model complexity.
+
+The goal is to make theta's effect more pronounced and distinct from beta, thereby improving its recovery while maintaining or reducing BIC.
+</think>
+
+**Instructions for Run 2/3:**  
+**Core Objective:** *Radically differentiate parameter roles* while maintaining ≤3 parameters. Target theta recovery through **mechanistic specialization** and **nonlinear fairness encoding**.  
+
+1. **Dynamic Fairness Scaling:**  
+   - Replace linear penalties with **curvilinear responses** (e.g., `theta * (fairness_deficit)^γ` where γ is either fixed [1.5-2.5] or learnable).  
+   - Test **asymmetric sensitivity** (steeper penalties for deficits >£5 vs. small inequities).  
+
+2. **Contribution-Contextualized Utility:**  
+   - Encode fairness relative to *both* players' contributions:  
+     `fair_share = (3*token_self) / (3*(token_self + token_opp)) * combined_earning`  
+   - Penalize deviations from this proportionally weighted value rather than absolute £ amounts.  
+
+3. **Trial-Type Gating:**  
+   - Implement **conditional fairness thresholds** using `trial_type`:  
+     - If `trial_type=3` (participant contributed more), use stricter fairness criteria (e.g., 4*token_self vs. 3*token_self).  
+     - Gate penalty activation with trial-type modifiers (e.g., `theta * [condition] * deficit`).  
+
+4. **Monetary Utility Saturation:**  
+   - Apply **diminishing returns** to `split_self` (e.g., `log(split_self + 1)` or `sqrt(split_self)`) to capture sublinear value scaling.  
+
+5. **Parameter Orthogonality Enforcement:**  
+   - Assign `beta` to handle **context-independent biases** (e.g., default rejection tendencies)  
+   - Reserve `theta` exclusively for **context-modulated fairness violations** (e.g., interacting with trial_type or contribution ratios)  
+
+**Forbidden:** Simple linear deficit terms. Prioritize models where beta and theta cannot be swapped without breaking interpretability.

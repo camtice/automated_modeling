@@ -1,0 +1,60 @@
+<think>
+Okay, let's look at the previous model's results. The BIC was 31.89, accuracy was around 81.5%, and parameter recovery varied. Gamma had a lower recovery (r=0.555), while alpha and beta were better. The model used gamma, alpha, and beta as parameters. The formula was U = gamma + alpha*(split_self - 3*token_self) + beta*split_self.
+
+Hmm, gamma's low recovery suggests it might be collinear with other terms or not well-identified. Maybe the baseline term isn't necessary, or perhaps it's being overshadowed by the other parameters. The model has three parameters, which might be causing some covariance issues. The instructions previously emphasized reducing parameters, but maybe there's a way to simplify further.
+
+The accuracy is already decent, but improving BIC would require a model with better fit without overcomplicating. Since BIC penalizes complexity, maybe reducing the number of parameters could help. Alternatively, reparameterizing to avoid covariance.
+
+Looking at the parameter recovery: alpha is good, beta is okay, gamma is poor. Maybe gamma isn't capturing a meaningful psychological construct here. Perhaps the baseline bias isn't necessary if the other terms account for the utility sufficiently. Removing gamma could reduce parameters and improve recovery.
+
+Alternatively, maybe the model can combine alpha and beta into a single parameter. For example, instead of having separate terms for (split_self - 3*token_self) and split_self, maybe express it as a weighted combination. Wait, the current model's utility can be rewritten as gamma + (alpha + beta)*split_self - 3*alpha*token_self. This shows that split_self's coefficient is (alpha + beta), and token_self's is -3*alpha. If we let theta = alpha + beta and phi = alpha, then the model becomes gamma + theta*split_self - 3*phi*token_self. But this still has three parameters. Maybe not helpful.
+
+Alternatively, if we set gamma to zero, the model would have two parameters. But would that hurt accuracy? The previous model's gamma might not be contributing much if its recovery is low. Testing a model without gamma could be a direction.
+
+Another angle: the term (split_self - 3*token_self) might not be the best way to represent fairness. Maybe participants compare their split to the opponent's split. For example, split_self vs split_opp. Or the ratio of splits. But split_opp is part of the data. Alternatively, using the difference between split_self and split_opp. But in the responder role, the opponent's split is split_opp, which is the amount the opponent takes. So maybe the participant cares about how much the opponent is getting compared to themselves. That could be another term, like split_self - split_opp, but that's similar to split_self + split_opp = combined_earning, so it's related.
+
+Alternatively, using the percentage split (splitperc_self) compared to a fair percentage. For example, if the fair percentage is (token_self / (token_self + token_opp)) * 100, then the difference between splitperc_self and that fair percentage could be a term. This might better capture proportional fairness.
+
+Another thought: the model could include an interaction term between split_self and token_self. For example, split_self * token_self. But that might complicate things.
+
+Wait, the previous model's alpha term is (split_self - 3*token_self). Since 3*token_self is the fair share based on contribution, maybe participants have different fairness references. For example, some might use equal split (combined_earning/2) instead. Including both terms with a parameter to weight them could help, but that adds another parameter. However, given the previous model's BIC, maybe a more complex model isn't warranted. But if it improves fit and recovery, it could be worth testing.
+
+Alternatively, the model could use a nonlinear function, like a sigmoid around the fairness term, to capture threshold effects. But that complicates the model and might not be necessary.
+
+The instructions need to guide the model towards better performance. Since gamma had poor recovery, suggesting to remove it or find a way to make it more identifiable. Also, considering alternative fairness calculations. Encouraging the model to explore different fairness norms (contribution-based vs equal split) and possibly combining them with a single parameter. Or using a ratio instead of a difference.
+
+Another idea: instead of linear terms, use a piecewise function where the utility changes differently when the offer is above or below the fair share. For example, a term that's only active when split_self < fair_share, indicating aversion to unfairness. But this adds complexity.
+
+The key is to balance model simplicity with psychological plausibility. The previous model did well but has room for improvement. The new instructions should encourage exploring different fairness mechanisms, possibly reducing parameters, and improving identifiability.
+
+So, the new instructions might suggest:
+
+- Consider alternative fairness computations (e.g., proportional to contribution, equal split, or hybrid).
+- Explore models with fewer parameters to reduce covariance (e.g., removing gamma if baseline isn't necessary).
+- Use interaction terms or nonlinearities if they can capture behavior without overcomplicating.
+- Ensure parameters are orthogonal by design (e.g., using terms that are less correlated).
+- Test whether baseline terms (gamma) are necessary or if they can be integrated into other parameters.
+
+Encouraging out-of-the-box thinking, like combining fairness and self-interest into a single parameter or using a different mathematical form (e.g., multiplicative instead of additive terms).
+</think>
+
+Focus on developing models that explicitly orthogonalize parameters through mathematical construction. Consider these strategies:
+
+1. **Nonlinear Interactions**: Explore sigmoidal transformations of fairness terms to capture threshold effects in unfairness perception (e.g., tanh(α*(fairness_deviation)) to bound sensitivity)
+
+2. **Parameter Reduction**: Test whether baseline terms (gamma) can be absorbed through constraint equations (e.g., force gamma = f(alpha,beta) when offers meet fairness criteria)
+
+3. **Alternative Fairness Formulations**:
+   - Compare offers to equal split (combined_earning/2) rather than contribution-based fairness
+   - Use relative ratios: (split_self - token_self*3)/(token_self*3) for proportional fairness
+
+4. **Dynamic Weighting**: Create single parameters that balance multiple considerations through multiplicative terms (e.g., β*(split_self) * (1 - α*(fairness_deviation)))
+
+5. **Categorical Modulation**: Use trial_type (1=equal, 2=opponent more, 3=self more) to gate different fairness calculations
+
+Prioritize models with ≤2 learnable parameters. For any new parameters, ensure their effects are geometrically orthogonal in the feature space through:
+- Explicit interaction terms between orthogonal predictors
+- Polynomial terms only when supported by behavioral theory
+- Ratio metrics that create naturally uncorrelated predictors
+
+Include at least one fundamentally different mathematical approach from the previous model (e.g., multiplicative utility, conditional branching, or normalized fairness metrics).

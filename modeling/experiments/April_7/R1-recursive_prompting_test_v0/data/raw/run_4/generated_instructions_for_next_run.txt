@@ -1,0 +1,83 @@
+<think>
+
+Okay, let's look at the previous run's results. The BIC was 39.31, which is higher than previous models, indicating worse fit. However, accuracy improved slightly to 0.801. The parameter recovery for alpha was really low (r=0.25), beta was good (0.925), and gamma was moderate (0.705). The main issue here is alpha's poor recovery and the higher BIC.
+
+The previous model used a linear combination of equity and equality norms with parameters alpha, beta, gamma. The problem might be that alpha isn't identifiable when the equity and equality references are correlated or when the model doesn't sufficiently differentiate their contributions. 
+
+To improve alpha's recovery, the model needs to create situations where alpha's effect is more distinct. Maybe introducing nonlinear interactions between alpha and the fairness components. For example, if alpha modulates not just the weight but also the scaling of each component. Alternatively, using a sigmoid function to bound alpha's effect dynamically based on other variables.
+
+Another angle: The model could incorporate an asymmetry in how equity and equality deviations are treated. For instance, participants might be more sensitive to under-equity offers but not over-equity, or vice versa. This could be modeled with separate parameters for positive and negative deviations, but we need to stay within three parameters. Maybe use a single parameter that controls the asymmetry for both equity and equality.
+
+Wait, the previous model had three parameters. Let's think of a way to reparameterize to capture asymmetry without adding more parameters. For example, instead of a single beta for the deviation, have beta_equity and beta_equality, but that would require two parameters plus gamma, making four. Not allowed.
+
+Alternative idea: Use a nonlinear transformation of the deviation that depends on alpha. For example, U = beta * (split_self - [alpha * equity + (1-alpha) * equality])^3 + gamma. The cubic term would create an S-shaped curve, allowing beta to capture different sensitivities based on the direction and magnitude of the deviation. This might help in disentangling alpha and beta effects, as the cubic term amplifies larger deviations.
+
+Alternatively, use an absolute value function with a sign modulated by alpha: U = beta * |split_self - [alpha * equity + (1-alpha) * equality]| * sign(deviation) + gamma. This separates the magnitude and direction, which could help beta capture sensitivity more clearly.
+
+Another approach: Introduce a dynamic alpha that depends on the trial's characteristics. For example, alpha could be influenced by the ratio of token_self to token_opp, but without adding a new parameter. Maybe alpha_effective = alpha * (token_self / (token_self + token_opp)). This way, alpha's weight is adjusted based on the participant's contribution proportion, making it more context-dependent and possibly improving identifiability.
+
+Wait, but this would still use the same alpha parameter, just scaled by data. It might not add a new parameter but could make alpha's effect more variable across trials, aiding recovery.
+
+Alternatively, model the utility as a combination of equity and equality deviations with separate nonlinearities. For example, U = beta_equity * tanh(equity_deviation) + beta_equality * tanh(equality_deviation) + gamma. But this requires two betas, which with alpha would be four parameters. Not feasible.
+
+Hmm. Another idea: Use a single parameter to control the curvature of the utility function. For example, U = beta * (split_self - [alpha * equity + (1-alpha) * equality]) + gamma * (split_self - [alpha * equity + (1-alpha) * equality])^2. This introduces a quadratic term scaled by gamma, but gamma is already a baseline. This might cause multicollinearity between beta and gamma.
+
+Alternatively, apply a nonlinear scaling to the deviation term that's controlled by alpha. For example, U = beta * (split_self - [alpha * equity + (1-alpha) * equality]) / (1 + alpha * |split_self - equity| + (1-alpha) * |split_self - equality|). This makes the utility depend on the relative deviation from both norms, but it's complex and might not help.
+
+Wait, perhaps the key is to make the alpha parameter influence the sensitivity (beta) differently for equity and equality. For example, U = (beta * alpha) * (split_self - equity) + (beta * (1 - alpha)) * (split_self - equality) + gamma. This reparameterizes the model so that beta is scaled by alpha for equity and by (1-alpha) for equality. This ties beta and alpha together, which might improve identifiability since alpha now directly scales the beta for each component.
+
+But in this case, the model becomes U = beta * [alpha*(split_self - equity) + (1-alpha)*(split_self - equality)] + gamma, which simplifies to the original model. So no change.
+
+Another angle: Introduce a non-linear interaction between alpha and the combined_earning. For example, U = beta * (split_self - [alpha * 3 * token_self + (1 - alpha) * 0.5 * combined_earning]) + gamma * alpha * combined_earning. This allows gamma to vary with alpha and the total pot, but adds a term that might help in differentiating parameters.
+
+However, this introduces an interaction term that could complicate the model. It might not be necessary.
+
+Alternatively, use trial_type as a moderator. For example, in trial_type 3 (participant contributed more), alpha could be forced to 1, but that's too restrictive. Instead, allow alpha to be multiplied by a factor based on trial_type. For example, alpha_effective = alpha * (1 + trial_type == 3). But trial_type isn't a learnable parameter, so this would use the data to modulate alpha without adding parameters. This could help alpha's recovery by making it more context-dependent.
+
+But how to implement this without adding parameters? Maybe:
+
+U = beta * (split_self - [alpha * (1 + delta * (trial_type == 3)) * 3 * token_self + (1 - alpha * (1 + delta * (trial_type == 3))) * 0.5 * combined_earning]) + gamma
+
+But delta would be a new parameter. Exceeds three parameters.
+
+Alternatively, drop gamma and use trial_type to influence alpha. For example, alpha = alpha_base + alpha_mod * (trial_type == 3). But again, adds a parameter.
+
+Given the constraints, perhaps the best approach is to introduce a nonlinear transformation of the deviation term that allows beta and gamma to have more distinct roles. For example, using a rectified linear unit (ReLU) for positive or negative deviations:
+
+U = beta * max(deviation, 0) + gamma * min(deviation, 0) + delta
+
+But this introduces delta as a new parameter. Alternatively, set delta to zero and have:
+
+U = beta * max(deviation, 0) + gamma * min(deviation, 0)
+
+This uses two parameters (beta, gamma) for sensitivity to over and under offers, plus alpha. But that's three parameters (alpha, beta, gamma). This could help in differentiating beta and gamma's effects, improving their recovery. Alpha still controls the fairness reference.
+
+So the model becomes:
+
+U = beta * max(split_self - fair_ref, 0) + gamma * min(split_self - fair_ref, 0)
+
+Where fair_ref = alpha * 3 * token_self + (1 - alpha) * 0.5 * combined_earning.
+
+This separates the sensitivity to offers above and below the fairness reference, with beta capturing the sensitivity to generous offers and gamma to stingy ones. Alpha still determines the reference point. This could improve parameter recovery as beta and gamma now have distinct roles, and alpha's effect is isolated to the reference.
+
+This model uses three parameters (alpha, beta, gamma) but decouples their effects. Beta and gamma now handle different aspects of the deviation, which might reduce their correlation and improve recovery. Additionally, the separation might better capture real behavior where people react differently to being over vs. under offered.
+
+Testing this model could lead to better parameter recovery for alpha, as the reference point's effect is more pronounced when deviations are split into positive and negative. Beta and gamma's recovery might also improve as they're no longer entangled in a single linear term.
+</think>
+
+**Revised Instructions for Run 5:**
+
+Design a model that **explicitly differentiates sensitivity to offers above vs. below the fairness reference** to disentangle parameter effects. Consider these directions:
+
+1. **Asymmetric Utility:** Split the fairness deviation into positive (generous) and negative (stingy) components, each scaled by separate parameters (e.g., *β* for over-offers, *γ* for under-offers). This forces distinct roles for parameters governing sensitivity.  
+   Example:  
+   `U = β*max(deviation,0) + γ*min(deviation,0)`  
+   where `deviation = split_self − [α*(equity) + (1−α)*(equality)]`.
+
+2. **Dynamic Reference Weighting:** Allow the equity-equality weighting (α) to interact nonlinearly with trial features (e.g., modulate α by the relative contribution ratio `token_self/(token_self+token_opp)`), creating context-dependent fairness norms without adding parameters.
+
+3. **Nonlinear Scaling:** Apply sigmoid or hyperbolic tangent transformations to the deviation term to capture diminishing sensitivity to extreme offers, decoupling scaling (β) from baseline bias (γ).
+
+**Constraints:**  
+- Retain ≤3 learnable parameters.  
+- Use only

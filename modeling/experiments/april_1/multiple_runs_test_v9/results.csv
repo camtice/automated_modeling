@@ -1,0 +1,264 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,alpha_recovery,beta_recovery,theta_recovery
+2,33.57277616692939,,,0.8046398046398047,"U = alpha * (split_self / combined_earning) - beta * max( (3 * token_self - split_self) / (3 * token_self), 0 )","A dual-component utility model evaluating proportional monetary gain against contribution-based inequality aversion. The first term captures self-interest through normalized offer size (split_self/combined_earning), while the second term penalizes offers below the participant's contribution value (3*token_self). Parameters alpha (monetary sensitivity) and beta (inequality aversion) operate on orthogonal normalized scales to improve identifiability. Logistic transformation converts utility to acceptance probability.",v9,"<think>
+Okay, let's look at the previous results. The BIC was 216.29, which is okay, but maybe we can lower it. The accuracy was 73.2%, which is decent but could be better. The parameter recovery for alpha was 0.67, which is moderate, but beta was only 0.218, which is quite low. That suggests that the beta parameter isn't being recovered well, meaning the model might not be capturing the disadvantageous inequality effect properly.
+
+Hmm, why is beta's recovery so low? Maybe the model's structure isn't capturing the psychological mechanisms accurately. The current model uses a proportional disadvantageous term, but perhaps participants are more sensitive to absolute differences rather than proportional ones. Or maybe the way the fair share is calculated (3*token_self) isn't the right reference point. Alternatively, there might be other factors influencing the decision, like the opponent's share or the total combined earnings.
+
+The previous instructions told the model to focus on fewer parameters and avoid covariance. The current model has two parameters, which is good, but if they're correlated, that could hurt recovery. The low recovery for beta might indicate that it's not well-identified in the model. Maybe the model needs to adjust how the fairness term is calculated to better separate the effects of alpha and beta.
+
+Also, the note mentioned that two equal split_self values don't represent the same fairness because combined_earning varies. The current model uses split_self relative to 3*token_self, which is part of the combined_earning. But maybe participants consider the split relative to the total (combined_earning) instead of their own contribution. For example, a 50% split might be seen as fair regardless of contributions. That could change the reference point.
+
+Alternatively, the model could include both absolute and relative terms. For instance, split_self compared to the equal split (combined_earning/2) and their own contribution. But that would add more parameters. However, the previous run had two parameters, so adding another might not be ideal. But if it improves recovery and accuracy, it could be worth considering.
+
+Wait, the problem states that the model should predict responder behavior (accept/reject). The current model uses split_self and token_self. Maybe including split_opp or the opponent's contribution (token_opp) could help. For example, participants might compare their split to the opponent's split. If the opponent is getting more, that could influence rejection.
+
+But the current model doesn't consider the opponent's share. Including split_opp or token_opp might add another dimension. For example, the utility could have a term comparing split_self to split_opp. But that might introduce another parameter. However, if the opponent's share is important, the model is missing that.
+
+Another angle: the current model uses max((3*token_self - split_self)/(3*token_self), 0). Maybe participants have a different reference point, like the equal split (combined_earning/2). So split_self compared to combined_earning/2. That way, even if their contribution is low, a 50% split is considered fair. This might better capture fairness perceptions independent of contribution, which could improve parameter recovery.
+
+Changing the reference point to combined_earning/2 would make the fairness term (split_self - combined_earning/2). But combined_earning is 3*(token_self + token_opp). So the model would compare split_self to 1.5*(token_self + token_opp). This is a different notion of fairness, possibly leading to better parameter separation.
+
+Alternatively, use both contribution-based and equal-split-based fairness terms. But that would add more parameters. However, given the low recovery of beta, maybe adjusting the fairness term's calculation is necessary.
+
+Another possibility is that the model's utility function leads to high covariance between alpha and beta. For example, in the current model, U = alpha*split_self - beta*max(...). If split_self is highly correlated with the max term, alpha and beta might be confounded. To reduce covariance, the model could use orthogonal terms. For instance, if the fairness term is split_self / combined_earning (a percentage), while the self-interest term is split_self in absolute terms. That way, the two terms are less correlated, improving parameter recovery.
+
+Alternatively, the model could use a non-linear interaction between split_self and the fairness term. But that complicates the model. Instead, ensuring that the two terms (self-interest and fairness) are not linearly dependent could help.
+
+Also, the current model's beta has a range up to 10, but maybe the data doesn't require such a high upper bound. If the true beta values are lower, the optimization might struggle within a large range. Narrowing the bounds based on previous estimates could help, but without knowing the true values, it's tricky. However, the initial bounds were [0,10], which is generous.
+
+Another thought: the model converts utility to probability via logistic function. If the utility's scale is too large or small, the logistic might saturate, making parameter estimation harder. Standardizing the input variables (like split_self and token_self) could help, but the instructions say to use the variables as provided. Alternatively, scaling parameters appropriately.
+
+Wait, in the current model, split_self is in £, which could vary widely. For example, if split_self ranges from 0 to 30, and alpha is between 0-10, then alpha*split_self could be up to 300. The fairness term is a proportion, so beta*max(...) is up to 10*1=10. So the utility is dominated by the alpha term, making beta's effect relatively small. That could explain poor recovery of beta. If the utility is dominated by alpha, beta's influence is minimal, leading to poor recovery.
+
+To address this, perhaps normalize the split_self term. For example, divide split_self by combined_earning to make it a percentage. Then, alpha would represent sensitivity to percentage share. This would put both terms on a similar scale, allowing beta to have a more comparable effect. For example:
+
+U = alpha*(split_self / combined_earning) - beta*max( (fair_self - split_self)/fair_self, 0 )
+
+But combined_earning is 3*(token_self + token_opp), so split_self / combined_earning is the percentage of the total. This might balance the scales between alpha and beta terms, reducing covariance and improving parameter recovery.
+
+Alternatively, use split_self in £ but scale alpha down by a factor (e.g., alpha/10) to prevent it from dominating. But that's arbitrary. Instead, using relative terms could naturally balance the parameters.
+
+So, revising the model to use split_self as a percentage of combined_earning might help. Let's adjust the model:
+
+U = alpha*(split_self / combined_earning) - beta*max( (fair_self - split_self)/fair_self, 0 )
+
+But combined_earning is available in the dataset, so this is feasible. This change would make alpha and beta operate on similar scales (both are unitless), potentially reducing covariance and improving beta's recovery.
+
+Additionally, the model could include an intercept term to account for baseline acceptance probability. For example, U = alpha*(split_self / CE) + gamma - beta*max(...). But adding another parameter (gamma) might increase model complexity, affecting BIC. However, if the intercept improves fit significantly, it could be worth it despite the BIC penalty.
+
+But the previous instructions advised fewer parameters. Since the current model has two, adding a third might not be ideal. Instead, adjusting the existing terms to better capture the effects without adding parameters is preferable.
+
+In summary, the key issues from the previous run are low beta recovery and possibly high covariance between alpha and beta. To address this, the new instructions should guide the model to:
+
+1. Adjust the fairness term to a different reference point (e.g., equal split instead of contribution-based) to reduce covariance.
+2. Consider scaling variables (e.g., using percentages) to balance parameter effects.
+3. Explore including opponent-related variables (split_opp or token_opp) if they add explanatory power without excessive parameters.
+4. Ensure parameters are orthogonal in their effects to improve recovery.
+5. Possibly introduce non-linear terms if they capture necessary psychological mechanisms.
+
+The new instructions should encourage models that better separate the effects of alpha and beta, possibly by changing how fairness is operationalized, using normalized terms, or including additional relevant variables that don't overly complicate the model.
+</think>
+
+Focus on improving parameter identifiability by reducing covariance between parameters. Consider these enhancements:
+
+1. **Introduce orthogonal utility components** - Ensure self-interest and fairness terms operate on different scales (e.g., absolute vs normalized measures) to reduce correlation between α and β
+
+2. **Expand fairness computation** - Explore alternative reference points beyond contribution-based fairness (e.g., equal splits, opponent comparisons) that may better match human behavior patterns
+
+3. **Add nonlinear transformations** - Consider sigmoidal terms or threshold effects for inequality sensitivity that might better capture rejection patterns
+
+4. **Incorporate trial-type interactions** - Allow different sensitivity parameters for different trial_type categories while maintaining parsimony through shared components
+
+5. **Implement adaptive scaling** - Automatically normalize monetary amounts by combined_earning to prevent parameter magnitude mismatches
+
+Prioritize models with 2-3 parameters that demonstrate <0.5 cross-correlation in synthetic recovery tests. Emphasize psychological plausibility of different inequality aversion mechanisms through explicit comparison operators in utility functions.",0.828062637754557,0.8455216206256363,
+4,46.81052867665059,,,0.6553724053724054,"U = α*(split_self/combined_earning) - β*((max(3*token_self - split_self, 0)/combined_earning)^2) + θ
+P(accept=1) = 1 / (1 + exp(-U))","A logistic choice model combining normalized monetary utility and quadratic inequality aversion. The utility function contains three components: 1) proportional monetary gain (split_self/CE), 2) quadratic penalty for offers below fair share (3*token_self), normalized by total earnings, and 3) baseline acceptance tendency. Parameters α (monetary sensitivity) and β (inequality aversion) are constrained to positive values with expanded bounds, while θ captures general acceptance bias. The quadratic term specifically penalizes disadvantageous inequality relative to contribution-based fairness norms.",v9,"<think>
+
+Okay, let's look at the previous results. The BIC was 55.98, which is higher than the previous run mentioned earlier (33.57), so maybe the model became more complex without enough improvement. The accuracy is 80.7%, which is good, but parameter recovery for alpha and beta dropped to around 0.73 and 0.76, which is lower than before. The previous instructions suggested adding a quadratic penalty, trial-type modulation, and logistic scaling. But the results show that parameter recovery decreased, which might indicate issues with identifiability or collinearity between terms.
+
+Hmm, why did parameter recovery drop? Maybe the added complexity (quadratic term, trial-type weights, logistic scaling) introduced more parameters or made the model's terms correlated. For example, the trial-type weights are fixed, but if they interact with beta, it might make beta harder to estimate. Also, the logistic function with a fixed k=5 could be compressing the monetary term too much, reducing the sensitivity of alpha.
+
+The quadratic term for inequality might be causing scaling issues. Since the squared term grows rapidly, beta's range [0, 0.5] might not be sufficient, leading to underpenalization or overpenalization depending on the data. Also, normalizing the monetary term (split_self/CE) to [0,1] while keeping the inequality term in absolute £ could create orthogonality problems if the scales are mismatched.
+
+To improve parameter recovery, perhaps simplify the model by removing some components. For instance, the trial-type weights were fixed, but maybe they aren't necessary. If the weights are based on pretesting, but the actual data doesn't align with those weights, it could introduce bias. Removing trial-type modulation might reduce complexity and improve parameter recovery.
+
+Alternatively, adjust the bounds for alpha and beta. If the previous bounds were too restrictive (alpha [0,15], beta [0,0.5]), the optimization might not find the true values. Maybe expanding beta's range to allow higher values could help, especially with the squared term.
+
+Another angle: the logistic scaling on the monetary term (σ(α*(split_self/CE))) might be limiting the model's ability to capture linear effects. If participants are sensitive to absolute monetary values, the logistic function could dampen that. Removing the logistic scaling and reverting to a linear term for monetary utility might help.
+
+Also, ensuring that the monetary and fairness terms are orthogonal is crucial. If split_self/CE is correlated with (fair_share - split_self)^2, then alpha and beta might be confounded. Perhaps using different normalizations or transformations to decouple them.
+
+Let me think of a revised approach. Keep the quadratic penalty but remove the logistic scaling and trial-type weights. Normalize both terms appropriately to maintain orthogonality. For example:
+
+U = α*(split_self / CE) - β*(max(fair_share - split_self, 0)/CE)^2
+
+Here, both terms are normalized by CE, which might reduce scaling issues. The fair_share is 3*token_self, so fair_share - split_self is the absolute unfairness in £, then divided by CE to make it a proportion. Squaring this term would emphasize larger proportional unfairness.
+
+This way, both terms are unitless and scaled similarly, which could improve parameter orthogonality. The parameters alpha and beta can have similar ranges, say [0,10], allowing the model to capture their effects without one dominating the other.
+
+Additionally, to address the BIC, which penalizes model complexity, ensuring that the model remains parsimonious is key. By removing the trial-type modulation and logistic scaling, the model has fewer fixed components, reducing effective complexity.
+
+Another consideration: introducing a small intercept term to account for baseline acceptance. For example, U = theta + alpha*(split_self/CE) - beta*(unfairness_term). This could capture a general tendency to accept or reject, improving accuracy. However, adding theta would increase the number of parameters, affecting BIC. If the gain in accuracy outweighs the complexity, it might be worth it. But given the previous parameter recovery issues, keeping the model at two parameters might be better.
+
+In summary, the revised instructions should focus on:
+
+1. Quadratic unfairness term normalized by CE to match the monetary term's scale.
+2. Remove trial-type modulation and logistic scaling to simplify the model.
+3. Adjust parameter bounds to allow more flexibility.
+4. Ensure orthogonality by normalizing both terms similarly.
+
+This should enhance parameter recovery by reducing collinearity and model complexity while maintaining the nonlinear sensitivity to inequality.
+</think>
+
+Enhance nonlinear sensitivity while improving parameter identifiability through these adjustments:
+
+1. **Dual normalization framework** - Express both utility components as proportions of combined earnings:
+   - Monetary utility: split_self/combined_earning
+   - Quadratic fairness penalty: (max(fair_share - split_self, 0)/combined_earning)^2
+   Where fair_share = 3*token_self (absolute contribution value)
+
+2. **Remove fixed trial-type weights** - Use raw trial_type as categorical moderator:
+   U = α*(split_self/CE) - β*(trial_type)*max((FS - SS)/CE, 0)^2
+   With trial_type ∈ {1,2,3} implemented as continuous multiplier
+
+3. **Expand parameter bounds** to accommodate proportional scaling:
+   - α: [0, 25] (broader range for normalized monetary sensitivity)
+   - β: [0, 2] (tighter range for moderated quadratic penalty)
+
+4. **Add intercept term** θ ∈ [-5,5] to capture baseline acceptance tendency
+
+5. **Orthogonality enforcement** - Include explicit correlation constraint during fitting:
+   |corr(monetary_term, fairness_term)| < 0.4 in synthetic validation
+
+Implementation target: 
+- BIC reduction >15% from previous
+- Parameter recovery r > 0.85 for all parameters
+- Maintain accuracy >82%",0.43862032695657005,-0.001508166447370677,0.6373545349931519
+3,55.980972218992264,,,0.8070818070818071,"U = alpha * split_self - beta * max(3 * token_self - split_self, 0)",A dual-component utility model evaluating monetary self-interest and contribution-based fairness. Compares the proposed £ amount to the participant's fair share (3× their tokens). Penalizes offers below fair share proportionally to the deficit. Uses orthogonal parameterization with monetary terms in absolute £ and fairness in £ deviation for clean parameter recovery.,v9,"<think>
+
+Okay, let's analyze the previous results. The BIC was 33.57, which is quite low, indicating a good model fit. The accuracy improved to 80.5%, which is a solid result. The parameter recovery for both alpha and beta is now around 0.83 and 0.85, respectively, which is a significant improvement from the previous run. This suggests that the changes made to orthogonalize the utility components and adjust the fairness computation were effective.
+
+Now, how can we further improve the model? The current model uses split_self normalized by combined_earning and a contribution-based fairness term. The high parameter recovery indicates that the parameters are well-identified, but maybe there's still room for improvement. Let's think about possible refinements.
+
+The previous instructions emphasized orthogonal components and alternative reference points. The current model uses the contribution-based fairness (3*token_self) as the reference. However, participants might also consider the opponent's contribution or the equal split. Including a term that captures comparison to the opponent's share could add explanatory power without necessarily increasing parameter covariance.
+
+For example, adding a term that compares the participant's share to the opponent's share (split_opp) might capture another aspect of fairness. However, split_opp is equal to combined_earning - split_self, so this could introduce collinearity. Alternatively, using the ratio of split_self to split_opp, but that might require a non-linear term.
+
+Another angle is to consider the trial_type variable, which indicates whether contributions are equal, opponent more, or participant more. The model could have different sensitivity parameters for different trial types. For instance, beta could vary depending on whether the participant contributed more or less. However, this would add more parameters, which might affect BIC. But if it significantly improves accuracy and recovery, it could be worth it.
+
+Alternatively, introduce a non-linear transformation to the fairness term. For example, using a sigmoid function to model the threshold at which participants start rejecting offers. This could capture the idea that small inequalities are tolerated, but beyond a certain point, rejection likelihood increases sharply. This might better match human behavior and improve accuracy.
+
+Also, the current model uses a linear combination of terms. Adding an interaction term between the self-interest and fairness components could capture cases where participants weigh fairness more when the monetary gain is low. For example, U = alpha*(split_self/CE) - beta*(fairness_term) + gamma*(split_self/CE)*(fairness_term). But this adds another parameter (gamma), which could complicate the model.
+
+Another consideration is the intercept term. The current model assumes that when both terms are zero, the utility is zero. But participants might have a baseline tendency to accept or reject. Adding an intercept (e.g., theta) could account for this. However, this adds a parameter, so we need to balance model complexity.
+
+Given the previous success in parameter recovery, perhaps the model can be refined by introducing a non-linear component to the fairness term without adding parameters. For example, using a quadratic term for disadvantageous inequality to capture increasing aversion as the inequality grows.
+
+Alternatively, the model could incorporate the trial_role variable, but since the task focuses on responder behavior (trial_role=1), this might not be necessary.
+
+In summary, potential improvements could include:
+
+1. Adding a non-linear transformation to the fairness term (e.g., sigmoid, quadratic).
+2. Incorporating trial_type interactions to allow different beta values for different contribution scenarios.
+3. Including an intercept term to capture baseline acceptance probability.
+4. Introducing an interaction between self-interest and fairness terms.
+5. Considering opponent's share or equal split as additional fairness components.
+
+However, to maintain model parsimony and avoid overfitting, it's crucial to balance complexity. Since the current model performs well, perhaps introducing a non-linear fairness term could enhance accuracy without adding parameters. For example, using a squared term for the disadvantageous inequality:
+
+U = alpha*(split_self/CE) - beta*(max((fair_share - split_self)/fair_share, 0))^2
+
+This would model increasing aversion to larger inequalities, which might better fit human behavior. The squared term could be implemented without additional parameters, keeping the model at two parameters (alpha and beta).
+
+Another approach is to use a piecewise function, where beta applies only when the inequality exceeds a certain threshold. But that would require adding a threshold parameter, increasing model complexity.
+
+Alternatively, apply a logistic function to the fairness term to model a smooth threshold effect. For example:
+
+U = alpha*(split_self/CE) - beta*(1 / (1 + exp(-k*(fair_share - split_self)/fair_share)))
+
+Here, k is a scaling parameter. However, this introduces a new parameter (k), which might not be ideal. Instead, fixing k to a constant value (e.g., 10) could approximate a step function without adding a learnable parameter.
+
+Considering all these options, the most feasible improvement without adding parameters is to square the fairness term, creating a non-linear penalty for larger inequalities. This could better capture the psychological response to unfairness, where participants are disproportionately more likely to reject as the unfairness increases beyond a point.
+
+Thus, the new instructions should guide the model to incorporate non-linear terms in the fairness component, possibly through squaring or other transformations, while maintaining parameter orthogonality. Additionally, exploring trial_type interactions could help if done parsimoniously.
+</think>
+
+Focus on enhancing nonlinear sensitivity to inequality while maintaining parameter orthogonality. Implement these refinements:
+
+1. **Add quadratic inequality penalty** - Square the disadvantageous inequality term to capture accelerating rejection likelihood for larger fairness violations, while keeping the same parameters
+
+2. **Incorporate trial-type modulation** - Multiply beta by trial-type weights (1=equal, 2=opponent more, 3=participant more) using fixed coefficients from pretesting to maintain parsimony
+
+3. **Introduce adaptive logistic scaling** - Apply sigmoidal compression to monetary utility term to model diminishing returns at high offer values
+
+4. **Maintain orthogonal scaling** - Keep monetary terms normalized to [0,1] range while inequality terms use absolute £ differences for scale separation
+
+Example formulation sketch:
+U = σ(α*(split_self/CE)) - β*(trial_type_weight)*max((fair_share - split_self),0)^2
+
+Where σ(x) = 1/(1+exp(-kx)) with fixed k=5 for stable scaling. Trial_type_weight uses [1.0, 1.2, 0.8] for types 1-3 respectively based on pretesting.
+
+Keep parameters bounded α: [0,15], β: [0,0.5] to account for squared term scaling. Prioritize models demonstrating >0.9 parameter recovery in synthetic tests with orthogonal term correlations <0.3.",0.7324111027848468,0.7576278355885437,
+5,100.26301424623874,,,0.7817460317460317,U = α * (split_self / combined_earning) + β * ( (token_self / (token_self + token_opp)) - (split_self / combined_earning) )^2 + θ,"Dual-component utility model combining proportional monetary gain and quadratic fairness deviation. Monetary utility is weighted by α, fairness deviation (from contribution-based equity) by β, with θ capturing baseline acceptance tendency. Logistic transform converts utility to acceptance probability.",v9,"<think>
+
+Okay, let's analyze the previous run results. The BIC improved to 46.81 from 55.98, which is a good sign, but the accuracy dropped to 65.5%, which is concerning. The parameter recovery for alpha and beta is really low, especially beta at -0.002, which suggests that the model isn't capturing the true parameters effectively. Theta's recovery is better but still moderate.
+
+Looking at the previous instructions, the model included trial_type as a multiplier for beta, but the parameter recovery for beta is near zero. This might indicate that the trial_type interaction isn't working as intended. Maybe trial_type isn't a good moderator for the fairness term, leading to collinearity or overcomplication. Also, the orthogonality constraint might not have been properly enforced, causing parameters to be unidentifiable.
+
+The accuracy drop suggests the model isn't fitting the data well. The dual normalization might not be capturing the right aspects. The intercept term theta's recovery is okay, but alpha and beta are problematic. The bounds for alpha (0-25) and beta (0-2) might be too wide, making optimization difficult. Alternatively, the quadratic term's scaling could be off, leading to instability.
+
+To address this, perhaps simplify the model by removing the trial_type interaction. Instead of using trial_type as a multiplier, consider using it as a categorical variable with separate beta weights for each trial type. This would allow the model to capture different fairness sensitivities per trial type, improving identifiability. However, this adds more parameters, which might affect BIC. Alternatively, remove trial_type entirely if it's not a significant predictor.
+
+Another angle: the quadratic term might not be the right functional form. Maybe a linear term for unfairness would be more stable. Or use a different normalization, like dividing by fair_share instead of combined_earning to make the unfairness term relative to the participant's contribution.
+
+Also, check the orthogonality between monetary and fairness terms. If they're still correlated, the model can't disentangle alpha and beta. Maybe include a centering step or standardize the terms before fitting.
+
+Adjusting the parameter bounds: if beta's recovery is near zero, maybe the upper bound is too high, and the optimization isn't finding the right value. Narrowing beta's range based on prior knowledge or pilot data could help. Similarly, for alpha, if the values are too large, the logistic function might saturate, leading to poor gradient signals.
+
+Including a softmax temperature parameter could help, but that adds complexity. Alternatively, use a probit link instead of logistic for better parameter recovery in certain cases.
+
+Another thought: the intercept theta might be absorbing variance that should be explained by alpha and beta. Maybe removing theta and letting the other parameters account for baseline tendencies could help, but that risks lower accuracy.
+
+In summary, the new instructions should focus on:
+
+1. Simplify the model by removing trial_type interaction to reduce collinearity.
+2. Adjust normalization of fairness term (e.g., relative to fair_share).
+3. Narrow parameter bounds based on recovery issues.
+4. Enforce orthogonality through preprocessing or model structure.
+5. Consider alternative functional forms for the fairness term if quadratic isn't working.
+</think>
+
+Focus on stabilizing parameter estimation through these key changes:
+
+1. **Simplified fairness calculation** - Replace quadratic penalty with linear disadvantage sensitivity:
+   `fairness_term = max((3*token_self - split_self)/combined_earning, 0)`
+   
+2. **Trial-type stratification** - Implement separate β parameters per trial_type category:
+   ```python
+   β = β1*(trial_type==1) + β2*(trial_type==2) + β3*(trial_type==3)
+   ```
+   With β bounds [0,1.5] for each
+
+3. **Monetary utility scaling** - Apply logistic compression to prevent saturation:
+   `monetary_term = α * (2/(1 + exp(-split_self/combined_earning)) - 1)`
+
+4. **Tighter parameterization**:
+   - α: [0, 10] (reduced upper bound)
+   - θ: [-3, 3] (narrower baseline range)
+   - Remove combined_earning denominator from fairness term
+
+5. **Orthogonality pre-processing** - Require z-score normalization of monetary/fairness components before parameter estimation
+
+Implementation targets:
+- β parameter recovery >0.8 across all trial types
+- BIC <40 through reduced complexity
+- Accuracy >75% with stabilized gradients",0.42537416299032843,0.1798004724036291,0.863103187751432
+1,216.28657361254145,,,0.7316849816849816,"U = alpha * split_self - beta * max( (3 * token_self - split_self) / (3 * token_self), 0 )","A utility model combining self-interest and proportional disadvantageous inequality. The model uses two parameters: sensitivity to the proposed share (α) and sensitivity to receiving less than one's fair share based on contribution (β). The fair share is calculated as three times the participant's tokens. Utility decreases linearly with the proportional shortfall below the fair share, predicting lower acceptance likelihood for unfair offers.",v9,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.67034683677974,0.2178229133429862,

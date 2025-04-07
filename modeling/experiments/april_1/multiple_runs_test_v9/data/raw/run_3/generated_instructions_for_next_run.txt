@@ -1,0 +1,62 @@
+<think>
+
+Okay, let's look at the previous results. The BIC was 55.98, which is higher than the previous run mentioned earlier (33.57), so maybe the model became more complex without enough improvement. The accuracy is 80.7%, which is good, but parameter recovery for alpha and beta dropped to around 0.73 and 0.76, which is lower than before. The previous instructions suggested adding a quadratic penalty, trial-type modulation, and logistic scaling. But the results show that parameter recovery decreased, which might indicate issues with identifiability or collinearity between terms.
+
+Hmm, why did parameter recovery drop? Maybe the added complexity (quadratic term, trial-type weights, logistic scaling) introduced more parameters or made the model's terms correlated. For example, the trial-type weights are fixed, but if they interact with beta, it might make beta harder to estimate. Also, the logistic function with a fixed k=5 could be compressing the monetary term too much, reducing the sensitivity of alpha.
+
+The quadratic term for inequality might be causing scaling issues. Since the squared term grows rapidly, beta's range [0, 0.5] might not be sufficient, leading to underpenalization or overpenalization depending on the data. Also, normalizing the monetary term (split_self/CE) to [0,1] while keeping the inequality term in absolute £ could create orthogonality problems if the scales are mismatched.
+
+To improve parameter recovery, perhaps simplify the model by removing some components. For instance, the trial-type weights were fixed, but maybe they aren't necessary. If the weights are based on pretesting, but the actual data doesn't align with those weights, it could introduce bias. Removing trial-type modulation might reduce complexity and improve parameter recovery.
+
+Alternatively, adjust the bounds for alpha and beta. If the previous bounds were too restrictive (alpha [0,15], beta [0,0.5]), the optimization might not find the true values. Maybe expanding beta's range to allow higher values could help, especially with the squared term.
+
+Another angle: the logistic scaling on the monetary term (σ(α*(split_self/CE))) might be limiting the model's ability to capture linear effects. If participants are sensitive to absolute monetary values, the logistic function could dampen that. Removing the logistic scaling and reverting to a linear term for monetary utility might help.
+
+Also, ensuring that the monetary and fairness terms are orthogonal is crucial. If split_self/CE is correlated with (fair_share - split_self)^2, then alpha and beta might be confounded. Perhaps using different normalizations or transformations to decouple them.
+
+Let me think of a revised approach. Keep the quadratic penalty but remove the logistic scaling and trial-type weights. Normalize both terms appropriately to maintain orthogonality. For example:
+
+U = α*(split_self / CE) - β*(max(fair_share - split_self, 0)/CE)^2
+
+Here, both terms are normalized by CE, which might reduce scaling issues. The fair_share is 3*token_self, so fair_share - split_self is the absolute unfairness in £, then divided by CE to make it a proportion. Squaring this term would emphasize larger proportional unfairness.
+
+This way, both terms are unitless and scaled similarly, which could improve parameter orthogonality. The parameters alpha and beta can have similar ranges, say [0,10], allowing the model to capture their effects without one dominating the other.
+
+Additionally, to address the BIC, which penalizes model complexity, ensuring that the model remains parsimonious is key. By removing the trial-type modulation and logistic scaling, the model has fewer fixed components, reducing effective complexity.
+
+Another consideration: introducing a small intercept term to account for baseline acceptance. For example, U = theta + alpha*(split_self/CE) - beta*(unfairness_term). This could capture a general tendency to accept or reject, improving accuracy. However, adding theta would increase the number of parameters, affecting BIC. If the gain in accuracy outweighs the complexity, it might be worth it. But given the previous parameter recovery issues, keeping the model at two parameters might be better.
+
+In summary, the revised instructions should focus on:
+
+1. Quadratic unfairness term normalized by CE to match the monetary term's scale.
+2. Remove trial-type modulation and logistic scaling to simplify the model.
+3. Adjust parameter bounds to allow more flexibility.
+4. Ensure orthogonality by normalizing both terms similarly.
+
+This should enhance parameter recovery by reducing collinearity and model complexity while maintaining the nonlinear sensitivity to inequality.
+</think>
+
+Enhance nonlinear sensitivity while improving parameter identifiability through these adjustments:
+
+1. **Dual normalization framework** - Express both utility components as proportions of combined earnings:
+   - Monetary utility: split_self/combined_earning
+   - Quadratic fairness penalty: (max(fair_share - split_self, 0)/combined_earning)^2
+   Where fair_share = 3*token_self (absolute contribution value)
+
+2. **Remove fixed trial-type weights** - Use raw trial_type as categorical moderator:
+   U = α*(split_self/CE) - β*(trial_type)*max((FS - SS)/CE, 0)^2
+   With trial_type ∈ {1,2,3} implemented as continuous multiplier
+
+3. **Expand parameter bounds** to accommodate proportional scaling:
+   - α: [0, 25] (broader range for normalized monetary sensitivity)
+   - β: [0, 2] (tighter range for moderated quadratic penalty)
+
+4. **Add intercept term** θ ∈ [-5,5] to capture baseline acceptance tendency
+
+5. **Orthogonality enforcement** - Include explicit correlation constraint during fitting:
+   |corr(monetary_term, fairness_term)| < 0.4 in synthetic validation
+
+Implementation target: 
+- BIC reduction >15% from previous
+- Parameter recovery r > 0.85 for all parameters
+- Maintain accuracy >82%

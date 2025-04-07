@@ -1,0 +1,65 @@
+<think>
+
+Okay, let's analyze the previous results. The BIC was 33.57, which is quite low, indicating a good model fit. The accuracy improved to 80.5%, which is a solid result. The parameter recovery for both alpha and beta is now around 0.83 and 0.85, respectively, which is a significant improvement from the previous run. This suggests that the changes made to orthogonalize the utility components and adjust the fairness computation were effective.
+
+Now, how can we further improve the model? The current model uses split_self normalized by combined_earning and a contribution-based fairness term. The high parameter recovery indicates that the parameters are well-identified, but maybe there's still room for improvement. Let's think about possible refinements.
+
+The previous instructions emphasized orthogonal components and alternative reference points. The current model uses the contribution-based fairness (3*token_self) as the reference. However, participants might also consider the opponent's contribution or the equal split. Including a term that captures comparison to the opponent's share could add explanatory power without necessarily increasing parameter covariance.
+
+For example, adding a term that compares the participant's share to the opponent's share (split_opp) might capture another aspect of fairness. However, split_opp is equal to combined_earning - split_self, so this could introduce collinearity. Alternatively, using the ratio of split_self to split_opp, but that might require a non-linear term.
+
+Another angle is to consider the trial_type variable, which indicates whether contributions are equal, opponent more, or participant more. The model could have different sensitivity parameters for different trial types. For instance, beta could vary depending on whether the participant contributed more or less. However, this would add more parameters, which might affect BIC. But if it significantly improves accuracy and recovery, it could be worth it.
+
+Alternatively, introduce a non-linear transformation to the fairness term. For example, using a sigmoid function to model the threshold at which participants start rejecting offers. This could capture the idea that small inequalities are tolerated, but beyond a certain point, rejection likelihood increases sharply. This might better match human behavior and improve accuracy.
+
+Also, the current model uses a linear combination of terms. Adding an interaction term between the self-interest and fairness components could capture cases where participants weigh fairness more when the monetary gain is low. For example, U = alpha*(split_self/CE) - beta*(fairness_term) + gamma*(split_self/CE)*(fairness_term). But this adds another parameter (gamma), which could complicate the model.
+
+Another consideration is the intercept term. The current model assumes that when both terms are zero, the utility is zero. But participants might have a baseline tendency to accept or reject. Adding an intercept (e.g., theta) could account for this. However, this adds a parameter, so we need to balance model complexity.
+
+Given the previous success in parameter recovery, perhaps the model can be refined by introducing a non-linear component to the fairness term without adding parameters. For example, using a quadratic term for disadvantageous inequality to capture increasing aversion as the inequality grows.
+
+Alternatively, the model could incorporate the trial_role variable, but since the task focuses on responder behavior (trial_role=1), this might not be necessary.
+
+In summary, potential improvements could include:
+
+1. Adding a non-linear transformation to the fairness term (e.g., sigmoid, quadratic).
+2. Incorporating trial_type interactions to allow different beta values for different contribution scenarios.
+3. Including an intercept term to capture baseline acceptance probability.
+4. Introducing an interaction between self-interest and fairness terms.
+5. Considering opponent's share or equal split as additional fairness components.
+
+However, to maintain model parsimony and avoid overfitting, it's crucial to balance complexity. Since the current model performs well, perhaps introducing a non-linear fairness term could enhance accuracy without adding parameters. For example, using a squared term for the disadvantageous inequality:
+
+U = alpha*(split_self/CE) - beta*(max((fair_share - split_self)/fair_share, 0))^2
+
+This would model increasing aversion to larger inequalities, which might better fit human behavior. The squared term could be implemented without additional parameters, keeping the model at two parameters (alpha and beta).
+
+Another approach is to use a piecewise function, where beta applies only when the inequality exceeds a certain threshold. But that would require adding a threshold parameter, increasing model complexity.
+
+Alternatively, apply a logistic function to the fairness term to model a smooth threshold effect. For example:
+
+U = alpha*(split_self/CE) - beta*(1 / (1 + exp(-k*(fair_share - split_self)/fair_share)))
+
+Here, k is a scaling parameter. However, this introduces a new parameter (k), which might not be ideal. Instead, fixing k to a constant value (e.g., 10) could approximate a step function without adding a learnable parameter.
+
+Considering all these options, the most feasible improvement without adding parameters is to square the fairness term, creating a non-linear penalty for larger inequalities. This could better capture the psychological response to unfairness, where participants are disproportionately more likely to reject as the unfairness increases beyond a point.
+
+Thus, the new instructions should guide the model to incorporate non-linear terms in the fairness component, possibly through squaring or other transformations, while maintaining parameter orthogonality. Additionally, exploring trial_type interactions could help if done parsimoniously.
+</think>
+
+Focus on enhancing nonlinear sensitivity to inequality while maintaining parameter orthogonality. Implement these refinements:
+
+1. **Add quadratic inequality penalty** - Square the disadvantageous inequality term to capture accelerating rejection likelihood for larger fairness violations, while keeping the same parameters
+
+2. **Incorporate trial-type modulation** - Multiply beta by trial-type weights (1=equal, 2=opponent more, 3=participant more) using fixed coefficients from pretesting to maintain parsimony
+
+3. **Introduce adaptive logistic scaling** - Apply sigmoidal compression to monetary utility term to model diminishing returns at high offer values
+
+4. **Maintain orthogonal scaling** - Keep monetary terms normalized to [0,1] range while inequality terms use absolute £ differences for scale separation
+
+Example formulation sketch:
+U = σ(α*(split_self/CE)) - β*(trial_type_weight)*max((fair_share - split_self),0)^2
+
+Where σ(x) = 1/(1+exp(-kx)) with fixed k=5 for stable scaling. Trial_type_weight uses [1.0, 1.2, 0.8] for types 1-3 respectively based on pretesting.
+
+Keep parameters bounded α: [0,15], β: [0,0.5] to account for squared term scaling. Prioritize models demonstrating >0.9 parameter recovery in synthetic tests with orthogonal term correlations <0.3.

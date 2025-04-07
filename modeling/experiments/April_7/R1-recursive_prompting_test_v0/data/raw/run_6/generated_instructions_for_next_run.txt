@@ -1,0 +1,61 @@
+<think>
+Okay, let's look at the previous run results. The average BIC was 33.60, which is okay but could be lower. The accuracy was around 0.795, which is decent but there's room for improvement. The parameter recovery for alpha was really good (r=0.904), but beta was low (0.388) and gamma was moderate (0.681). So the main issues are beta's recovery and possibly the model's complexity affecting BIC.
+
+The previous instructions suggested decoupling magnitude and direction sensitivity, using dynamic fairness weighting, and diminishing sensitivity. The model likely had parameters alpha, beta, theta. But beta's recovery was poor. Maybe the model structure is causing beta and theta to be confounded. For example, if beta is scaling the magnitude and theta is a penalty for negative deviations, there might be collinearity if the data doesn't have enough variation in positive vs negative deviations.
+
+To improve beta's recovery, perhaps make the model's components more orthogonal. For instance, use separate parameters for positive and negative deviations. But with three parameters, maybe split beta into beta_plus and beta_minus, and drop theta. However, that would require a fourth parameter. Alternatively, use a single beta for magnitude and theta as a directional multiplier, not just a penalty. For example, U = beta * |deviation| + theta * deviation. This way, theta scales linearly with the deviation's sign, allowing for asymmetric sensitivity. This might help in distinguishing beta and theta's effects.
+
+Another angle: The dynamic weighting of alpha using token_self/(token_self + token_opp) might not be the best approach. Maybe instead, use a sigmoid function to make alpha depend on the contribution ratio. For example, alpha_effective = sigmoid(alpha * (token_self - token_opp)). This introduces a nonlinear relationship, which could better capture how participants adjust their fairness expectations based on contribution differences. However, this would still use alpha as a learnable parameter without adding new ones.
+
+Also, the diminishing sensitivity via log(1 + |deviation|) might not be the best transformation. Maybe use a power function with an exponent parameter. But that adds another parameter. Alternatively, use sqrt(|deviation|) which is a common way to model diminishing returns. This could help in better capturing the nonlinear utility perception without extra parameters.
+
+Additionally, the previous model might not account for the total combined earning's effect beyond the 50% split. Perhaps participants have a different equality reference, like a fixed amount instead of a percentage. But integrating that would require more parameters. Alternatively, let the equality term be a parameter, but that's beyond the three-parameter limit.
+
+To address beta's poor recovery, maybe introduce a non-linear interaction between beta and the deviation's direction. For example, U = beta * |deviation| * (1 + theta * (deviation < 0)). Here, theta scales the sensitivity for negative deviations, allowing beta to represent the base sensitivity and theta the multiplicative penalty. This could disentangle their effects.
+
+Another idea: Include an interaction term between alpha and the deviation. For example, U = beta * |deviation| + theta * (deviation < 0) + gamma * alpha * deviation. This introduces a new parameter gamma, but we need to stay within three. So maybe replace theta with a term that combines direction and alpha's effect.
+
+Alternatively, model the utility as a piecewise linear function with different slopes for positive and negative deviations. For example, U = beta_plus * max(deviation, 0) + beta_minus * min(deviation, 0) + gamma. But this requires two beta parameters. To fit within three parameters, replace gamma with beta_minus, making it U = beta_plus * max(deviation, 0) + beta_minus * min(deviation, 0). But then we lose the baseline bias. Hmm.
+
+Wait, the previous model used theta as a penalty for negative deviations. If beta is the magnitude sensitivity and theta is the directional penalty, perhaps the model is U = beta * |deviation| + theta * (deviation < 0). But this might not capture the varying degrees of negative deviations. A continuous interaction might be better, like U = beta * deviation + theta * (deviation < 0) * |deviation|. This way, theta scales the impact of negative deviations proportionally. But this complicates the model.
+
+Alternatively, use a rectified linear model: U = beta * deviation + theta * min(deviation, 0). This allows beta to capture the linear effect of deviation, and theta adds an extra penalty when the deviation is negative. This could help in separating the effects of beta and theta.
+
+In summary, the key adjustments for the next run should focus on:
+
+1. Improving parameter identifiability by restructuring the model to reduce collinearity between beta and theta.
+2. Enhancing the dynamic weighting of alpha using a nonlinear function based on contribution ratios.
+3. Experimenting with different transformations for diminishing sensitivity, such as square root instead of log.
+4. Introducing asymmetric sensitivity to positive and negative deviations in a way that clearly separates the roles of beta and theta.
+
+By implementing these changes, the model should achieve better parameter recovery (especially for beta and theta), lower BIC through improved fit, and higher accuracy by capturing more nuanced decision processes.
+</think>
+
+**Instructions for Run 7:**  
+Design a model that **explicitly models asymmetric sensitivity to over/under-fair offers** while **nonlinearly anchoring fairness expectations to contribution ratios**. Use these strategies:  
+
+1. **Dynamic α Anchoring:**  
+   Replace static α weighting with:  
+   `α_effective = σ(θ * (token_self - token_opp))`  
+   where σ is the logistic function, tying fairness expectations *directly to contribution asymmetry* (θ ∈ [-5,5]).  
+
+2. **Valence-Specific Utility:**  
+   Split utility into two orthogonal components:  
+   ```  
+   U = β_over * max(deviation,0) + β_under * min(deviation,0)  
+   ```  
+   where β_over ∈ [0,10] controls sensitivity to generous offers and β_under ∈ [-10,0] penalizes unfair offers.  
+
+3. **Prospect-Theoretic Transformation:**  
+   Apply concave utility for gains and convex utility for losses:  
+   ```  
+   U = sign(deviation) * (|deviation|^γ)  
+   ```  
+   with γ ∈ [0.3,1] capturing diminishing sensitivity to large deviations.  
+
+**Constraints:**  
+- Use exactly 3 parameters: θ (fairness anchoring), β_over (gain sensitivity), γ (curvature)  
+- No baseline bias terms to force identifiability  
+- Bounds: θ ∈ [-5,5], β_over ∈ [0,10], γ ∈ [0.3,1]  
+
+**Goal:** Achieve β_over/β_under recovery r > 0.85 while keeping BIC < 32. Test if γ < 1 improves fit compared to linear models.

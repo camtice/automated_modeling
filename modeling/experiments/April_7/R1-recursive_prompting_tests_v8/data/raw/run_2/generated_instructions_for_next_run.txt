@@ -1,0 +1,60 @@
+<think>
+
+Okay, let's see. The previous model had a parameter recovery of 0.36 for alpha, which is pretty low. The BIC was around 46.8, and accuracy was about 58.7%. So, the model isn't capturing enough variance, and the parameters aren't being recovered well. The previous instructions suggested adding a second parameter, non-linear transformations, and considering trial context. But maybe the model needs more specific guidance.
+
+First, the low parameter recovery suggests that alpha isn't being estimated well. Maybe the model is too simple, or there's noise in the data that's not accounted for. The previous run tried a linear model with alpha, but perhaps participants have different sensitivities depending on the situation. For example, when they contributed more (trial_type 3), they might be more sensitive to unfair splits. So, adding an interaction term with trial_type could help. Let's think about how to structure that.
+
+Also, the model might benefit from distinguishing between advantageous and disadvantageous inequality. Right now, the utility is linear, but maybe people react more strongly to being below the fair share than above. So, a piecewise function where alpha is different for positive and negative deviations. That would add a second parameter, but if they're orthogonal, recovery might improve.
+
+Another angle: the utility function could include a non-linear component, like a quadratic term for larger deviations, or a sigmoid to cap the utility. But that might complicate things. Alternatively, using a temperature parameter to scale the utility before applying the logistic function. This could help with the probability calibration, making the model more sensitive to changes in utility.
+
+The previous instructions allowed up to two parameters, but maybe the model needs to explicitly suggest using two parameters, like alpha for disadvantageous and beta for advantageous inequality. Or alpha for sensitivity and beta as a baseline acceptance bias. That way, the model can capture more individual differences.
+
+Also, considering the absolute amount offered (split_self) alongside the percentage might help. Some participants might care more about the absolute amount, especially if it's a large sum, even if the percentage is unfair. Adding a term for split_self could improve accuracy.
+
+Trial_type could be used as a weight. For example, in trials where the participant contributed more (trial_type 3), the sensitivity alpha is multiplied by a factor. This factor could be a fixed value based on trial_type or a learnable parameter. For example, U = alpha * (splitperc_self - fair_percent) * (1 + gamma * trial_type), where gamma is a learnable parameter for each trial_type. But that might add too many parameters.
+
+Alternatively, using trial_type to split the data into different models, but that's not feasible here. Instead, interaction terms that modulate alpha based on trial_type. For example, alpha = alpha_base + alpha_delta * (trial_type == 3). But this would require two parameters: alpha_base and alpha_delta.
+
+Another thought: the fair percentage calculation assumes that participants compute it exactly, but maybe some participants have a different perception. Adding a noise term or a parameter that adjusts the fair percentage (like a bias term) could account for this. For example, fair_percent = (token_self / (token_self + token_opp)) * 100 + delta, where delta is a learnable parameter. But this adds another parameter and might complicate recovery.
+
+The temperature parameter idea: right now, the utility is directly passed through a logistic function. If the utility is scaled by a temperature parameter beta, P(accept) = 1 / (1 + exp(-beta * U)). This beta could control the steepness of the logistic curve. A higher beta means more deterministic choices. This could help if participants vary in how deterministically they choose based on utility.
+
+So, the new instructions should encourage models that:
+
+1. Use two parameters: one for disadvantageous inequality and one for advantageous.
+2. Include interaction terms with trial_type to modulate sensitivity.
+3. Add a temperature parameter to scale the utility.
+4. Consider non-linear transformations of the fairness deviation.
+5. Incorporate absolute terms like split_self.
+
+But need to balance complexity. Maybe allow up to two parameters, with clear guidance on how they should capture different effects. Also, suggest testing non-linearities like tanh or piecewise functions.
+</think>
+
+**Revised Instructions for Run 3/5:**  
+
+1. **Asymmetric Inequality Sensitivity**: Design models with *separate parameters* for advantageous (offers above fair share) and disadvantageous inequality (offers below). Example:  
+   `U = α₁ * max(fair_percent − splitperc_self, 0) + α₂ * max(splitperc_self − fair_percent, 0)`  
+   Ensure α₁ and α₂ have distinct bounds (e.g., α₁ ∈ [0, 10] for rejection sensitivity, α₂ ∈ [−5, 5] for guilt effects).  
+
+2. **Trial-Type Modulated Utility**: Use `trial_type` to weight fairness sensitivity. For example:  
+   `U = α * (splitperc_self − fair_percent) * (1 + γ * I_{trial_type=3})`  
+   where `I_{trial_type=3}` is 1 when the participant contributed more, and γ ∈ [−0.5, 0.5] modulates sensitivity in this context.  
+
+3. **Non-Linear Utility Scaling**: Replace linear fairness terms with sigmoidal or hyperbolic tangent transformations to capture diminishing sensitivity:  
+   `U = α * tanh(β * (splitperc_self − fair_percent))`  
+   where β ∈ [0.01, 0.1] controls the steepness of the response curve.  
+
+4. **Hybrid Absolute-Relative Utility**: Combine percentage fairness with absolute monetary gains:  
+   `U = α * (splitperc_self − fair_percent) + θ * split_self`  
+   where θ ∈ [−0.1, 0.1] captures marginal utility of £1 gains.  
+
+5. **Logistic Temperature**: Introduce a temperature parameter (τ) to the logistic mapping:  
+   `P(accept) = 1 / (1 + exp(−τ * U))` with τ ∈ [0.1, 5].  
+
+**Critical Constraints**:  
+- Maximum of **2 learnable parameters** to avoid overfitting.  
+- Parameters must target *distinct cognitive processes* (e.g., one for fairness, one for gain sensitivity).  
+- Use non-overlapping bounds (e.g., α ∈ [0, 5], τ ∈ [0.1, 3]) to improve identifiability.  
+
+**Key Focus**: Prioritize models where parameters have clear psychological interpretations (e.g., "rejection sensitivity" vs. "guilt aversion") and test whether non-linear transformations reduce residuals in high-disparity trials.

@@ -1,0 +1,47 @@
+<think>
+Okay, let's analyze the previous run. The model achieved a BIC of 32.76 and an accuracy of 80.7%, which is pretty good. The parameter recovery for alpha was excellent (0.914), but beta was lower (0.483). The main issue here is improving beta's recovery and possibly further lowering BIC.
+
+The previous model used a loss term with a fixed exponent (1.5) and context-aware normalization for inequity. The high alpha recovery suggests the loss component is well-specified, but beta's lower recovery indicates the inequity term might not be capturing the right dynamics. Maybe the trial_type-dependent normalization isn't effective enough, or the inequity term isn't orthogonal to the loss term.
+
+To improve beta's recovery, perhaps introduce a non-linear transformation for the inequity term. For example, using a sigmoid function to cap extreme values, which could reduce noise in parameter estimation. Alternatively, adjust the normalization method—maybe scaling by the square root of combined_earning instead of the raw value to account for diminishing sensitivity to larger pots.
+
+Another angle: The trial_type modulation in the inequity penalty might not be strong enough. Instead of a binary switch between 3*token_self and combined_earning, maybe use a continuous modulation based on the participant's contribution ratio. For instance, weight the inequity term by (token_self / (token_self + token_opp)) when trial_type is 3, making the penalty proportional to their contribution share.
+
+Also, consider adding an interaction term between the loss and inequity components. For example, participants might be more sensitive to inequity when they're already receiving less than their fair share. This could be modeled by multiplying the inequity term by the loss indicator (1 if loss >0, else 0), enhancing identifiability of beta in loss scenarios.
+
+To further lower BIC, reduce the number of parameters if possible. The current model has alpha, lambda, and beta. If lambda and alpha can be combined or one can be fixed based on literature (e.g., setting the loss exponent to a standard value from prospect theory), that might help without sacrificing much accuracy.
+
+Additionally, explore dynamic bounds for parameters based on trial_type. For example, in trials where the participant contributed more, beta's upper bound could be higher, allowing the model to capture greater sensitivity in those cases.
+
+Finally, test a hybrid approach where the gain term is not linear but has a concave function (like a square root) to align with prospect theory's diminishing sensitivity to gains. This could improve the model's fit and parameter recovery by better capturing human decision-making patterns.
+</think>
+
+**Instructions for Run 32/200:**  
+Design a *neurobehavioral hybrid model* with these innovations:  
+
+1. **Sigmoid-Capped Inequity**  
+   - Transform opponent advantage into bounded utility space:  
+     ```  
+     inequity_penalty = β * tanh( (split_opp - split_self) / (combined_earning**0.75) )  
+     ```  
+     Compress extreme values while preserving sign, using √(C) scaling for magnitude invariance.  
+
+2. **Contribution-Weighted Loss Context**  
+   - Amplify loss sensitivity when participants contributed majority tokens:  
+     ```  
+     loss_term = λ * [max(3*token_self - split_self, 0)]^1.33 * (1 + token_self/(token_self + token_opp))  
+     ```  
+     Convex loss curvature (ρ=1.33) with dynamic weighting by contribution proportion.  
+
+3. **Dynamic Parameter Bounds**  
+   - Confine β ∈ [0,15] when trial_type=3 vs [0,5] otherwise  
+   - Lock λ ∈ [1.5,4] using meta-analytic loss aversion priors  
+
+**Identifiability Boosters:**  
+- Fix gain linearity (α ∈ [0,2]) but enable loss-gain crossover at 85% fair share  
+- Add asymmetric utility floor: U ≥ -10 * log(combined_earning)  
+
+**Success Targets:**  
+- Achieve β recovery r >0.85 via sigmoid compression  
+- Drive BIC <30 through hybrid gain-loss architecture  
+- Target 85%+ accuracy via context-aware nonlinearities

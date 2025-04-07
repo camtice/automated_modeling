@@ -1,0 +1,32 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,fairness_weight_recovery,self_interest_weight_recovery,contribution_weight_recovery
+1,59.229450717046646,,,0.6572039072039072,"utility = fairness_weight * (0.5 - abs(splitperc_self - 0.5)) + self_interest_weight * split_self + contribution_weight * (token_self / (token_self + token_opp))
+
+p_accept = 1 / (1 + exp(-utility))","A weighted utility model predicting responder acceptance in a bargaining game. Utility is a linear combination of fairness (deviation from 50/50 split), self-interest (amount received), and relative contribution, each weighted by a learnable parameter.  A logistic function transforms utility into a probability of acceptance.",v8,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",-0.0684153367463877,0.17714490624921742,0.31547191476497244
+2,84.9125760499937,,,0.5824175824175825,utility = exp(self_interest_weight * split_self) * exp(fairness_weight * (0.5 * (0.5 - abs(splitperc_self - 0.5)) + 0.5 * (abs(split_self - split_opp) / combined_earning))),"A multiplicative utility model combining self-interest and fairness.  Self-interest is represented by the participant's proposed share. Fairness considers both proportional and absolute differences in the proposed shares, weighted equally.  The model uses two learnable parameters, self_interest_weight and fairness_weight, representing the relative importance of each factor. Utility is transformed into a probability of acceptance using a logistic function.",v8,"<think>The previous model had decent accuracy (0.657), but poor parameter recovery, especially for `fairness_weight`.  The negative correlation suggests the model is fitting the data in a way that doesn't reflect the true underlying parameters.  This might be due to high covariance between the parameters or a misspecified model form. Let's try to address this by simplifying the model and focusing on more directly measurable influences, while also explicitly accounting for potential interactions.  We should retain `self_interest_weight` as it shows some recovery, and possibly remove `contribution_weight` due to the high intercorrelation.  We will also add a term to better capture fairness perception.
+</think>
+
+Refined Instructions:
+
+Focus on improving parameter recovery while maintaining reasonable accuracy.  The previous model suffered from high parameter covariance. The new model should address this by:
+
+1. **Simplifying the model structure:** Reduce the number of learnable parameters if possible, prioritizing those with better parameter recovery in the previous run.  Consider removing or combining terms based on the correlation analysis of the previous run.
+
+2. **Explicitly modeling interactions:** Instead of simply weighting terms additively,  consider introducing multiplicative interactions between parameters to explicitly capture the interaction between self-interest and fairness.
+
+3. **Improved fairness metric:** Replace `(0.5 - abs(splitperc_self - 0.5))` with a more nuanced fairness metric that considers not only the percentage difference from an equal split, but also potentially the absolute difference in amounts (`abs(split_self - split_opp)`).  This might be weighted by the relative contribution of tokens.
+
+4. **Regularization:** If needed, introduce regularization terms in your mathematical model to penalize overly complex models and reduce overfitting, thereby improving parameter recovery.
+
+First, reason step by step about:
+* The key psychological mechanisms involved (re-evaluate based on the results of the previous run)
+* How these mechanisms interact (focus on interactions between fairness and self-interest, explicitly modeling them).
+* What mathematical form could capture these interactions (use multiplicative terms or interactions to model the relationships).
+* What parameters would be needed to calibrate the model (prioritize parameters showing better recovery in previous run)
+* How the model variables map to observable behavior (make sure the model is easily interpretable).",0.009132472144773366,0.7443141618698446,

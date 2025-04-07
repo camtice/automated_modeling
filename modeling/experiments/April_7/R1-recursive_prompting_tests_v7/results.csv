@@ -1,0 +1,123 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,theta_plus_recovery,theta_minus_recovery
+1,42.7347333541112,,,0.7948717948717948,"U = split_self + theta_plus * max(split_self - 3 * token_self, 0) + theta_minus * min(split_self - 3 * token_self, 0)","A utility model combining direct monetary gain and asymmetric sensitivity to fairness deviations. The utility incorporates the proposed amount (split_self) and adjusts it by two parameters: theta_plus scales utility when the offer exceeds the participant's fair share (3 * token_self), while theta_minus scales utility when the offer falls short. This captures both self-interest and inequity aversion with separate parameters for advantageous and disadvantageous inequity.",v7,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.8553592504479895,0.928368146389063
+3,104.24567207465613,,,0.5845543345543346,"U = split_self + theta_plus * max(D, 0) + theta_minus * min(D, 0) where D = split_self - 3 * token_self","A dual-parameter inequity aversion model where utility depends on monetary payoff and deviations from contribution-based fairness. Participants evaluate offers relative to their earned entitlement (3×token_self), with separate learnable parameters (theta_plus/theta_minus) scaling reactions to advantageous/disadvantageous inequity. Logistic transformation of utility predicts acceptance probability.",v7,"<think>
+
+Okay, let's analyze the previous run's results. The BIC was 104.72, which is higher than the first model's 42.73, indicating worse fit. The accuracy dropped to ~58.7%, which is quite low. Parameter recovery for theta_plus was almost nonexistent (r=0.008), and theta_minus was moderate (r=0.517). Clearly, the model structure from the second run isn't working well.
+
+The main issue seems to be parameter recovery, especially for theta_plus. The low recovery suggests that the model might have identifiability issues or high covariance between parameters. The previous instructions suggested reparameterization and alternative reference points, but the implemented model didn't perform well. 
+
+Looking at the model specification from the second run: ""U = split_self + theta_plus * max(D, 0) + theta_minus * min(D, 0) where D = split_self - 3*token_self"". Maybe the way D is calculated is problematic. If participants don't perceive fairness based solely on their own contribution, the model's reference point is incorrect. Alternatively, the linear terms might not capture the actual decision-making process, leading to poor parameter estimation.
+
+The previous instructions already suggested exploring non-linear effects and alternative reference points. The new model needs to address these points more effectively. Let's think about possible improvements:
+
+1. **Non-linear transformations**: Instead of linear terms for D, use logarithmic or quadratic terms to capture diminishing or increasing sensitivity. For example, log(1 + D) for advantageous inequity and -log(1 - D) for disadvantageous. This could better model how people perceive large deviations.
+
+2. **Hybrid fairness reference**: Combine contribution-based and equal-split fairness. For example, calculate D as split_self - (alpha * 3*token_self + (1-alpha) * combined_earning/2), where alpha is a learnable parameter. This allows the model to adaptively weight different fairness norms.
+
+3. **Reparameterization**: To reduce covariance between theta_plus and theta_minus, express them in terms of a base sensitivity and asymmetry ratio. For example, theta_plus = base * (1 + asymmetry), theta_minus = base * (1 - asymmetry). This ensures that the parameters are orthogonal, improving recovery.
+
+4. **Intercept term**: Add a baseline utility parameter (beta_0) to account for general acceptance tendency regardless of splits. This could capture any systematic bias towards accepting or rejecting offers.
+
+5. **Trial-type interaction**: Use trial_type (1=equal, 2=opponent more, 3=participant more) to modulate theta_plus and theta_minus. For example, theta_plus could be higher in trials where the participant contributed more, reflecting heightened sensitivity to advantageous inequity in such contexts.
+
+However, adding too many parameters might increase BIC. The challenge is to introduce these elements without exceeding 3 learnable parameters. For example, a hybrid fairness model with alpha (fairness weight) and base sensitivity could be paired with an asymmetry parameter, totaling 3 parameters. Alternatively, a non-linear model with a single curvature parameter for both advantageous and disadvantageous terms.
+
+Another angle: the poor recovery of theta_plus might indicate that advantageous inequity has little effect on decisions. Perhaps theta_plus should be constrained to zero, simplifying the model to only consider disadvantageous inequity. But this might reduce accuracy if advantageous inequity does play a role.
+
+Alternatively, the model could use a single theta parameter that applies to both types of inequity but with different signs. For example, U = split_self + theta * (max(D,0) - gamma * min(D,0)), where gamma is a fixed multiplier (e.g., 2) to account for stronger aversion to disadvantage. This reduces parameters to theta and gamma, but gamma could be fixed based on prior knowledge.
+
+Considering all this, the new instructions should push for innovative model structures that address the identifiability issues, incorporate non-linear or hybrid fairness, and possibly introduce strategic baselines or reparameterization. Emphasize testing these ideas while keeping parameters ≤3 and ensuring they can be reliably recovered.
+</think>
+
+**Final Instructions for Run 3/3:**  
+Radically reconceptualize fairness perception dynamics using these strategies:  
+
+1. **Dynamic Reference Points**  
+   - Model fairness expectations as `α*(3×token_self) + (1-α)*(combined_earning/2)` where α ∈ [0,1] learns contribution-vs-equality weighting  
+   - Add curvature parameter β to control diminishing returns: `sign(D)*ln(1+|D/β|)` for both inequity types  
+
+2. **Contextualized Sensitivity**  
+   - Let trial_type modulate theta weights:  
+     `theta_plus_effective = theta_plus * (1 + γ*I_{trial_type=3})`  
+     `theta_minus_effective = theta_minus * (1 + δ*I_{trial_type=2})`  
+   - Where γ/δ control sensitivity amplification when participant/opponent contributed more  
+
+3. **Neuroeconomic Priors**  
+   - Constrain theta_minus ≤ -0.5|theta_plus| to enforce loss aversion principle  
+   - Initialize beta_0 (intercept) near logit(observed acceptance rate)  
+
+Keep ≤3 learnable parameters through smart coupling (e.g., make γ=δ if needed). Prioritize models where simulation shows all parameters recover with r > 0.92 simultaneously. Include explicit identifiability checks through Hessian analysis in your model justification.",0.762847768593358,0.43761506011662615
+2,104.71914856021714,,,0.5866910866910866,"U = split_self + theta_plus * max(D, 0) + theta_minus * min(D, 0) where D = split_self - 3*token_self","A fairness-adjusted utility model where acceptance decisions depend on monetary gain and asymmetric sensitivity to deviations from contribution-based fairness. Participants derive utility from their proposed share (split_self), modified by parameters capturing different sensitivities to advantageous (theta_plus) and disadvantageous (theta_minus) inequity relative to their token contribution. The model uses two learnable parameters with constrained ranges to ensure identifiability.",v7,"<think>
+
+Okay, let's look at the previous model's results. The BIC was 42.73, which is okay, but there's room for improvement. The accuracy was around 79.5%, which is decent but could be higher. The parameter recovery for theta_plus was 0.855 and theta_minus was 0.928. That's pretty good, especially for theta_minus, but theta_plus has a bit lower recovery.
+
+Hmm, the previous instructions emphasized minimizing the number of parameters and avoiding covariance. The model had two parameters, which seems manageable. But maybe there's a way to improve the model's structure to better capture the underlying psychological mechanisms, leading to better accuracy and lower BIC.
+
+The current model uses split_self and adjusts it based on deviation from the fair share (3*token_self) with separate parameters for advantageous and disadvantageous inequity. But perhaps there are other factors at play. For example, participants might also consider the opponent's split (split_opp) or the relative percentages. However, the problem states that the model should use the provided variables but not necessarily all. Including split_opp might add complexity, but maybe it's worth testing.
+
+Alternatively, the model could incorporate a non-linear transformation of the deviation. The current model is linear in theta_plus and theta_minus. Maybe using a sigmoid or exponential function for the deviation terms could better capture diminishing sensitivity or threshold effects. But that would add more parameters or require different functional forms.
+
+Another angle: the current model assumes that the fair share is exactly 3*token_self. But maybe participants have a different notion of fairness, such as equal split (50%) regardless of contribution. That could be tested by comparing the current model's fairness calculation to an alternative. However, the problem's data includes trial_type, which indicates whether contributions are equal, opponent more, or participant more. Maybe incorporating trial_type as a moderator for theta_plus and theta_minus could improve the model. For example, participants might be more sensitive to disadvantageous inequity when they contributed more (trial_type=3).
+
+But adding interaction terms with trial_type would increase the number of parameters. However, if it significantly improves model fit, it might be worth it. Alternatively, use trial_type to adjust the reference point. For instance, in trials where the participant contributed more, the fair share might be higher than 3*token_self. But that complicates the model.
+
+Wait, the current model's fair share is based purely on the participant's contribution. But in reality, people might consider the opponent's contribution as well. For example, if the opponent contributed more, the participant might feel entitled to a smaller share. But according to the problem's data, the fair share calculation simplifies to 3*token_self, which might not account for the opponent's contribution. However, the combined_earning is (token_self + token_opp)*3, so the fair share based on contribution is (token_self / (token_self + token_opp)) * combined_earning = 3*token_self. So, the opponent's contribution doesn't affect the fair share in this calculation. But maybe participants actually consider the opponent's contribution when evaluating fairness. For example, if the opponent contributed more, the participant might accept a lower split_self. This could be modeled by including token_opp in the fairness calculation.
+
+Wait, but according to the previous model, the fair share is 3*token_self, which doesn't involve token_opp. But maybe the correct fair share should be (token_self / (token_self + token_opp)) * combined_earning, which is 3*token_self. So, the model is correct. However, perhaps participants have a different perception, such as expecting an equal split (50%) regardless of contribution. In that case, the fair share would be combined_earning / 2. So, the deviation D would be split_self - (combined_earning / 2). This is a different fairness measure. Comparing these two fairness measures (contribution-based vs. equal split) could improve the model.
+
+So, the new model could have two fairness terms: one based on contribution and another based on equal split. But that would add more parameters. Alternatively, let the model choose which fairness measure to use by including both and letting the parameters adjust their weights.
+
+Another idea: include an intercept term. The current model doesn't have a baseline utility. Adding a parameter like beta_0 could capture the baseline tendency to accept or reject offers independent of the split. This might improve accuracy.
+
+Also, the current model uses a logistic function with temperature 1. Maybe allowing the temperature parameter (inverse of decision noise) to be learned could help. But that adds another parameter, which might increase BIC. However, if it significantly improves fit, it could be worth it.
+
+Alternatively, consider non-linear interactions between the split_self and the fairness deviation. For example, the utility could be split_self * (1 + theta_plus * D) when D is positive, etc. But this complicates the model.
+
+The previous instructions told the modeler to be considerate of parameter covariance and prefer fewer parameters. The current model has two parameters, which is good. To improve, maybe introduce a non-linear term without adding parameters. For example, use a piecewise linear function with a kink at zero, but that's what's already done.
+
+Wait, the parameter recovery for theta_plus is lower than theta_minus. Maybe theta_plus and theta_minus are correlated, leading to estimation issues. To reduce covariance, perhaps orthogonalize the terms. For example, center the D variable or use orthogonal parameters. Alternatively, reparameterize the model to have one parameter for the overall sensitivity and another for the asymmetry between advantageous and disadvantageous inequity.
+
+For example, let theta = (theta_plus + theta_minus)/2 and delta = (theta_plus - theta_minus)/2. This might reduce covariance between the parameters. But this is a reparameterization and doesn't change the model's predictive power, just the estimation stability.
+
+Alternatively, constrain one of the parameters. For example, set theta_plus to zero if advantageous inequity doesn't affect utility. But the data might show that theta_plus is non-zero.
+
+Another approach: include a non-linear transformation of D, such as squaring it for disadvantageous inequity to capture increasing aversion as the deviation grows. But this would require additional parameters.
+
+Alternatively, model the utility as split_self + theta_plus * sqrt(max(D,0)) + theta_minus * sqrt(-min(D,0)). This assumes diminishing sensitivity to larger deviations. But without adding parameters, this might not be possible.
+
+Wait, the current model is linear in D for both advantageous and disadvantageous cases. If the true relationship is non-linear, the model might miss that. However, adding non-linear terms without additional parameters is tricky. Maybe using an absolute value for D in the disadvantageous case: U = split_self + theta_plus * max(D,0) + theta_minus * abs(min(D,0)). But this is still linear in parameters.
+
+Alternatively, use a sigmoid function to cap the effect of large D, but that would require a parameter for the steepness.
+
+Given the constraints, perhaps the best approach is to keep the model structure but suggest exploring additional psychological mechanisms, such as reference points or non-linear sensitivity, while maintaining a parsimonious parameter count. Also, encourage testing alternative fairness calculations, like equal splits, and including baseline acceptance tendencies.
+
+The new instructions should guide the modeler to consider these possibilities, perhaps by suggesting incorporating alternative fairness reference points, non-linear effects, or intercept terms, while still being mindful of parameter count and covariance. Additionally, emphasize improving parameter recovery for theta_plus by suggesting orthogonalizing parameters or exploring different functional forms that might reduce covariance.
+</think>
+
+**Revised Instructions for Run 2/3:**  
+Focus on improving asymmetric fairness sensitivity modeling while maintaining parameter interpretability. Consider the following directions:  
+
+1. **Non-linear Fairness Effects**  
+   - Explore diminishing/increasing sensitivity to large deviations from fairness (e.g., log-transformed inequity terms or quadratic components)  
+   - Test if disadvantageous inequity requires stronger curvature than advantageous  
+
+2. **Alternative Reference Points**  
+   - Compare contribution-based fairness (current 3×token_self) vs. equal-split fairness (50% of combined_earning)  
+   - Consider hybrid fairness perceptions weighted by trial_type (participant/opponent contribution dominance)  
+
+3. **Strategic Baseline**  
+   - Add intercept parameter to capture baseline acceptance tendency independent of splits  
+   - Implement soft constraints to prevent overlap with existing fairness terms  
+
+4. **Parameter Orthogonalization**  
+   - Reparameterize theta_plus/theta_minus as (mean_sensitivity, asymmetry_ratio) to reduce covariance  
+   - Example: theta_plus = base_sensitivity * (1 + asymmetry), theta_minus = base_sensitivity * (1 - asymmetry)  
+
+Maintain ≤3 learnable parameters. Prioritize models where all recovered parameters achieve r > 0.9 in simulation tests. Explicitly compare BIC improvements from any added complexity against the base model.",0.00763934738687619,0.5168016945749871

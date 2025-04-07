@@ -1,3 +1,6 @@
+# Check the order of previous models to make sure they are by time, and then order and return best
+
+
 from inspect_ai import eval, Task
 from initial_generation import (
     MODEL_OUTPUT_DESCRIPTION,
@@ -278,7 +281,7 @@ def run_multiple_evaluations(config_path: Optional[str] = None):
             "LLM name not found in default_config.yaml under model.name. Cannot update instructions."
         )
     else:
-        update_instructions_enabled = run_config["experiment"][
+        update_instructions_enabled = run_config["prompt_updater"][
             "update_instructions_dynamically"
         ]
         logging.info(f"Instruction updates enabled: {update_instructions_enabled}")
@@ -484,6 +487,9 @@ def run_multiple_evaluations(config_path: Optional[str] = None):
                             run_number=run_number,
                             n_runs=n_runs,
                             previous_runs=previous_models_data,
+                            num_previous_runs_to_include=run_config["prompt_updater"][
+                                "num_previous_runs_to_include"
+                            ],
                         )
                     )
                     with open(

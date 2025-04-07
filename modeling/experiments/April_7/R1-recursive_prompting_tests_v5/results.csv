@@ -1,0 +1,54 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,gamma_recovery,alpha_recovery,beta_recovery
+2,30.75714369830527,,,0.7838827838827839,"U = gamma * split_self - alpha * max(0, 3*token_self - split_self)","A dual-component utility model combining linear monetary gain and disadvantageous inequity aversion. Compares proposed share to contribution-based fair share (3×token_self). Uses two psychologically interpretable parameters: γ captures self-interest strength, α quantifies rejection of offers below contribution value. Logistic choice rule converts utility to acceptance probability.",v5,"<think>
+Okay, let's analyze the previous results to figure out how to improve the instructions. The previous model had a BIC of 35.52, which is pretty low, but there's room for improvement. The accuracy was 81.3%, which is good but could be higher. The parameter recovery for gamma was 0.733, alpha was 0.843, and beta was 0.557. Beta's recovery is lower, suggesting it's harder to estimate, maybe due to covariance with other parameters or being a less influential term.
+
+First, the beta parameter's lower recovery might be because it's a baseline term that's not as strongly tied to the data. Maybe the model could benefit from rethinking the necessity of beta. If beta is causing issues, perhaps removing it or combining it with another term could reduce covariance. Alternatively, adjusting the model to make beta's role more distinct might help.
+
+The alpha parameter had good recovery, indicating the inequity aversion component is well-captured. Gamma's recovery was decent but lower than alpha. This might mean that the self-interest term (gamma) is somewhat correlated with other terms. Maybe introducing a nonlinearity could help disentangle these effects. For example, using a sigmoid or exponential function for gamma or alpha to capture diminishing returns or thresholds.
+
+The current model uses a linear combination of terms. Perhaps introducing interaction terms or nonlinear components could better capture the decision-making process. For instance, the disutility from inequity might only kick in after a certain threshold, which could be modeled with a step function or a quadratic term.
+
+Another angle is considering the opponent's contribution. The previous model didn't use token_opp, but maybe participants also consider how much the opponent contributed relative to themselves. Adding a term that compares token_self to token_opp could provide additional explanatory power. For example, if the opponent contributed more, the participant might be more accepting of a lower split_self.
+
+The problem statement mentioned that two equal split_self values don't represent the same fairness if combined_earning differs. The current model accounts for this via the fair share (3*token_self), but maybe the model should also consider the total amount available. For example, a £3 difference might matter more when the total is small. Including a term that normalizes the inequity by the combined_earning could help.
+
+Additionally, the utility function's linearity might be too simplistic. People might have nonlinear responses to money (diminishing marginal utility) or to inequity. Using a logarithmic or power function for split_self could better represent how participants value different amounts.
+
+The instructions should encourage exploring these possibilities. Specifically, suggest considering nonlinear terms, interaction effects, and alternative fairness calculations. Also, address parameter covariance by possibly reducing the number of parameters or making them orthogonal. For example, if beta is problematic, the model might omit it or tie it to another parameter.
+
+Emphasize testing models that incorporate both advantageous and disadvantageous inequity, even if the previous model only used disadvantageous. Also, suggest models that use percentage splits (splitperc_self) instead of absolute amounts, as percentages might be more intuitive for participants.
+
+Finally, encourage models that include both self-interest and fairness components but in a way that parameters are less correlated. Maybe using a ratio of split_self to fair share instead of a difference, or combining terms in a multiplicative rather than additive way.
+</think>
+
+Focus on these aspects for improved model specification:
+
+1. **Nonlinear Utility Components**  
+   - Explore diminishing sensitivity to monetary amounts (e.g., log(split_self) or sqrt(split_self))  
+   - Consider threshold effects for inequity aversion (e.g., only penalize offers below 80% of fair share)  
+
+2. **Alternative Fairness Representations**  
+   - Compare split_self to opponent's contribution-adjusted fair share (e.g., 3*token_opp)  
+   - Model relative deprivation: (split_self - split_opp)/(split_self + split_opp)  
+
+3. **Parameter Orthogonalization**  
+   - Replace baseline β with task-invariant terms (e.g., trial_number decay) to reduce covariance  
+   - Use ratio parameters instead of additive terms (e.g., γ/α balance between self-interest vs fairness)  
+
+4. **Contextual Sensitivity**  
+   - Scale inequity aversion by total stakes: α * (3*token_self - split_self)/combined_earning  
+   - Include trial_type as modulator of α (e.g., stronger aversion in ""participant more"" trials)  
+
+5. **Psychometric Refinement**  
+   - Use softplus instead of max() for smooth inequity penalty  
+   - Add stochasticity parameter for choice consistency  
+
+Prioritize models with ≤4 parameters. If using baseline terms, anchor them to observable trial features rather than free-floating constants. Test asymmetric responses to over/under-offers.",0.8281642582082507,0.81129872102174,
+1,35.52462459861749,,,0.812881562881563,"U = gamma * split_self - alpha * max(3 * token_self - split_self, 0) + beta","A utility model combining self-interest (proposed amount), disadvantageous inequity aversion (difference between fair share based on own contribution and proposed amount), and a baseline tendency. The fair share is calculated as three times the participant's tokens (token_self). Utility is a linear function of these terms, with learnable parameters for sensitivity to each component.",v5,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.7332493594980585,0.8434133466131007,0.5565975766219595

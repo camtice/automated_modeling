@@ -1,0 +1,31 @@
+Okay, the previous run implemented a standard Fehr-Schmidt model with a temperature parameter (`tau`). While this significantly improved the BIC compared to the very first run, the parameter recovery was extremely poor (correlations near zero). This indicates a critical issue with parameter identifiability – the model structure, despite being theoretically grounded, doesn't allow us to reliably estimate the contribution of each parameter (`alpha`, `beta`, `tau`) from the data.
+
+For the next run, the **primary, overriding goal is to achieve good parameter recovery (aim for r > 0.7 for all parameters)**. Improving BIC and accuracy remains important, but not at the expense of identifiable parameters. We need to fundamentally rethink the model structure to address the likely trade-offs between parameters observed previously.
+
+Here are specific directions and suggestions:
+
+1.  **Challenge the Fehr-Schmidt Functional Form:** The linear penalty (`alpha * difference`, `beta * difference`) combined with `split_self` and `tau` seems problematic for recovery in this context.
+    *   **Consider Relative Inequity:** Instead of penalizing the *absolute* difference from the fair share, consider penalizing the *relative* difference. For example:
+        *   Inequity term = `alpha * max(0, (fair_share_self - split_self) / fair_share_self)` (handle `fair_share_self = 0` cases).
+        *   Or, Inequity term = `alpha * max(0, fair_share_self - split_self) / combined_earning`.
+        *   This makes the inequity sensitivity potentially independent of the overall stakes (`combined_earning`), which might disentangle it from the direct effect of `split_self` and the noise parameter `tau`.
+    *   **Simplify Inequity Aversion:** Is the distinction between `alpha` and `beta` recoverable here? Try a model with a single inequity aversion parameter (`k`) that penalizes *any* deviation (advantageous or disadvantageous) from the fair share.
+        *   Example: `U = split_self - k * abs(split_self - fair_share_self)`
+        *   You could combine this with the relative difference idea: `U = split_self - k * abs(split_self - fair_share_self) / fair_share_self`
+        *   This reduces the number of potentially correlated inequity parameters.
+
+2.  **Re-examine the Reference Point:** While proportional fairness based on tokens is intuitive, perhaps it's not the sole reference.
+    *   **Model Mixed References:** Explicitly model the reference point as a weighted average of proportional fairness and a simple 50/50 split.
+        *   `reference = w * (combined_earning * token_self / (token_self + token_opp)) + (1 - w) * (combined_earning / 2)`
+        *   `U = split_self - ... penalty based on (split_self - reference) ...`
+        *   Here `w` would be a learnable parameter [0, 1]. Be mindful that adding parameters can hurt recovery, so only do this if you have a strong rationale that this mixed reference is key *and* you structure the rest of the model for identifiability (e.g., using a simplified inequity term as above).
+
+3.  **Utility Scaling and Noise:** How does the scale of `U` interact with `tau`? If `U` varies greatly depending on `combined_earning`, the effect of `tau` might become unstable.
+    *   Consider normalizing the utility *before* the logistic function, perhaps by dividing `U` by `combined_earning` or some other scaling factor related to the stakes of the trial.
+    *   Example: `P_accept = 1 / (1 + exp(-(U / combined_earning) / tau))`
+
+4.  **Think Heuristically:** Move away from complex utility calculations. What simpler rule might participants use?
+    *   Could acceptance depend on whether `split_self` exceeds the fair share by a certain threshold? `P_accept = logistic( k * (split_self - fair_share_self) )` ? (This resembles the previous model but collapses inequity).
+    *   Could it be a comparison of percentages? `P_accept = logistic( k * (splitperc_self - (token_self*100 / (token_self + token_opp))) )`?
+
+**Priority:** Focus on structural changes that reduce parameter trade-offs. Simplifying the inequity term (e.g., single parameter `k`) and/or using relative inequity measures seems like a promising avenue to explore first, potentially combined with `tau` for noise. Be bold in departing from the exact Fehr-Schmidt formulation that failed recovery last time. Justify your parameter choices in terms of how they are expected to be identifiable from the behavioral data.

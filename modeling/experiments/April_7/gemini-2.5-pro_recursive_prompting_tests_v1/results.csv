@@ -1,0 +1,145 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,alpha_recovery,beta_recovery,tau_recovery,k_recovery
+3,42.203327692582654,,,0.5995115995115995,"fair_perc = (token_self / (token_self + token_opp)) if (token_self + token_opp) > 0 else 0.5
+split_perc = (split_self / combined_earning) if combined_earning > 0 else 0
+U = split_perc - k * abs(split_perc - fair_perc)","A utility model where acceptance utility is based on the proportion of the total earnings offered (`split_perc`), penalized by the absolute deviation from the contribution-based proportional fair share (`fair_perc`). A single learnable parameter (`k`) controls the weight of this inequity penalty. Utility is calculated as `U = split_perc - k * abs(split_perc - fair_perc)`. The probability of acceptance is derived using a logistic function with temperature 1.",v1,"Okay, the previous run implemented a standard Fehr-Schmidt model with a temperature parameter (`tau`). While this significantly improved the BIC compared to the very first run, the parameter recovery was extremely poor (correlations near zero). This indicates a critical issue with parameter identifiability – the model structure, despite being theoretically grounded, doesn't allow us to reliably estimate the contribution of each parameter (`alpha`, `beta`, `tau`) from the data.
+
+For the next run, the **primary, overriding goal is to achieve good parameter recovery (aim for r > 0.7 for all parameters)**. Improving BIC and accuracy remains important, but not at the expense of identifiable parameters. We need to fundamentally rethink the model structure to address the likely trade-offs between parameters observed previously.
+
+Here are specific directions and suggestions:
+
+1.  **Challenge the Fehr-Schmidt Functional Form:** The linear penalty (`alpha * difference`, `beta * difference`) combined with `split_self` and `tau` seems problematic for recovery in this context.
+    *   **Consider Relative Inequity:** Instead of penalizing the *absolute* difference from the fair share, consider penalizing the *relative* difference. For example:
+        *   Inequity term = `alpha * max(0, (fair_share_self - split_self) / fair_share_self)` (handle `fair_share_self = 0` cases).
+        *   Or, Inequity term = `alpha * max(0, fair_share_self - split_self) / combined_earning`.
+        *   This makes the inequity sensitivity potentially independent of the overall stakes (`combined_earning`), which might disentangle it from the direct effect of `split_self` and the noise parameter `tau`.
+    *   **Simplify Inequity Aversion:** Is the distinction between `alpha` and `beta` recoverable here? Try a model with a single inequity aversion parameter (`k`) that penalizes *any* deviation (advantageous or disadvantageous) from the fair share.
+        *   Example: `U = split_self - k * abs(split_self - fair_share_self)`
+        *   You could combine this with the relative difference idea: `U = split_self - k * abs(split_self - fair_share_self) / fair_share_self`
+        *   This reduces the number of potentially correlated inequity parameters.
+
+2.  **Re-examine the Reference Point:** While proportional fairness based on tokens is intuitive, perhaps it's not the sole reference.
+    *   **Model Mixed References:** Explicitly model the reference point as a weighted average of proportional fairness and a simple 50/50 split.
+        *   `reference = w * (combined_earning * token_self / (token_self + token_opp)) + (1 - w) * (combined_earning / 2)`
+        *   `U = split_self - ... penalty based on (split_self - reference) ...`
+        *   Here `w` would be a learnable parameter [0, 1]. Be mindful that adding parameters can hurt recovery, so only do this if you have a strong rationale that this mixed reference is key *and* you structure the rest of the model for identifiability (e.g., using a simplified inequity term as above).
+
+3.  **Utility Scaling and Noise:** How does the scale of `U` interact with `tau`? If `U` varies greatly depending on `combined_earning`, the effect of `tau` might become unstable.
+    *   Consider normalizing the utility *before* the logistic function, perhaps by dividing `U` by `combined_earning` or some other scaling factor related to the stakes of the trial.
+    *   Example: `P_accept = 1 / (1 + exp(-(U / combined_earning) / tau))`
+
+4.  **Think Heuristically:** Move away from complex utility calculations. What simpler rule might participants use?
+    *   Could acceptance depend on whether `split_self` exceeds the fair share by a certain threshold? `P_accept = logistic( k * (split_self - fair_share_self) )` ? (This resembles the previous model but collapses inequity).
+    *   Could it be a comparison of percentages? `P_accept = logistic( k * (splitperc_self - (token_self*100 / (token_self + token_opp))) )`?
+
+**Priority:** Focus on structural changes that reduce parameter trade-offs. Simplifying the inequity term (e.g., single parameter `k`) and/or using relative inequity measures seems like a promising avenue to explore first, potentially combined with `tau` for noise. Be bold in departing from the exact Fehr-Schmidt formulation that failed recovery last time. Justify your parameter choices in terms of how they are expected to be identifiable from the behavioral data.",,,,0.8545512049014172
+5,45.151753816683296,,,0.6111111111111112,"fair_perc = (token_self / (token_opp + token_self)) if (token_opp + token_self) > 0 else 0.5
+split_perc = split_self / combined_earning if combined_earning > 0 else 0.0
+U = split_perc - alpha * max(0, fair_perc - split_perc) - beta * max(0, split_perc - fair_perc)","An asymmetric proportional inequity aversion model. Utility is calculated as the participant's proposed percentage (`split_perc`) minus penalties for disadvantageous inequity (`alpha * max(0, fair_perc - split_perc)`) and advantageous inequity (`beta * max(0, split_perc - fair_perc)`). The fair percentage (`fair_perc`) is based on relative token contributions. The model uses two learnable parameters (`alpha`, `beta`) capturing sensitivity to the two types of inequity. Acceptance probability is determined via a logistic function with a fixed temperature of 1.",v1,"Okay, let's analyze the results and craft the instructions for the next run.
+
+**Analysis:**
+The previous run (Run 4) attempted to build on the success of Run 3 by adding a learnable temperature parameter (`tau`) to the proportional inequity model (`U = split_perc - k * abs(split_perc - fair_perc)`). The results were disappointing:
+*   BIC increased from 42.20 (Run 3) to 46.32 (Run 4).
+*   Accuracy decreased from 0.600 (Run 3) to 0.582 (Run 4).
+*   Parameter recovery plummeted from excellent (k: r = 0.855) to poor (k: r = 0.421, tau: r = -0.257).
+
+This strongly suggests that adding `tau` introduced identifiability issues, likely because the scaling effect of `k` on the utility difference and the scaling effect of `tau` in the logistic function could not be disentangled (`P = 1 / (1 + exp(-U/tau))`). The successful proportional framework of Run 3 was not sufficient to make `tau` identifiable alongside `k`.
+
+**Goal for Next Run (Run 5):**
+Improve upon the best model so far (Run 3: BIC 42.20, Acc 0.600, k Recovery 0.855). The primary focus is to achieve **lower BIC and higher accuracy** than Run 3, while critically **maintaining excellent parameter recovery (r > 0.7 for *all* learnable parameters)**. Given the failure of adding `tau`, we need to explore other avenues for refinement.
+
+**New Instructions:**
+
+The previous run (Run 4) attempted to improve the best model (Run 3) by introducing a learnable temperature parameter (`tau`). However, this led to worse BIC (46.3 vs 42.2), lower accuracy (0.582 vs 0.600), and critically, very poor parameter recovery (k: r=0.421, tau: r=-0.257), failing our target. This indicates an identifiability problem between `k` and `tau` even within the proportional framework.
+
+For this next run, we will **abandon the learnable `tau` parameter for now** and revert to using a **fixed temperature of 1** in the logistic function (`P_accept = 1 / (1 + exp(-U))`). Our goal remains to improve BIC and accuracy compared to the successful Run 3, while ensuring parameter recovery stays high (r > 0.7 for all parameters).
+
+Let's explore a different refinement based on the successful proportional framework of Run 3 (`fair_perc = ...`, `split_perc = split_self / combined_earning if combined_earning > 0 else 0`):
+
+**Refinement Idea: Asymmetric Proportional Inequity Aversion**
+
+Run 3 used a single parameter `k` to penalize *any* deviation from the fair proportion (`abs(split_perc - fair_perc)`). However, classic models like Fehr-Schmidt posit that people react differently to disadvantageous inequity (getting less than fair share) versus advantageous inequity (getting more). While this asymmetry led to poor recovery when applied to *absolute* monetary values (Runs 1 & 2), it might be identifiable when applied to the more stable *proportional* framework that worked well in Run 3.
+
+*   **Proposed Model:** Implement a Fehr-Schmidt-like utility function using proportions, but without a learnable temperature parameter.
+    *   `fair_perc = (token_self / (token_opp + token_self)) if (token_opp + token_self) > 0 else 0.5`
+    *   `split_perc = split_self / combined_earning if combined_earning > 0 else 0`
+    *   `U = split_perc - alpha * max(0, fair_perc - split_perc) - beta * max(0, split_perc - fair_perc)`
+    *   (Implicitly, `P_accept = 1 / (1 + exp(-U))`, as temperature is fixed at 1)
+*   **Learnable Parameters:**
+    *   `alpha`: Sensitivity to disadvantageous inequity (when `split_perc < fair_perc`). Bounds: [0, 10].
+    *   `beta`: Sensitivity to advantageous inequity (when `split_perc > fair_perc`). Bounds: [0, 10]. (Note: Theoretically, we often expect `alpha >= beta`, but let's keep the bounds symmetric for now to allow flexibility).
+*   **Rationale:** This model directly tests whether asymmetric inequity aversion can be captured reliably within the proportional framework, offering a more nuanced account of fairness preferences than the symmetric `k` model, while avoiding the problematic `tau` parameter. Success requires good recovery for *both* `alpha` and `beta`.
+
+**Alternative (If you foresee issues with the above):**
+
+*   Consider the ""Mixed Fairness Reference"" idea (Model Idea 2 from previous instructions): `effective_fair_perc = w * fair_perc_prop + (1 - w) * 0.5`, `U = split_perc - k * abs(split_perc - effective_fair_perc)`. This introduces a weight `w` [0, 1] instead of `alpha`/`beta`, testing if fairness combines proportional and equality norms. Keep `tau=1`.
+
+**Focus:**
+Please prioritize the **Asymmetric Proportional Inequity Aversion** model described above. Ensure your variable descriptions clearly define `alpha` and `beta`, their bounds, and their role. Remember the target variable is `accept`. Maintain the standard output format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>). Justify why this model builds on previous results and aims to improve performance while maintaining identifiability.",0.842836112290185,0.11142338990428662,,
+4,46.318985347554516,,,0.5824175824175825,"fair_perc = (token_self / (token_opp + token_self)) if (token_opp + token_self > 0) else 0.5
+current_split_perc = splitperc_self / 100
+U = current_split_perc - k * abs(current_split_perc - fair_perc)
+P_accept = 1 / (1 + exp(-U / tau))","This model calculates the utility of accepting an offer based on the offered proportion (`splitperc_self / 100`) compared to a proportionally fair share derived from token contributions (`fair_perc`). Deviations from fairness are penalized by a single inequity aversion parameter (`k`). The resulting utility is transformed into acceptance probability using a logistic function with a learnable temperature parameter (`tau`) to account for choice stochasticity. It has two learnable parameters: `k` [0, 10] and `tau` [0.01, 5].",v1,"Okay, the previous run was highly successful! The model using proportions (`split_perc`, `fair_perc`) and a single inequity aversion parameter (`k`) achieved excellent parameter recovery (k: r = 0.855), surpassing the target, along with the best BIC (42.20) and accuracy (0.600) so far. This confirms that simplifying the inequity structure and using relative measures helped address the identifiability issues seen in earlier models.
+
+For the next run, the goal is to **further improve the model's fit (lower BIC) and predictive accuracy**, while **maintaining the excellent parameter recovery** (ideally r > 0.7 for all parameters) achieved previously. We can now try to carefully reintroduce complexity or mechanisms that might capture more nuances in the decision-making process, building upon the successful proportional framework.
+
+Here are some directions and suggestions:
+
+1.  **Incorporate Choice Stochasticity (Temperature):** The previous successful model used a fixed temperature (tau=1) in the logistic function. A very common way to improve model fit is to allow choice stochasticity to vary between individuals by introducing a learnable temperature parameter (`tau`).
+    *   **Hypothesis:** Now that the utility (`U`) is calculated based on proportions (ranging roughly between -k and 1), its scale might be more consistent across trials compared to models using absolute monetary values. This improved scaling might make `tau` identifiable when paired with the simplified `k`-based inequity term.
+    *   **Model Idea:** Start with the previous best model and add `tau`.
+        *   `fair_perc = (token_self / (token_opp + token_self)) if (token_opp + token_self) > 0 else 0.5`
+        *   `split_perc = split_self / combined_earning if combined_earning > 0 else 0`
+        *   `U = split_perc - k * abs(split_perc - fair_perc)`
+        *   `P_accept = 1 / (1 + exp(-U / tau))`
+    *   **Parameters:** `k` (inequity aversion, e.g., [0, 10]), `tau` (temperature/noise, e.g., [0.01, 5]). Ensure `tau` is strictly positive.
+    *   **Priority:** This is likely the most promising direction for improving fit while potentially maintaining good recovery.
+
+2.  **Explore Mixed Fairness References:** The current model assumes the *only* reference point is the proportional fair share based on tokens. Is it possible participants also consider a simpler 50/50 split heuristic?
+    *   **Model Idea:** Model the effective fair share as a weighted average of the proportional share and an equal split share (0.5).
+        *   `fair_perc_prop = (token_self / (token_opp + token_self)) if (token_opp + token_self) > 0 else 0.5`
+        *   `fair_perc_equal = 0.5`
+        *   `effective_fair_perc = w * fair_perc_prop + (1 - w) * fair_perc_equal`
+        *   `U = split_perc - k * abs(split_perc - effective_fair_perc)`
+        *   (Optionally, add `tau` here too: `P_accept = 1 / (1 + exp(-U / tau))`)
+    *   **Parameters:** `k` (inequity aversion), `w` (weight on proportional fairness, [0, 1]), potentially `tau`.
+    *   **Rationale:** This acknowledges that fairness perception might be multifaceted. Adding `w` increases complexity, so monitor recovery closely. Perhaps test this first *without* `tau` (i.e., tau=1) to isolate the effect of `w`.
+
+3.  **Revisit Asymmetric Inequity Aversion (Use Proportions):** The original Fehr-Schmidt model with separate `alpha` and `beta` had poor recovery. However, that model used *absolute* monetary differences. Could asymmetry be recoverable when applied to *proportions*?
+    *   **Model Idea:** Adapt the Fehr-Schmidt idea to the proportional framework.
+        *   `U = split_perc - alpha * max(0, fair_perc - split_perc) - beta * max(0, split_perc - fair_perc)`
+        *   (Optionally, add `tau`: `P_accept = 1 / (1 + exp(-U / tau))`)
+    *   **Parameters:** `alpha` (disadvantageous inequity aversion, e.g., [0, 10]), `beta` (advantageous inequity aversion, e.g., [0, 1]), potentially `tau`. Note the typical constraint `alpha >= beta >= 0`.
+    *   **Caution:** This brings back two inequity parameters, which previously caused identifiability problems. Approach this cautiously. Test it first *without* `tau` (tau=1). It might only be worth pursuing if the single `k` models (with or without `tau` or `w`) fail to significantly improve fit.
+
+**Focus:**
+Prioritize Model Idea 1 (adding `tau` to the best previous model) as it's a standard refinement. Consider Model Idea 2 (mixed reference point) as an interesting conceptual extension. Be more cautious with Model Idea 3 (asymmetric proportions) due to past recovery issues.
+
+Always justify your chosen model structure and parameters, especially regarding how they build on the previous success and why you expect them to remain identifiable while improving fit/accuracy. Ensure parameter bounds are sensible and finite.",,,-0.25685467034369197,0.4213959875454138
+2,49.949921767382904,,,0.594017094017094,"fair_share_self = combined_earning * (token_self / (token_self + token_opp))
+U = split_self - alpha * max(0, fair_share_self - split_self) - beta * max(0, split_self - fair_share_self)
+P_accept = 1 / (1 + exp(-U / tau))","An inequity aversion model based on Fehr-Schmidt (1999), predicting the utility of accepting a proposal. Utility incorporates the monetary value of the offer (`split_self`) and subtracts penalties for both disadvantageous inequity (weighted by `alpha`) and advantageous inequity (weighted by `beta`), relative to a fair share determined by contribution (`token_self`, `token_opp`, `combined_earning`). The probability of acceptance is calculated using a logistic function with a temperature parameter (`tau`) to model choice stochasticity. Learnable parameters are `alpha`, `beta`, and `tau`.",v1,"Okay, let's refine the modeling approach. The previous model provided a baseline, but we need to significantly improve **parameter recovery** (aiming for correlations well above 0.7) while also seeking better **BIC** and **accuracy**. High covariance between parameters seemed to be an issue.
+
+For this next run:
+
+1.  **Focus on Parameter Identifiability:** Think critically about how the chosen mathematical form impacts the ability to uniquely estimate each learnable parameter. Are there alternative ways to mathematically represent the core psychological concepts (like fairness or inequity aversion) that might lead to less parameter trade-off? For instance, how might the *scale* of the inequity matter relative to the potential reward?
+2.  **Explore Fairness Reference Points:** Don't assume the proportional share based *only* on tokens is the sole driver of fairness judgments. Consider alternative or mixed reference points. Could a simple 50/50 split expectation play a role, perhaps weighted against the contribution-based share? Could the relevant reference point shift based on the `trial_type` or other contextual factors? How might you model a blend of fairness norms?
+3.  **Consider Decision Noise:** Introduce stochasticity into the decision process. A common way is to add a 'temperature' parameter (`tau`) to the logistic function: `P(accept) = 1 / (1 + exp(-U / tau))`. This parameter captures variability/noise in choices not explained by the deterministic utility. Think about appropriate bounds for `tau` (must be positive).
+4.  **Re-evaluate Functional Forms:** Is the standard linear penalty for inequity (`alpha * max(...)`) the best? Explore non-linear forms or ways to scale the inequity penalty (e.g., relative to the total stakes or the fair share itself) that might better capture behavior *and* improve parameter distinction. Could utility depend non-linearly on the offered amount (`split_self`) itself?
+5.  **Parameter Count:** While aiming for parsimony is good, prioritize identifiability. Adding a well-motivated parameter (like decision temperature) is acceptable if it improves recovery and overall model performance. Avoid parameters that might capture very similar variance.
+6.  **Novelty Encouraged:** Move beyond the most standard implementations if you have a psychologically plausible alternative that might better fit the goals. Think about heuristics or simpler comparisons participants might use.
+
+Reason step by step about:
+*   Key psychological mechanisms (revisiting fairness, self-interest, consistency/noise, potential reference point shifts).
+*   How these might interact *differently* than the previous model.
+*   Mathematical forms that capture these interactions *with better parameter identifiability*.
+*   Necessary parameters and their justification (including potential new ones like temperature).
+*   Mapping to observable behavior.",0.20147064442831006,-0.010552215942069466,0.06896885854180178,
+1,104.72196558817816,,,0.5781440781440782,"prop_fair_share_self = combined_earning * token_self / (token_self + token_opp) if (token_self + token_opp) > 0 else 0
+U = split_self - alpha * max(prop_fair_share_self - split_self, 0) - beta * max(split_self - prop_fair_share_self, 0)",The model predicts the utility of accepting a proposal based on the participant's monetary gain (`split_self`) adjusted by their aversion to inequity. Inequity is calculated relative to a proportional fair share derived from participant (`token_self`) and opponent (`token_opp`) contributions. The model uses two learnable parameters: `alpha` for sensitivity to disadvantageous inequity and `beta` for sensitivity to advantageous inequity. Utility is higher for larger offers but penalized if the offer deviates from the contribution-based fair share.,v1,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.5674097879575352,0.5279416297783512,,
