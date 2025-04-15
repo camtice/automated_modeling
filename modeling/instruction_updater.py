@@ -80,7 +80,7 @@ Parameter Recovery Summary:
 
 Generate *only* the text for the new instructions below for run {run_number + 1} of {n_runs}. Do any thinking between <think> and </think> tags. Remember to update the instructions to increase the accuracy, BIC, and paramater recovery. Be as specific or as vague as you would like. The model retrieving results are not able to use the previous interaction, so you should not include any information about the previous interaction in your response. You will also not be able to iterate on this response, so give your best advice each time. You should encourage out of the box thinking, since your counterpart likes to get stuck only with the most obvious models.
 """
-        print(instruction_update_prompt)
+        # print(instruction_update_prompt)
         # Instantiate the LLM
         update_model = get_model(llm_name)
 

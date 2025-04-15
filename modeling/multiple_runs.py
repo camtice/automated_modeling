@@ -1,6 +1,5 @@
 # Check the order of previous models to make sure they are by time, and then order and return best
 
-
 from inspect_ai import eval, Task
 from initial_generation import (
     MODEL_OUTPUT_DESCRIPTION,

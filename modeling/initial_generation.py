@@ -16,7 +16,6 @@ from inspect_ai.scorer import (
     INCORRECT,
 )
 from inspect_ai.solver import Generate, TaskState, solver, generate, system_message
-from inspect_ai.model import ModelOutput
 from inspect_ai.util import ExecResult, sandbox
 import pandas as pd
 from typing import Dict, Any, List
@@ -180,7 +179,6 @@ Please think through this step by step, then provide your model specification an
             }
         )
         state.messages.append(output.message)
-        # Log the complete interaction for debugging
 
         # Extract model
         model_match = re.search(
@@ -617,6 +615,18 @@ def parameter_fitting_solver():
                 participant_data = df[df["ID"] == participant_id]
                 data_dicts = participant_data.to_dict("records")
 
+                # Extract group information using the configured column name directly from CONFIG
+                group = None
+                if (
+                    CONFIG["group_analysis"]["enabled"]
+                    and CONFIG["group_analysis"]["group_column"]
+                    in participant_data.columns
+                    and not participant_data.empty
+                ):
+                    group = participant_data[
+                        CONFIG["group_analysis"]["group_column"]
+                    ].iloc[0]
+
                 fit_results = fit_participant(
                     data_dicts,
                     simulation_code,
@@ -626,7 +636,9 @@ def parameter_fitting_solver():
                 )
 
                 if fit_results is not None:
+                    # Keep participant_id in its original type
                     fit_results["participant_id"] = participant_id
+                    fit_results["group"] = group  # Add the group information
                     fit_results["n_trials"] = len(data_dicts)  # Add number of trials
                     all_results.append(fit_results)
 
@@ -662,19 +674,87 @@ def parameter_fitting_solver():
                 overall_accuracy = sum(accuracy_values) / len(accuracy_values)
                 state.metadata["overall_accuracy"] = overall_accuracy
 
+            # Calculate group-specific accuracy if group analysis is enabled
+            if CONFIG["group_analysis"]["enabled"]:
+                group_accuracies = {}
+                for result in all_results:
+                    # Use the 'group' field directly from the result dictionary
+                    group = result.get("group")
+                    accuracy = result.get("accuracy")
+                    if group is not None and accuracy is not None:
+                        group_accuracies.setdefault(group, []).append(accuracy)
+
+                avg_group_accuracies = {}
+                for group, acc_list in group_accuracies.items():
+                    if acc_list:
+                        avg_group_accuracies[group] = statistics.mean(acc_list)
+
+                if avg_group_accuracies:
+                    state.metadata["group_accuracies"] = avg_group_accuracies
+
+        # --- Start: Calculate Group Parameter Averages ---
+        if CONFIG["group_analysis"]["enabled"] and all_results:
+            learnable_param_names = [
+                name for name, info in var_desc.items() if info.get("learnable", False)
+            ]
+            group_param_values = {}  # Structure: {group: {param: [values]}}
+
+            for result in all_results:
+                group = result.get("group")
+                if group is not None:
+                    group_param_values.setdefault(group, {})
+                    for param_name in learnable_param_names:
+                        value = result.get(param_name)
+                        # Ensure value is a number before adding
+                        if isinstance(value, (int, float)):
+                            # Check for NaN specifically for floats
+                            if isinstance(value, float) and math.isnan(value):
+                                continue  # Skip NaN values
+                            group_param_values[group].setdefault(param_name, []).append(
+                                value
+                            )
+
+            group_param_averages = {}  # Structure: {group: {param: average}}
+            for group, params_dict in group_param_values.items():
+                group_param_averages[group] = {}
+                for param_name, values_list in params_dict.items():
+                    if values_list:  # Check if list is not empty
+                        try:
+                            group_param_averages[group][param_name] = statistics.mean(
+                                values_list
+                            )
+                        except statistics.StatisticsError:
+                            # Handle case where list might be empty after filtering NaNs, though unlikely
+                            group_param_averages[group][param_name] = None
+                    else:
+                        group_param_averages[group][param_name] = (
+                            None  # No valid values found for this group/param
+                        )
+
+            # Store the calculated averages in metadata
+            state.metadata["group_parameter_averages"] = group_param_averages
+        # --- End: Calculate Group Parameter Averages ---
+
         # Store results and return success
         state.metadata["fitting_results"] = all_results
 
         # Include information about skipped participants in the completion message
+        completion_message = ""
         if skipped_participants:
-            state.output.completion = (
+            completion_message = (
                 f"Successfully fit parameters for {len(all_results)} participants. "
                 f"Skipped {len(skipped_participants)} participants due to errors."
             )
         else:
-            state.output.completion = (
+            completion_message = (
                 f"Successfully fit parameters for {len(all_results)} participants."
             )
+
+        # Optionally add confirmation about group averages calculation
+        if "group_parameter_averages" in state.metadata:
+            completion_message += " Group parameter averages calculated."
+
+        state.output.completion = completion_message
 
         return state
 
@@ -998,13 +1078,10 @@ def bic_solver():
             df = pd.read_csv(CONFIG["paths"]["dataset"])
             # Activate group analysis only if the dataset has a "group" column
             # and the config explicitly enables it
-            group_enabled = CONFIG.get("group_analysis", {}).get("enabled", False) and (
-                "group" in df.columns
-            )
 
             # Use helper to compute overall and per-group BIC values
             overall_avg, group_avg, individual_bics, group_bics = get_bic_summary(
-                fitting_results, df, k_params, group_enabled
+                fitting_results, df, k_params, CONFIG["group_analysis"]["enabled"]
             )
 
             if overall_avg is None:
@@ -1021,7 +1098,7 @@ def bic_solver():
                 accuracy_message = f"\nOverall Accuracy: {overall_accuracy:.4f}"
 
             # If group analysis is enabled, save each group's average BIC in the metadata
-            if group_enabled:
+            if CONFIG["group_analysis"]["enabled"]:
                 for group, avg_value in group_avg.items():
                     # For example, if group is "cocaine", the key becomes "bic_cocaine"
                     state.metadata[f"bic_{group}"] = avg_value
@@ -1037,8 +1114,10 @@ def bic_solver():
             state.metadata["bic_results"] = {
                 "average_bic": overall_avg,
                 "individual_bics": individual_bics,
-                "group_enabled": group_enabled,
-                "group_bics": group_bics if group_enabled else None,
+                "group_enabled": CONFIG["group_analysis"]["enabled"],
+                "group_bics": group_bics
+                if CONFIG["group_analysis"]["enabled"]
+                else None,
                 "num_parameters": k_params,
                 "prediction_type": prediction_type,
                 "bic_formula": "BIC = -2 * log_likelihood + k * log(n_trials)"
@@ -1047,7 +1126,7 @@ def bic_solver():
             }
             # Prepare a completion message showing the results
             messages = [f"Average BIC: {overall_avg:.2f}{accuracy_message}"]
-            if group_enabled:
+            if CONFIG["group_analysis"]["enabled"]:
                 for group, avg in group_avg.items():
                     messages.append(f"{group.title()} group BIC: {avg:.2f}")
             state.output.completion = "\n".join(messages)
@@ -1090,6 +1169,14 @@ Prediction Type: {prediction_type}"""
             overall_accuracy = state.metadata.get("overall_accuracy")
             if prediction_type.lower() == "utility" and overall_accuracy is not None:
                 current_model += f"\nOverall Accuracy: {overall_accuracy:.4f}"
+
+            # Get and add group accuracy if available
+            group_accuracies = state.metadata.get("group_accuracies")
+            if group_accuracies:
+                group_acc_str = "\nGroup Accuracies:"
+                for group, acc in group_accuracies.items():
+                    group_acc_str += f"\n- {group}: {acc:.4f}"
+                current_model += group_acc_str
 
             # Get parameter recovery information if available
             param_recovery = state.metadata.get("parameter_recovery", {})
@@ -1141,6 +1228,13 @@ def verify() -> Scorer:
                 explanation += f"Individual BICs: {bic_results['individual_bics']}\n"
         else:
             explanation += "No BIC results found in metadata.\n"
+
+        # Add group accuracy information if available
+        group_accuracies = state.metadata.get("group_accuracies")
+        if group_accuracies:
+            explanation += "\nGroup Accuracies:\n"
+            for group, acc in group_accuracies.items():
+                explanation += f"- {group}: {acc:.4f}\n"
 
         return Score(
             value=CORRECT
