@@ -35,9 +35,8 @@ async def update_instructions(
     else:
         previous_runs = previous_runs[-num_previous_runs_to_include:]
 
-    logging.info(f"Attempting to generate updated instructions using model: {llm_name}")
     try:
-        # Prepare prompt inputs from results, handling potential None values
+        # Prepare prompt inputs from results
         bic_val_str = f"{run_results['bic']:.2f}"
         acc_val_str = f"{run_results['accuracy']:.3f}"
         rec_summary = run_results["recovery_info"]

@@ -357,9 +357,14 @@ def fit_participant(
                 }
             )
 
+        # Log the results before returning
+        print(f"Fit results for participant: {fit_results}") # Added logging
+
         return fit_results
 
     except Exception as e:
+        # Add logging for the exception before raising it
+        print(f"Error during fitting participant data: {str(e)}") # Log the error
         raise ValueError(f"Error in parameter fitting: {str(e)}")
 
 

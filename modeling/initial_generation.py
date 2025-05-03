@@ -640,6 +640,8 @@ def parameter_fitting_solver():
                     fit_results["group"] = group  # Add the group information
                     fit_results["n_trials"] = len(data_dicts)  # Add number of trials
                     all_results.append(fit_results)
+                    # Log successful fit results immediately
+                    print(f"Successfully fit participant {participant_id}. Results: {fit_results}")
 
             except Exception as e:
                 # Instead of just logging the error, add this participant to the skipped list
@@ -654,6 +656,10 @@ def parameter_fitting_solver():
         # Store information about skipped participants
         state.metadata["skipped_participants"] = skipped_participants
         state.metadata["num_skipped_participants"] = len(skipped_participants)
+
+        # Log skipped participants information
+        if skipped_participants:
+            print(f"Skipped {len(skipped_participants)} participants: {skipped_participants}")
 
         # Check if we got any results after trying all participants
         if not all_results:
@@ -798,8 +804,9 @@ def parameter_recovery_solver():
                         decision = random.random() < p_accept
                         trial_copy[target_variable] = 1 if decision else 0
                     else:
-                        # For numerical prediction models, use the prediction directly
-                        trial_copy[target_variable] = model_prediction
+                        # For numerical prediction models, add Gaussian noise
+                        noise_sd = CONFIG["parameter_recovery"].get("noise_sd", 0)
+                        trial_copy[target_variable] = model_prediction + random.gauss(0, noise_sd)
 
                     synthetic_data.append(trial_copy)
 
@@ -965,6 +972,9 @@ def calculate_bic_from_mse(mse: float, n_trials: int, k_params: int) -> float:
     Returns:
         float: BIC value
     """
+    if mse <= 0:
+        # Use a small positive value instead of returning infinity
+        mse = 1e-10  # or some other small value appropriate for your scale
     # Convert MSE to log-likelihood under Gaussian error assumption
     # log(L) = -n/2 * log(2π) - n/2 * log(MSE) - n/2
     log_likelihood = (
@@ -973,6 +983,7 @@ def calculate_bic_from_mse(mse: float, n_trials: int, k_params: int) -> float:
         - n_trials / 2
     )
 
+    
     # Calculate BIC using the standard formula
     return -2 * log_likelihood + k_params * math.log(n_trials)
 
@@ -1023,17 +1034,20 @@ def get_bic_summary(
 
         # Skip if missing required data
         if n_trials is None or participant_id is None:
+            logging.warning(f"Skipping BIC for participant {participant_id}: Missing n_trials or participant_id")
             continue
 
         # Calculate BIC based on prediction type
         if prediction_type.lower() == "utility":
             log_likelihood = result.get("log_likelihood")
             if log_likelihood is None:
+                logging.warning(f"Skipping BIC for participant {participant_id} (utility): Missing log_likelihood")
                 continue
             bic_value = calculate_bic(log_likelihood, n_trials, k_params)
         else:  # numerical prediction
             mse = result.get("mse")
             if mse is None:
+                logging.warning(f"Skipping BIC for participant {participant_id} (numerical): Missing mse")
                 continue
             bic_value = calculate_bic_from_mse(mse, n_trials, k_params)
 
@@ -1057,35 +1071,52 @@ def get_bic_summary(
 @solver
 def bic_solver():
     async def solve(state: TaskState, generate: Generate) -> TaskState:
+        logging.info("Starting BIC calculation...")
         try:
             # Ensure we have fitting results and variable descriptions
             fitting_results = state.metadata.get("fitting_results", [])
             var_desc = state.metadata.get("variable_descriptions", {})
             if not fitting_results:
+                logging.warning("No fitting results found in metadata. Skipping BIC calculation.")
+                state.output.completion = "Skipped BIC calculation: No fitting results."
                 return state
+            logging.info(f"Found {len(fitting_results)} fitting results.")
 
             # Determine the number of learnable parameters
             k_params = len([v for v in var_desc.values() if v.get("learnable", False)])
+            logging.info(f"Number of learnable parameters (k): {k_params}")
             if k_params == 0:
                 # Not much point calculating BIC if no parameters were fit
+                logging.warning("No learnable parameters found. Skipping BIC calculation.")
                 state.output.completion = (
-                    "No learnable parameters found to calculate BIC."
+                    "Skipped BIC calculation: No learnable parameters found."
                 )
                 return state
 
             # Read dataset (only once) to allow group analysis
-            df = pd.read_csv(CONFIG["paths"]["dataset"])
+            logging.debug(f"Reading dataset from {CONFIG['paths']['dataset']} for potential group analysis.")
+            df = pd.read_csv(CONFIG['paths']['dataset'])
             # Activate group analysis only if the dataset has a "group" column
             # and the config explicitly enables it
+            group_analysis_enabled = CONFIG["group_analysis"]["enabled"]
+            group_column = CONFIG["group_analysis"]["group_column"]
+            if group_analysis_enabled and group_column not in df.columns:
+                logging.warning(f"Group analysis enabled in config, but column '{group_column}' not found in dataset. Disabling group BIC analysis.")
+                group_analysis_enabled = False
 
+
+            logging.info(f"Calling get_bic_summary with k={k_params} and group_analysis_enabled={group_analysis_enabled}")
             # Use helper to compute overall and per-group BIC values
             overall_avg, group_avg, individual_bics, group_bics = get_bic_summary(
-                fitting_results, df, k_params, CONFIG["group_analysis"]["enabled"]
+                fitting_results, df, k_params, group_analysis_enabled # Pass modified enabled flag
             )
 
             if overall_avg is None:
+                logging.warning("get_bic_summary returned None for overall_avg. No valid BIC values computed.")
                 state.output.completion = "No valid BIC values computed."
                 return state
+
+            logging.info(f"BIC calculation successful. Average BIC: {overall_avg:.2f}")
 
             # Save the overall average BIC directly into the metadata
             state.metadata["average_bic"] = overall_avg
@@ -1095,9 +1126,12 @@ def bic_solver():
             accuracy_message = ""
             if overall_accuracy is not None:
                 accuracy_message = f"\nOverall Accuracy: {overall_accuracy:.4f}"
+                logging.info(f"Overall accuracy found: {overall_accuracy:.4f}")
+
 
             # If group analysis is enabled, save each group's average BIC in the metadata
-            if CONFIG["group_analysis"]["enabled"]:
+            if group_analysis_enabled:
+                logging.info(f"Group BICs calculated: {group_avg}")
                 for group, avg_value in group_avg.items():
                     # For example, if group is "cocaine", the key becomes "bic_cocaine"
                     state.metadata[f"bic_{group}"] = avg_value
@@ -1110,27 +1144,31 @@ def bic_solver():
             )
 
             # Store full BIC results in metadata for detailed view
-            state.metadata["bic_results"] = {
+            bic_results_dict = {
                 "average_bic": overall_avg,
                 "individual_bics": individual_bics,
-                "group_enabled": CONFIG["group_analysis"]["enabled"],
-                "group_bics": group_bics
-                if CONFIG["group_analysis"]["enabled"]
-                else None,
+                "group_enabled": group_analysis_enabled, # Use the potentially modified flag
+                "group_bics": group_bics if group_analysis_enabled else None,
                 "num_parameters": k_params,
                 "prediction_type": prediction_type,
                 "bic_formula": "BIC = -2 * log_likelihood + k * log(n_trials)"
                 if prediction_type == "utility"
                 else "BIC calculated from MSE using Gaussian error assumption",
             }
+            state.metadata["bic_results"] = bic_results_dict
+            logging.debug(f"Stored bic_results in metadata: {bic_results_dict}")
+
             # Prepare a completion message showing the results
             messages = [f"Average BIC: {overall_avg:.2f}{accuracy_message}"]
-            if CONFIG["group_analysis"]["enabled"]:
+            if group_analysis_enabled:
                 for group, avg in group_avg.items():
                     messages.append(f"{group.title()} group BIC: {avg:.2f}")
             state.output.completion = "\n".join(messages)
+            logging.info(f"BIC solver completion message: {state.output.completion}")
+
 
         except Exception as e:
+            logging.error(f"Error during BIC calculation: {str(e)}", exc_info=True) # Log stack trace
             state.metadata["bic_error"] = str(e)
             state.output.completion = f"Error in BIC calculation: {str(e)}"
         return state

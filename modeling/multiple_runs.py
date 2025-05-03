@@ -486,7 +486,7 @@ def run_multiple_evaluations(config_path: Optional[str] = None):
                     current_run_results = None
 
                 # --- Update Instructions for Next Run ---
-                if update_instructions_enabled and current_run_results and (i < n_runs - 1):
+                if update_instructions_enabled and current_run_results and (0 < i < n_runs - 1):
                     try:
                         instructions_for_next_run = asyncio.run(
                             update_instructions(
