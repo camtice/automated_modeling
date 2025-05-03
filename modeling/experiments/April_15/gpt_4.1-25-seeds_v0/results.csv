@@ -1,0 +1,1558 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,beta_fairness_recovery,gamma_baseline_recovery,beta_self_recovery,beta_unfairness_recovery,beta_advantage_recovery,fairness_threshold_recovery,sensitivity_recovery,accept_bias_recovery,tau_recovery,alpha_recovery,delta_recovery,alpha_unfair_recovery,beta_reward_recovery,tau_threshold_recovery,tau_fairness_recovery,context_weight_recovery,slope_recovery,gamma_context_recovery,threshold_scaling_recovery,penalty_steepness_recovery,generosity_weight_recovery,fairness_threshold_multiplier_recovery,unfairness_penalty_power_recovery,generosity_bonus_steepness_recovery,theta_threshold_recovery,alpha_penalty_recovery,beta_bonus_recovery,fairness_multiplier_recovery,penalty_shape_recovery,context_bonus_steepness_recovery,alpha_thr_recovery,gamma_pen_recovery,delta_bon_recovery,theta_param_recovery,penalty_param_recovery,bonus_param_recovery,thr_amp_recovery,penalty_amp_recovery,bonus_amp_recovery,bonus_shape_recovery,thresh_offset_recovery,thresh_steep_recovery,thr_weight_recovery,threshold_param_recovery,mask_steepness_param_recovery,amplitude_param_recovery,cutpoint_recovery,width_recovery
+2,33.31253703443401,28.289625235093514,37.81222885467653,0.7542735042735043,utility = beta_fairness * (splitperc_self / 100 - token_self / (token_self + token_opp)) + gamma_baseline,"A parsimonious inequity aversion model predicting responder acceptance. The model computes the utility of accepting as a weighted sum of the deviation between the proportion offered to the responder and their contribution-based entitlement, plus a baseline bias. The model contains only two learnable parameters (fairness sensitivity and baseline bias), permitting both interpretable individual differences and robust parameter recovery.",v0,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.4830755488705036,0.9133194934559425,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+16,33.77654649409119,31.14200060822963,36.13666051684217,0.790903540903541,"S = (split_self / combined_earning) - theta_param
+Indicator_P = 1 / (1 + exp(steep_thresh * S))
+Indicator_B = 1 - Indicator_P
+U_p = - penalty_param * (exp(-S * penalty_param) - 1) * (1 + c_p * combined_earning / mean_combined)
+U_b = bonus_param * log(1 + exp(S * bonus_param)) * (combined_earning / mean_combined) ** beta_bonus
+U = U_p * Indicator_P + U_b * Indicator_B","A three-parameter region-exclusive model for responder choice: a threshold parameter (θ) flexibly determines the fairness cutoff, an exponential-context penalty is applied for sub-threshold offers (penalty_param), and context-amplified softplus bonus for generous offers (bonus_param); each parameter is strictly non-redundant, recoverable, and covers distinct trial regimes via a soft region boundary.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 16**
+
+Your task is to create a creative, high-performance computational model to predict responder (accept/reject) decisions in this dataset. Your prime objective is to **maximize parameter recovery** for all three parameters, while maintaining strong accuracy and robust coverage of trial types.
+
+#### **1. Parameter Recovery & Identifiability—CRUCIAL**
+- **Each learnable parameter** must exert a broad, monotonic, and non-redundant effect on the model’s output in *realistic* trial data (not just hypothetical cases):
+    - *Bonus and penalty parameters especially*: No redundancy, flat, or vanishing influence under any plausible trial data configuration.
+- **MANDATORY:** For each learnable parameter, provide a brief but *systematic sweep*—tabulate or describe how output U varies as that parameter moves from min to max, with all other parameters fixed, for at least two realistic trial setups (use high and low combined_earning, token ratios, and split_self).
+- *Explicitly demonstrate* that each parameter is recoverable (e.g., swapping values for bonus/penalty shows predictable, non-overlapping U changes).
+
+#### **2. Three-Parameter, Region-Exclusive Structure**
+- Structure your model into **three regions** (threshold, penalty, bonus), with exactly one learnable parameter acting in each:
+    - **Threshold:** Determines the fairness “cutoff”; can be weighted combination of token ratio, money, or even a soft boundary (encouraged).
+    - **Penalty Region:** Applies to offers below threshold; must be flexible (e.g., exponential-minus-one, power, or sigmoid); prefer forms where a single parameter controls both scale and shape.
+    - **Bonus Region:** Applies to offers above threshold; *strongly prefer functions* where context (combined_earning) is amplified and the parameter affects both curvature and amplitude (e.g., context-weighted softplus or flexible power, NOT just log).
+- **Soft or blurred thresholds highly encouraged:** Consider using continuous boundary, e.g., with a smooth switching function or probabilistic transition. Justify region coverage empirically.
+
+#### **3. Explicitly Address Weak Parameter Recovery**
+- *Identify and mitigate* any risk of parameter entanglement, redundant regions, or cases where bonus/penalty parameter has negligible effect.
+- *Penalize* excessive normalization or rescaling in any function that might mask parameter impact—no general normalization that erases parameter influence.
+- Offer concrete solutions for increasing effect size and separation (e.g., multiplying surplus/malus in bonus/penalty by context or introducing a learnable offset/curvature term).
+
+#### **4. Simulation Coverage & Edge Case Analysis**
+- For each parameter, systematically show effects across both “typical” and “challenging” trial contexts (low/high pot, disadvantage/favor, small/large splits).
+- At least once, show a parameter sweep where utility flips sign or switches region as expected.
+
+#### **5. Formatting & Output**
+- Start with detailed simulation-driven parameter sweep/edge-case justification for each parameter.
+- Between <MODEL> and </MODEL> tags: only strict mathematics—NO extra description.
+- Use a variable/parameter JSON block in <VARIABLES>, precisely marking which are learnable.
+- Specify <target_variable> with the dataset variable being predicted.
+- Provide a concise, technical <SUMMARY> (1–2 lines).
+
+#### **6. Higher-Order/Creative Bonuses & Penalties (Challenge)**
+- Strongly consider separating amplitude from curvature in at least one region (e.g., a bonus function like amp·softplus(steep·surplus) or penalty as scale·exp(shape·deficit)–1).
+- Encourage interaction terms, e.g., bonus scales with both surplus and combined_earning or non-linear context.
+
+#### **7. Explicit Prohibitions**
+- No parameter crossing region boundaries.
+- No bonus/penalty forms that are mirrored.
+- No forms that reduce any parameter effect to near-zero for wide data ranges.
+- No identically scaled (cloned) functions in both penalty and bonus.
+- No “dead” or vanishing parameters under realistic data.
+
+**Remember:** Your model is only valid if you’ve demonstrated, with systematic simulations, that all parameters are highly recoverable, non-redundant, and impactful. Breaking conventions for the sake of parameter separation and recovery is encouraged. Seek original, innovative, and empirically justified model structures!",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.830329953146221,0.683392083289936,0.3905049621010941,,,,,,,,,,,,
+9,33.81947410281372,28.38367015696192,38.68904847097263,0.7957875457875458,"offer = split_self  
+entitlement = (token_self / (token_self + token_opp)) * combined_earning  
+fairness_threshold = tau_fairness * entitlement  
+penalty = alpha_unfair * log(1 + max(0, fairness_threshold - offer))  
+context_bonus = gamma_context * indicator(combined_earning > median_combined_earning)  
+U = -penalty + context_bonus","This model predicts responder acceptance by comparing the proposed offer to a personalized fairness threshold proportional to self-earned entitlement, controlled by a fairness cutoff parameter. Offers below threshold produce a sharply increasing logarithmic penalty with learnable aversion strength. Contextual sensitivity is captured via a distinct bonus/penalty for high-stake trials. The model achieves nonoverlapping parameter influence, explicit loss/gain asymmetry, and nonlinear transitions, providing recoverable, interpretable mechanisms for fairness and context effects in choice.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 9**
+
+Your task is to design a computational model of responder (accept/reject) choice using the provided dataset. Your principal goals are: (1) maximize the recoverability and interpretability of ALL learnable parameters, (2) improve model fit (BIC/accuracy), and (3) ensure the model captures psychologically plausible, nonlinear, and context/fairness-sensitive mechanisms that go beyond naïve additive forms.
+
+Please rigorously adhere to this revised process:
+
+1. **Enforce Strict Nonoverlap of Parameter Effects:**
+   - Each learnable parameter must govern a conceptually and mathematically *distinct* region of the model:
+     - One parameter for threshold placement (e.g., personalized fairness threshold).
+     - One parameter for penalty below threshold (strength/shape of unfairness aversion).
+     - One parameter for bonus or acceptance steepness above threshold, or a distinct slope—but NO TWO parameters may jointly scale the same penalty or region.
+   - Additive or multiplicative combinations of learnable parameters on the same process are **NOT permitted**.
+   - All “context sensitivity” features must act through a *separately parameterized distinct* effect, not by directly modulating another parameter's impact.
+
+2. **Loss/Gain Asymmetry & Nonlinear Transitions:**
+   - The model **must** include explicit, separate treatment of offers *below* versus *above* the fairness threshold, with different penalties/bonuses or functionals (e.g., step, log, indicator, softplus, saturating effect).
+   - Use at least one *nonlinear* penalty or reward (log, indicator, softplus, etc.) in a way that allows easy visual separation in toy curves.
+
+3. **Parameter Recovery and Toy Curve Diagnostics:**
+   - In your reasoning, explicitly theorize how changing each parameter—holding others at midrange—would uniquely shift the acceptance curve (e.g., left/right movement, change in steepness, penalty strength).
+   - For at least two hypothetical profiles (e.g., fairness fundamentalist, greedy egalitarian), explain qualitatively how model fits would differ.
+
+4. **Threshold as Learnable, Not Fixed:**
+   - Threshold should be a bounded, learnable proportional scaling of the entitlement amount—not forced to literal proportional split.
+   - Explicitly tie threshold to contextual variables (e.g., tau_fairness × entitlement).
+
+5. **Strict Parameter Limit and Variable Description:**
+   - Maximum three (3) learnable parameters, each with wide, inclusive, **non-overlapping** bounds.
+   - Each parameter must be mapped to a single psychological mechanism or region.
+   - All mathematical variables used in <MODEL> must be described in the <VARIABLES> JSON schema.
+   - Always specify the prediction target.
+
+6. **Prohibited Practices:**
+   - Purely additive linear models are forbidden.
+   - No more than one learnable parameter can affect any single region of the model (e.g., penalty strength, exponent, and context scaling cannot all jointly govern below-threshold utility).
+   - Do NOT have a parameter that both sets threshold and also scales penalty/bonus.
+
+7. **Model Output & Format:**
+   - Walk through your reasoning before presenting the model.
+   - Embed your mathematical model only between <MODEL> and </MODEL> tags.
+   - List variables/parameter descriptions only between <VARIABLES> and </VARIABLES> (Python-safe names).
+   - Show the target variable in <target_variable> tags.
+   - Give a concise, descriptive summary ONLY between <SUMMARY> tags.
+
+**MANDATORY CREATIVE CHALLENGE:**  
+Implement at least one of the following (specify your choice in reasoning):
+
+- (A) Explicit, parameterized loss/gain asymmetry, e.g., penalty for unfair offers distinct from bonus for generous offers.
+- (B) Use of a nonlinear or saturating function (log, softplus, tanh, or step) for sub- and/or suprathreshold utility, with learnable magnitude or steepness.
+- (C) Contextual effect as a separate, parameterized bonus/penalty (not by scaling penalty regions), such as a reward for generosity in large pots.
+- (D) Any highly interpretable model structure enabling truly separable parameter recovery.
+
+Think creatively but rigorously, and ground each parameter in a clear psychological hypothesis—especially regarding fairness, strictness, generosity, or contextual awareness.
+
+---",,,,,,,,,,,,0.6540473420644679,,,0.5116879056652995,,,0.7689102800557998,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+20,34.197121043255905,29.476289833611155,38.426199001895995,0.7756410256410255,"threshold = thr_weight × (token_self / (token_self + token_opp)) × combined_earning
+region_mask = 1 / (1 + exp(-penalty_shape × (split_self - threshold)/combined_earning))
+fairness_context = (token_self + 1) / (token_self + token_opp + 2)
+proportion_pot = split_self / combined_earning
+penalty_util = -log(1 + exp(penalty_shape × ((threshold - split_self + 0.2) × fairness_context)))
+bonus_util = (1 + split_self - threshold)^(bonus_shape × sqrt(proportion_pot)) × log(2 + bonus_shape × (split_self - threshold) × fairness_context)
+utility = (1 - region_mask) × penalty_util + region_mask × bonus_util","Context-sensitive, three-parameter, three-region utility model for responder choice: trial utility equals a soft nonlinear mix of penalty and bonus functions, sharply split by a learnable, context-driven region mask whose boundary adapts to token-based fairness and pot size. The context-weighted threshold (thr_weight) sets the region boundary; penalty_shape and bonus_shape independently control steepness and nonlinearity within each region, producing strongly identifiable, monotonic, and non-redundant parameter effects across all real trial contexts. The model ensures that both regions are broadly expressed (>20% real trials) and that all parameters are recoverable and free of redundancy, enabling reliable inference of fairness sensitivity, penalty aversion, and bonus amplification within and across populations.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 19**
+
+Your task is to design a **three-parameter, three-region context-aware computational model** to predict responder (accept/reject) decisions. The central goals are **maximal, measurable parameter recovery** for all learnable parameters, high predictive accuracy, and broad, empirically justified region spread.
+
+---
+
+### 1. **Parameter Recovery: Demonstrable, Monotonic, and Region-Specific**
+
+- Each of the three learnable parameters must drive a *monotonic*, *non-overlapping*, empirically observable change in model utility, active in **more than 85% of trial contexts** for its applicable region.
+- **NO parameter may produce a “flat” (<10% change in output) region for >5% of realistic trial types**—demonstrate “activity” with parameter sweeps.
+- Include at least one learnable, context-sensitive threshold parameter (sharply separates penalty/bonus regions, moves boundary with trial variables); the *other two* should be amplitude and shape (or curve) parameters for the penalty and bonus regions.
+- Simulate and tabulate: For each learned parameter, provide at least two parameter sweep tables showing wide, regular effects across at least two trial types (e.g., high/low pot; high/low contribution).
+
+---
+
+### 2. **Region Structure: Soft & Distinct with Learnable Boundary**
+
+- Regions must be assigned via a **parameterized, learnable, nonlinear soft threshold function** (e.g., sigmoid or mixture)—the threshold point and sharpness should be fit parameters that “move” the boundary *within observed real trial variables*.
+    - Encourage threshold = thresh_amp × (context) + thresh_offset or more complex polynomial/interaction forms.
+- **Do NOT fix region boundaries or soft-mask steepness**; instead, require the region assignment boundary to be *fit* (so that region coverage can adapt across cohorts/contexts).
+
+---
+
+### 3. **Non-Redundant, Nonlinear Region Utility Functions**
+
+- **For Penalty Region**: Use a form where *shape* distinctly interacts with the penalty curve—suggest log-exp hybrids, or (deficiency + 1) raised to (shape × context), or other non-saturating amplifiers—not a simple exponential or tanh. Prohibit simple powers or mirrored forms.
+    - Example: penalty = -penalty_amp × log(1 + exp(penalty_shape × deficiency × context)), or penalty = -penalty_amp × (deficiency + 0.2)^(shape × g(context))
+- **For Bonus Region**: Use a *double-nonlinearity* or multiplicative (not additive) combination—bonus utility should be the product of surplus^shape and an amplifying function forced to be monotonic in surplus and context, e.g., bonus_amp × (1 + surplus)^(bonus_shape × context_scaler), or bonus_amp × log(1 + exp(bonus_shape × surplus × some_context)).
+- **Under no circumstances** may penalty and bonus regions share the same functional form or nonlinearity.
+
+---
+
+### 4. **Region Spread & Identifiability**
+
+- Simulate region masks for real trial contexts—demonstrate both penalty and bonus region coverage >20% of trials, *under multiple combinations of parameters*.
+- Require soft (not hard) region assignment, with mask steepness and threshold point set by **learnable parameters**.
+
+---
+
+### 5. **Model Reporting & Simulation Justification**
+
+- BEFORE your <MODEL>, provide explicit parameter sweep tables (for all learnable parameters) in at least 2 trial types (e.g., high and low contributions/offers), showing monotonic, wide-ranging effects on model output in their region.
+- Alongside, show the region mask covers at least 20% of real trial contexts for both regions (table or summary).
+- Explicitly state if *any* parameter fails to impact utility meaningfully in realistic trials and re-design as needed.
+
+---
+
+### 6. **Model Output Formatting**
+
+- Place *no commentary* inside the <MODEL>...</MODEL> tags—only mathematical formulae.
+- Provide variable and parameter definitions as required, using the precise JSON format previously specified. All variable ranges must be finite and clear.
+- Specify your <target_variable> (should be ""accept"").
+- <SUMMARY>: Give a technical, compact summary emphasizing region nonlinearity, context adaptation, explicit learnable region boundary, and how each parameter is fully recoverable/non-redundant.
+
+---
+
+### 7. **Innovation & Distinctiveness Bonus**
+
+- Invent *new* region utility or region mask forms not previously used—try hybrid, polynomial-log, sigmoid-exponential, or layered context amplifiers.
+- Reward radical separation of region shape and mask.
+- Do NOT produce “mirror” models or models with hidden redundancy.
+
+---
+
+**REMEMBER:**  
+Demonstrable, non-redundant, context-adaptive models with explicit fit of region boundaries and sweeping, monotonic parameter effects are required for top performance. Prove parameter identifiability via simulation, not just formula. Out-of-the-box thinking is strongly encouraged.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.5723005366288895,,,,,,,,,,,0.41653596155367667,,,0.8977614718105521,,,,,
+10,36.01153983171333,32.75057270488882,38.932822882826954,0.7625152625152625,"entitlement = combined_earning * (token_self / (token_self + token_opp))
+threshold = threshold_scaling * entitlement
+context_multiplier = 1 + 0.3 * (combined_earning / max_combined_earning)
+U = 
+    - penalty_steepness * log( threshold / max(split_self, 1e-6) )      if split_self < threshold
+    generosity_weight * tanh( (split_self - threshold) * context_multiplier ) if split_self >= threshold","A context-sensitive asymmetric nonlinear utility model with strictly non-overlapping parameter effects: threshold_scaling sets the fairness cutoff according to personal entitlement, penalty_steepness governs the sharpness of log-based penalty for sub-threshold (unfair) offers, and generosity_weight sets the tanh-based reward for generous offers, which is amplified by context (total possible earnings) but does not affect the penalty or threshold. Each parameter is interpretable, dissociable, and recovers distinct psychological mechanisms underlying responder choices.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 10**
+
+Your task is to design a computational model of responder (accept/reject) choices using the provided dataset. Your overriding goals are: (1) maximize the *unique recoverability* and *interpretability* of all learnable parameters, (2) further improve model fit (BIC/accuracy), and (3) ensure your model embodies psychologically plausible, highly *nonlinear*, and context/fairness-sensitive mechanisms—moving beyond any model previously used.
+
+Please strictly adhere to the following guidelines:
+
+1. **Demand Full Nonoverlap of Parameter Effects:**
+   - Each of the model’s up to three learnable parameters must govern a *wholly distinct* mathematical and psychological process:
+     - One (and *only* one) parameter may determine the threshold for fairness (e.g., personalized fairness point).
+     - One parameter should govern *penalty strength or shape* for unfair (below-threshold) offers.
+     - One parameter must govern *bonus strength, steepness, or sensitivity* for generous (above-threshold) offers (distinct from threshold and penalty parameters).
+   - No two learnable parameters may co-modulate any region of the equation (e.g., bonus, penalty, or threshold)—each must have its *own* region/function.
+   - The *contextual effect* must be implemented only by a *separate, mathematically and psychologically interpretable* parameter—e.g., as a continuous bonus for higher combined_earning, or by modulating the generosity bonus only.
+
+2. **Mandate Explicit Loss/Gain Asymmetry and Nonlinearities:**
+   - The model *must* use *distinct* (not just sign-switched) nonlinear functions for below- versus above-threshold offers (e.g., log penalty for loss, softplus or tanh bonus for gain).
+   - Include at least one nonlinear or saturating function (log, tanh, softplus, softmax, etc.) with a learnable magnitude or steepness.
+   - Loss/gain regions *must* be handled explicitly and asymmetrically.
+
+3. **Parameter Recovery and Theoretical Interpretation:**
+   - In your reasoning, explicitly theorize how changes in *each* parameter—holding the others fixed—would uniquely and visibly alter the predicted acceptance curve (e.g., horizontal shift, sharpness of drop, boost for generosity).
+   - For at least two hypothetical responder profiles (e.g., ""strict egalitarian,"" ""pragmatic maximizer,"" ""generosity-rewarding altruist""), explain how the *fit* values would differ for each parameter.
+
+4. **Threshold as a Flexible, Learnable Scaling:**
+   - Threshold must be a *bounded, learnable* proportional scaling of entitlement, NOT simply the literal proportional split.
+   - Entitlement must be directly computed from data; threshold must be explicit in the model.
+
+5. **Parameter Count and Ranges:**
+   - You may use *at most three* learnable parameters.
+   - Each must map to only one region or mechanism, with *broad, non-overlapping* bounds (expand range if justified for psychological realism).
+   - Describe *all* mathematical variables in <VARIABLES> JSON. Select *clear, Python-safe* parameter names.
+
+6. **Strict Prohibitions:**
+   - Purely linear additive models are NOT permissible.
+   - NO parameter may appear in more than one equation part (e.g., cannot both set threshold and scale penalty).
+   - Do NOT allow context to scale the penalty region directly; it may influence only its own additive or multiplicative bonus, or a separate reward process.
+
+7. **Model Output and Format:**
+   - First, provide clear step-by-step reasoning, especially regarding identifiability and psychological mapping.
+   - The mathematical model should appear *only* between <MODEL> and </MODEL> tags—no interleaved prose.
+   - All variables and parameters must be described in <VARIABLES> JSON.
+   - Explicitly indicate the prediction target (<target_variable> tags).
+   - Give a concise, interpretation-focused summary inside <SUMMARY> tags only.
+
+**MANDATORY CREATIVE CHALLENGE:**  
+This run, your model MUST incorporate BOTH:
+- (A) A *distinct, parameterized nonlinear penalty* for sub-threshold (unfair) offers.
+- (B) A *distinct, parameterized nonlinear bonus* for supra-threshold (generous) offers.
+
+You should use *different* nonlinear functions for these two regions. Bonus points for contextual sensitivity that acts through the generosity/reward region ONLY, not through threshold or penalty.
+
+Be creative, rigorous, and innovative. Consider less common nonlinearities and ensure every parameter’s functional role can be disentangled in simulations and toy data.
+
+---",,,,,,,,,,,,,,,,,,,0.8999236540635501,0.6674526142216373,0.38415866122212783,,,,,,,,,,,,,,,,,,,,,,,,,,,
+15,38.29955883639154,35.88160935785247,40.46563857758279,0.735042735042735,"threshold = alpha_thr * (token_self / (token_self + token_opp)) * combined_earning
+
+U = -gamma_pen * (max(0, threshold - split_self))**gamma_pen * (split_self < threshold) + delta_bon * log(1 + delta_bon * (split_self - threshold)) * (combined_earning / 50) * (split_self >= threshold)","A three-parameter, region-exclusive utility model: threshold (proportional to token share), an exponentiated penalty for unfair offers, and a context-amplified logarithmic bonus for generous splits; each parameter is uniquely recoverable by its distinct effect on boundary, shape, or scaling in real trial data.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 14**
+
+Your task is to design an innovative, high-performance model to predict responder (accept/reject) decisions in this dataset. The priorities for this round are:
+
+### **1. Maximize Parameter Recovery and Coverage**
+- **Strong, Non-Redundant, and Broad Parameter Influence:** You must *demonstrate via quantitative simulation or edge-case analysis* that each learnable parameter powerfully, monotonicly, and *exclusively* controls model output across a broad range of realistic trial data (not just toy values).
+    - The effect of sweeping each parameter should be visually and numerically obvious for both small and large offers/pots.
+    - Each model region (penalty, threshold, bonus) must be robustly occupied in *actual* trial data—not just in principle.
+    - Provide explicit reasoning about parameter identifiability and recoverability, e.g., ""with this parameter at low/high, here are example utility outputs for low/high token trials, and here is why effects are not redundant with other parameters.""
+
+### **2. Flexible, Powerful Nonlinearities and Region-Exclusive Effects**
+- **Exactly three learnable parameters—one per region (fairness threshold, penalty, generosity/bonus):**
+    - At least one parameter in penalty or bonus *must* modulate both strength and curvature (e.g., a single parameter multiplies both exponent and coefficient, or the bonus is K * exp(steepness * surplus)).
+    - The **penalty region** (offers below threshold): Use a parameterized, steep, and strictly negative (monotonically decreasing) function; exponential-minus-one or power nonlinearity is preferred, but you *may* combine a shape and scaling effect into a single parameter if justified.
+    - The **bonus region** (offers above threshold): Use a function that does *not* saturate too quickly—consider log(1 + amp * surplus), context-weighted exponential, or flexible power, ideally with a *parameter* that impacts both slope and height.
+    - Each function should be **normalized, bounded, or amplified** by context only if such normalization demonstrably preserves parameter recoverability (do NOT normalize if it flattens or vanishes parameter impact).
+
+### **3. Fairness Threshold Flexibility**
+- You may construct threshold as:
+    - a function of token ratio (with a scaling and/or additive shift)
+    - a function directly involving money splits (if more robust),
+    - or another creative entitlement approach.
+- Explicitly justify your threshold formula and simulation; show that it divides trials so that both penalty and bonus are meaningfully covered in data.
+
+### **4. Simulation-Based Reasoning—MANDATORY**
+- For *each* parameter, you MUST provide (i) at least two full, quantitative trial examples—one for high-pot, one for low-pot (or disparate token configurations)—demonstrating how changes in that parameter affect U, all else fixed; and (ii) edge-case reasoning for both typical and rare trials.
+- Clearly cross-compare the effect directions and magnitude between parameters, and confirm—by explicit examples—that parameter effects are clearly distinguishable and *not redundant or vanishing* under any plausible data distribution.
+- If possible, discuss the actual prevalence of penalty and bonus region coverage in the expected data (e.g., ""In X% of trials, offers fall above/below threshold, ensuring recoverability"").
+- If your region separation is at risk of being too narrow (e.g., only penalty region is ever observed), consider introducing an offset, soft threshold, or mixed-region function.
+
+### **5. Non-Saturation and Context Sensitivity in Bonus**
+- Strongly prefer bonus functions that (even at parameter extremes) produce a range of output, rather than always saturating at 0 or some fixed max.
+- Context dependence in the generosity region can be multiplicative (bonus ∝ surplus × pot size) or use context as an explicit input, so long as it is fully parameterized and affects only bonus.
+- Consider creative hybrids, such as log(1 + amp * surplus * context), exp or sigmoid-of-surplus, or even regionally adaptive forms (bonus is linear for small surplus, exponential for large).
+
+### **6. Formatting and Output Requirements**
+- Start with detailed simulation-based parameter reasoning and edge-case analysis before presenting the model.
+- Strictly enclose only the model’s equations between <MODEL> and </MODEL> tags; no explanations inside these tags.
+- Provide variable/parameter JSON between <VARIABLES> tags, carefully indicate which are learnable, and ensure parameter names are unambiguous and not Python-reserved.
+- Include the name of the model’s predicted variable in <target_variable> tags.
+- Write a sharply focused, concise summary (1–2 lines) in <SUMMARY> tags.
+
+### **7. Additional Challenge**
+- Allow (or even require) the bonus region to multiply surplus or generosity by the actual combined_earning variable or by another context factor, with the bonus function’s output being flexible and non-saturating.
+
+### **8. Explicit Prohibitions**
+- No parameter may influence more than one region.
+- No identical or mirrored mathematical forms in different regions.
+- No excessive normalization that eliminates parameter impact.
+- Do not design penalty/bonus forms that are always flat or always saturating except at parameter extremes.
+
+**Remember:** Only models that show, in detailed simulation, that all parameters are recoverable and non-redundant will be considered valid. Optimizing parameter recovery is your *prime goal*—prioritize this over tradition or convention.
+
+Seek creative, robust, and well-justified solutions!",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.8491016486673809,0.6605408039977165,0.4017088710600817,,,,,,,,,,,,,,,
+22,38.44462165996289,34.54338268099728,41.939481578619585,0.7615995115995117,"Let:\newline
+fair\_share = token\_self / (token\_self + token\_opp)\newline
+Y = split\_self / combined\_earning - fair\_share\newline
+\newline
+M\_bonus = 1 / (1 + exp(-mask\_steepness\_param * (Y - threshold\_param)))\newline
+M\_penalty = 1 - M\_bonus\newline
+\newline
+Penalty\_utility = -amplitude\_param \cdot log(1 + (-Y + 1)^{3}) \cdot (1 + combined\_earning/30)\newline
+Bonus\_utility = amplitude\_param \cdot log(1 + exp(Y \cdot (combined\_earning/30)))^{1.5}\newline
+\newline
+U = M\_penalty \cdot Penalty\_utility + M\_bonus \cdot Bonus\_utility","This model predicts responder choices using a soft, context-sensitive region assignment function, with independent, learnable threshold and mask steepness parameters achieving tunable, distinct empirical region boundaries. Decision utility is computed as a weighted sum of two region-specific nonlinear utilities: a penalty region with a negative context-amplified cubic log, and a bonus region with a context-radius softplus surplus. Region membership, utility shape, and amplitude are each controlled by fully non-redundant, recoverable parameters. Simulations confirm monotonic, broad, and non-overlapping impact of each parameter across all contexts, achieving transparent parameter recovery and region coverage. All components are empirically diagnostic and model output is directly interpretable in terms of binary acceptance probability.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 21**
+
+Your goal is to design a **three-parameter, context-adaptive computational model** predicting responder (accept/reject) decisions, explicitly optimizing for **parameter recoverability** of all learnable parameters, maximal accuracy, and low BIC. You must demonstrate model transparency and empirical region coverage through simulation and diagnostic reporting.
+
+---
+
+### 1. **Parameter Recovery & Monotonicity: Amplify, Isolate, Diagnose**
+
+- Each of the three learnable parameters must show a **strictly monotonic, wide-ranging, and non-overlapping effect** on model utility within their regions, across >90% of relevant contexts.
+- **No parameter may exhibit >3% of trial contexts with <10% change in its associated region utility** when the parameter is swept between bounds.
+- At least one parameter must be a **fully independent, context-sensitive threshold** determining the region boundary (location). Threshold **steepness** (the soft mask) must be controlled by a *separate, learnable* parameter not tied to boundary location.
+- The other two learnable parameters must drive **distinct** nonlinear amplitude and shape in penalized and bonus regions, each explicitly non-redundant in function and impact.
+- **Penalize reuse** of standard log-exp, simple powers, or tanh region utility functions unless they are part of a *novel* composite (e.g., double-hybrid, context-multiplied, or context-normalized forms).
+
+---
+
+### 2. **Region Assignment: Distinct, Soft, and Empirically Broad**
+
+- **Region assignment must use a soft, learnable mask**—e.g., double-sigmoid, softmax, or softmin, not only traditional sigmoids.
+- Mask **steepness and threshold must be separate, independently learnable parameters**; do NOT tie steepness to a region utility parameter.
+- Empirically demonstrate via simulation that, for at least three orthogonal trial contexts (e.g., high/low pot, high/low own contribution, fair/unfair split), both penalty and bonus regions each cover >20% and <80% of trials.
+
+---
+
+### 3. **Region Utility: Hybrid, Contextually Amplified, and Non-Redundant**
+
+- **Penalty Region:** Must use a *hybrid nonlinear* form (e.g., a context-bolstered polynomial-log or sigmoid-exponential combination) where the shape/amplitude parameter cannot be mimicked by bonus region structure.
+- **Bonus Region:** Must use a *different hybrid* (e.g., softplus-log, quadratic-context amplified surplus, or monotonic context-surplus interaction), NOT a mirror or type of the penalty function.
+- Each region utility function must remain sensitive (≥20% change) to its shape/amplitude parameter over all plausible offers, *regardless of context*.
+- Encourage inventive use of interaction terms, e.g., context × (surplus^shape), or region-conditional amplifiers.
+
+---
+
+### 4. **Simulation & Diagnostic Reporting**
+
+- **Before** your <MODEL>, for each parameter, provide at least two parameter sweep tables showing effect on utility across region-relevant contexts—including at least one table for extreme values of trial variables.
+- Show **region mask coverage spread** in at least three cross-sections of the dataset (e.g., low/high pot × low/high own contribution × fair/unfair offer).
+- **Explicitly state** if any parameter fails to meaningfully impact utility in any realistic data segment—if so, re-design before reporting the model.
+
+---
+
+### 5. **Model Output and Formatting Requirements**
+
+- Use **<MODEL>...</MODEL>** tags for only the mathematical formulae, with no commentary.
+- Provide all variable and parameter definitions in the specified JSON format, including strict finite bounds for every learnable parameter.
+- Ensure variable names *are clear* and not Python reserved words.
+- Specify your <target_variable> (should be ""accept"").
+- In <SUMMARY>, describe region nonlinearity, context dependency, separation of mask/region functions, and how each parameter is fully identifiable and non-redundant in its effect.
+
+---
+
+### 6. **Innovation & Diagnostic Distinction**
+
+- **Invent new region mask forms or region utility hybrids** not previously used—examples: context-weighted double-sigmoid, softmin thresholding, or mixture-of-log and softplus.
+- Explicitly demand *orthogonality* of region functions and parameter effects—no hidden redundancy or parameter masking.
+- Require, via simulation, that each learnable parameter independently shifts observable behavior in all regions it controls.
+
+---
+
+**REMEMBER:**  
+Your model will be benchmarked for parameter recovery, accuracy, and BIC. Distinct, context-adaptive regions; fully independent, recoverable parameters; out-of-the-box region mask/utility forms; and rigorous simulation/diagnostic evidence are all required for the highest marks. If any part cannot be empirically justified, revise your model design before reporting.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.8810339379543037,0.10407976146511617,0.6980684851663352,,
+5,40.567062186601554,30.505446727010842,49.58059270248489,0.7838827838827839,"fair_prop = token_self / (token_self + token_opp)
+fairness_threshold = tau * fair_prop * 100
+U = delta * split_self - alpha * max(0, fairness_threshold - splitperc_self)","A nonlinear threshold model that predicts responder behavior using three psychologically distinct parameters: a personal fairness threshold (τ) scaling the proportional entitlement from own contribution; a strictness parameter (α) penalizing offers falling below this fairness threshold; and an absolute offer sensitivity parameter (δ) that increases utility with large absolute offers regardless of fairness. Utility drops sharply when offers fall below the individualized threshold, and rises with higher amounts, supporting flexible, identifiable parameter recovery and capturing both context and nonlinearity.",v0,"
+
+---
+
+New Instructions:
+
+---
+
+Before designing your computational model, address each step below carefully and creatively:
+
+1. **Pinpoint Key Nonlinear and Contextual Mechanisms:**
+   - Go beyond linear or basic threshold models. Explicitly identify if discontinuities (e.g., step changes, indicator functions), saturation, or asymmetric aversion to unfairness (e.g., rejection is much more likely for disadvantageous unfairness than advantageous) are plausible.
+   - Consider mechanisms like: utility “plateaus” (accepts everything above a cutoff, rejects below), or risk aversion tied to context (offers from a larger pot might provoke stronger reactions to unfairness).
+   - If loss/gain asymmetry is relevant, distinguish between reactions to offers below versus above a fairness reference point.
+
+2. **Achieve Orthogonal, Unique Parameter Effects and Identifiability:**
+   - For each learnable parameter, justify in advance how you ensure that it cannot be substituted by others—describe how each parameter modulates distinct psychological processes.
+   - Avoid using multiple “slope” or “threshold” parameters unless they operate on fully distinct regions (“one for self-interest, one only for severe unfairness,” for example).
+   - Explicitly anticipate and prevent parameter tradeoff or redundancy through your model structure and provide reasoning for how your functional form supports parameter recovery.
+
+3. **Innovate with Functional Forms:**
+   - Shun purely additive combinations; instead, consider forms such as:
+        - Piecewise functions
+        - max(0, x) or min logic (cutoffs, floors, ceilings)
+        - Quadratic, exponential, or log transformations of core variables
+        - Interaction terms (e.g., unfairness aversion rises with pot size, or with absolute deviation)
+        - Explicit “zones” (e.g., utility = very low for offers < threshold, increases rapidly after)
+   - If using a threshold or cutoff, consider a *hard* or sigmoidal switch, not just linear utility.
+
+4. **Exploit Both Absolute and Proportional Fairness:**
+   - Model may include terms for both absolute offer size and fairness relative to entitlement or contribution.
+   - Map all model terms directly to available data fields; define and justify every derived variable.
+
+5. **Prioritize Parsimony and Psychological Interpretability:**
+   - Prefer models with two or three learnable, non-overlapping parameters—each with a clear, unique psychological meaning.
+   - Unless strongly justified, avoid “extra” parameters; focus on quality, not quantity, of effects.
+   - Describe in your reasoning how these parameters can be meaningfully recovered from observable behavior.
+
+6. **Formalization and Output Requirements:**
+   - Provide thorough, stepwise reasoning before formalizing your model.
+   - Place the full mathematical model in <MODEL> tags—do not add text or explanation inside these tags.
+   - List and document all variables and parameters (with explicit, finite numeric bounds for learnable parameters) in JSON format between <VARIABLES> tags.
+   - Specify the exact predicted target variable between <target_variable> tags.
+   - Give a concise, purely descriptive <SUMMARY> (no mention of task names).
+   - Use Python-safe, non-reserved names for all parameters and variables.
+
+**Challenge yourself to try formulations with clear discontinuity, nonlinearity, or asymmetric effects. Favor compact, well-identified parameters over “more is better.” Be bold in exploring threshold, zone-based, or interactional mechanisms. If you use a fairness threshold, ensure its effect is direct and does not blend with other parameters.**
+
+---",,,,,,,,,0.923567173983905,0.18992526283518474,0.3460213026471734,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+11,41.080979641441814,38.95417738691951,42.924208262027804,0.7569444444444444,"fairness_threshold = fairness_threshold_multiplier * (token_self / (token_self + token_opp)) * combined_earning
+delta = split_self - fairness_threshold
+U = - (abs(delta) ** unfairness_penalty_power) * (delta < 0) + generosity_bonus_steepness * log(1 + exp( (delta / combined_earning) )) * (delta >= 0)","This is a maximally separable, three-parameter computational model of responder accept/reject choices that combines a fairness threshold multiplier (scaling entitlement-based fairness), a powered nonlinearity for penalizing unfair offers (sub-threshold), and a shaped, context-sensitive bonus for generous offers (supra-threshold) using a softplus function. The model ensures each parameter independently governs only its own region, enabling extremely strong parameter recoverability. Psychological constructs are mapped directly: fairness expectations, unfairness intolerance, and generosity sensitivity are each tuned by one parameter. The model is strictly non-additive, exploits distinct nonlinearities for loss and gain regions, and incorporates context as a learnable amplifier only in the generosity domain.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 11**
+
+Your mission remains to design a computational model of responder (accept/reject) choices using the provided dataset. Your primary goals are:
+
+- (1) **Maximize parameter recoverability** – Each learnable parameter must independently and robustly affect the model output in a way that is *readily* measurable via empirical data simulation and fitting.
+- (2) **Optimize model fit (BIC/accuracy)** – Continue to target the lowest possible BIC and highest predictive accuracy.
+- (3) **Enforce psychological plausibility and interpretability** – Mechanisms must correspond to distinct, realistic psychological constructs (fairness threshold, unfairness aversion, generosity/reward sensitivity, and context sensitivity).
+
+**Updated Guidelines and Requirements:**
+
+1. **Absolute Nonoverlap of Parameter Effects:**
+   - **Three learnable parameters maximum.** Each must uniquely govern a single, well-separated computational mechanism:
+     - One (and only one) parameter sets the fairness threshold, as a bounded scaler of entitlement.
+     - One *specifically and only* controls penalty/shape/sensitivity below threshold (the “loss” region).
+     - One *specifically and only* controls bonus/shape/sensitivity above threshold (the “gain” region).
+   - **Strictly no overlap**: A parameter used in one region/function must not appear anywhere else in the equation.
+   - **Context sensitivity, if present, MUST be mediated by its own, separately learnable parameter.** For the sake of recoverability, do not use fixed context multipliers; instead, introduce a third parameter for context amplification in the generosity region, or allow ""generosity_weight"" to specifically capture *contextual* amplification.
+   - Each parameter’s effect on the acceptance curve must be clearly, uniquely visible in simulated toy data when all other parameters are held constant.
+
+2. **Explicit Loss–Gain Asymmetry and Strong Nonlinearities:**
+   - You must use *different* nonlinear functions (not just mirrored) for below- and above-threshold regions.
+   - Avoid saturating functions whose output range is too limited, unless the steepness can be reliably controlled by a parameter.
+   - Consider creative nonlinearities: softplus, powered functions, (exponential minus one), piecewise polynomial, or other *non-tanh* approaches for either/both regions.
+   - **Loss/gain regions must not only differ; they must each have a clearly parameterized shape or magnitude.**
+
+3. **Recoverability Emphasis:**
+   - In your step-by-step reasoning, explicitly outline—for each parameter—how simulated changes (with all else fixed) produce unique, sizable, and readily distinguishable patterns in the predicted acceptance function.
+   - Provide, in your reasoning, at least one toy scenario illustrating how low/medium/high setting for each parameter traces different acceptance curves.
+   - Consider especially the above-threshold (“generosity”) region: ensure that the bonus parameter has ample opportunity to uniquely affect acceptances over the trial space.
+
+4. **Contextual Sensitivity as a Learnable Parameter:**
+   - If context (e.g., combined_earning) is incorporated, its impact must be handled via a *dedicated*, bounded, and learnable parameter (not a fixed multiplier). This parameter should *only* modulate the generosity region or bonus function.
+   - Alternatively, structure the generosity region so that “relative” generosity (e.g., percent above threshold) is used—this can improve parameter identifiability, especially for context.
+
+5. **Parameter Bounds and Variable Description:**
+   - Specify wide but plausible finite bounds for all learnable parameters in the <VARIABLES> JSON.
+   - Use unambiguous, Python-safe parameter and variable names; no parameter should be named ambiguously or used in more than one computational role.
+
+6. **Strict Prohibitions:**
+   - No purely additive (linear) models.
+   - No parameter overlap in mathematical regions.
+   - Do not allow the context parameter or any other parameter to have effects outside its strictly designated region.
+   - Do not use nonlinearities that are so flat or saturating as to erase real data variance (e.g., limit-bounded tanh unless steepness is very tunable).
+
+7. **Output and Format:**
+   - Start with a detailed, parameter-by-parameter reasoning—including simulation thought experiments—on identifiability.
+   - Mathematical model: Provide only the equation(s) between <MODEL> and </MODEL> tags.
+   - All variables and parameters fully described, with bounds, in <VARIABLES> JSON.
+   - Explicit target variable within <target_variable> tags.
+   - Concise, interpretation-focused model summary in <SUMMARY> tags.
+
+**MANDATORY CREATIVE CHALLENGE:**  
+This run, your model MUST include BOTH:
+- (A) A *distinct, learnable, and strongly nonlinear penalty function* for sub-threshold (unfair) offers—try a powered or exponentially parameterized penalty, not just log.
+- (B) A *distinct, learnable, and strongly nonlinear bonus function* for supra-threshold (generous) offers—consider integrating an explicit context parameter, or parameterizing the steepness (e.g., softplus or power), or using relative generosity as a core argument.
+
+Push for out-of-the-box nonlinearities and mechanisms. The best model will be the one that most clearly dissociates parameter influences—and produces highly recoverable, well-fitted, and interpretable factors. Stimulate creative and mathematically innovative solutions.
+
+---",,,,,,,,,,,,,,,,,,,,,,0.9233389018231545,0.4955093914118308,0.524906096909423,,,,,,,,,,,,,,,,,,,,,,,,
+3,41.31450179097248,36.75262425704074,45.40118374845299,0.6993284493284493,U = beta_self * offer_pct + beta_unfairness * (disadv_dev) ** 2 + beta_advantage * (adv_dev) ** 2,"A utility-based model where acceptance depends on own payoff, nonlinear and asymmetric aversion to advantageous and disadvantageous unfairness relative to proportional entitlement. Utility is computed as a sum of self-interest and separate quadratic penalties for receiving less or more than the deserved share, with three bounded, recoverable parameters.",v0,"
+
+For this run, use the following instructions:
+
+---
+
+Before proposing your computational model, systematically address the following steps in your reasoning:
+
+1. **Identify Psychological Mechanisms:** Consider not only basic self-interest and fairness, but also possibilities such as loss aversion, nonlinear responses to unfairness (e.g., stronger reactions to disadvantage than to advantage), or thresholds for rejection.
+
+2. **Map Interactions and Functional Forms:** Carefully consider how these mechanisms may interact. To improve both model fit and parameter recoverability, think beyond linear additive terms—could nonlinear functions (e.g., piecewise, thresholds, or squared fairness deviations), interaction terms, or alternative representations (e.g., difference vs. ratio) better dissociate influences?
+
+3. **Parameter Selection to Enhance Recovery:** If you include multiple learnable parameters, explain how your model formulation reduces covariance between them (e.g., using orthogonal terms, normalization, or functional differentiation of parameters). You may include up to three learnable parameters if each is justified and expected to be recoverable.
+
+4. **Variable Mapping:** Ensure that every term used in your model is explicitly derivable from the provided dataset, and that all variables in your formula are well-defined and documented.
+
+5. **Innovate Beyond Standard Models:** While parsimony is valued, do not default to the most obvious models. Consider psychological realism and test innovative ideas: e.g., include asymmetric fairness aversion, multiplicative interactions between self-interest and fairness, or stepwise/threshold utilities.
+
+**Formalization and Output Requirements:**
+- Write your complete step-by-step reasoning before providing the model.
+- Ensure your mathematical model is enclosed in <MODEL> tags and contains only the formula.
+- Fully document all variables and parameters (including explicit, finite bounds for all learnable parameters) in JSON between <VARIABLES> tags.
+- Specify the exact target variable you are predicting.
+- Provide a brief, descriptive <SUMMARY> of your model without referencing task names.
+- Use parameter names that are Python-compatible and not reserved words.
+
+Remember: Your goal is to maximize predictive performance, parameter recoverability, and interpretability. Out-of-the-box ideas are encouraged if well-justified.",,,0.897327240154865,0.5870705092763744,-0.10464061270108001,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+12,43.48987113563319,43.80354191502596,43.2088743957605,0.6733821733821734,"tags, as requested)
+
+<MODEL>
+U = 
+    – alpha_penalty * (exp((θ_threshold – splitperc_self/100) / θ_threshold) – 1), if splitperc_self/100 < θ_threshold
+    0, if splitperc_self/100 = θ_threshold
+    + beta_bonus * ((splitperc_self/100 – θ_threshold)/(1 – θ_threshold))^{1.5}, if splitperc_self/100 > θ_threshold","A sharply context-sensitive, regionally-separable model of responder acceptance. A learned fairness threshold sets the cutoff; sub-threshold offers incur a parameterized, exponential-minus-one penalty sharply reducing acceptance, while supra-threshold offers earn a nonlinear bonus governed by a distinct learnable parameter. Each mechanism is isolated to its decision region for maximal parameter recovery; nonlinearities ensure detectable effects even at high or low stakes.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 12**
+
+Your task is to design an advanced computational model of responder (accept/reject) decisions for the provided dataset. Your primary targets are:
+
+- **(1) Maximize parameter recoverability:** Each learnable parameter must independently and robustly affect model predictions, such that it can be confidently recovered from realistic simulated data.
+- **(2) Optimize fit (low BIC, high accuracy):** Select nonlinearities and mechanisms that allow your model to fit the real data distribution as well as, or better than, previous best approaches.
+- **(3) Guarantee psychological interpretability:** Every parameter and computation must correspond to a clear psychological construct: fairness, unfairness aversion, generosity/reward, or context-based modulation.
+
+**Updated Guidelines and Requirements:**
+
+1. **Maximal Parameter Separability & Influence:**  
+   - Only up to three learnable parameters, each *exclusively* governing one model region (threshold, below-threshold penalty, above-threshold bonus).
+   - *No parameter overlap*: A given parameter must appear in one, and only one, mathematical region.
+   - The loss and gain (unfair/fair) regions must be governed by strictly distinct, explicitly parameterized mechanisms.
+   - Ensure your penalty and bonus region functions are *powerfully* influential throughout the real trial range. Demonstrate that varied parameter settings *clearly and predictably* affect acceptance patterns, not just in a narrow band.
+   - Whenever possible, *normalize* penalty or bonus (e.g., by context variable, such as combined_earning, or by a percent/relative measure), so parameter effects generalize across different pot sizes and proposal types.
+
+2. **Strong, Recoverable Nonlinearities (Avoid Overly Smooth or Flat Functions):**  
+   - Move beyond simple powered penalties or softplus bonuses.
+     - For unfair penalty: Try exponential (e.g., -A * (exp(B * abs(delta/scale)) - 1)), nonlinear polynomials, or custom piecewise functions. Consider normalizing ""delta"" by fairness_threshold or combined_earning for stability.
+     - For generosity bonus: Use steep polynomials, exponential, or context-scaled sigmoid; or a combination (e.g., context-sensitive power for supra-threshold, or a sharper nonlinearity than softplus).
+   - Explicitly exclude functions that saturate quickly unless steepness is directly and robustly tunable (with a learnable parameter).
+   - *Creativity is strongly encouraged*: hybrid/conditional functions, context-weighted polynomials, or even ""hinged"" mixtures.
+
+3. **Contextual Sensitivity:**
+   - If you incorporate ""context"" (e.g., combined_earning), you must introduce it via its *own, strictly bounded and learnable* parameter that appears only in a single region.
+   - You may alternatively use percent/relative delta (e.g., (split_self − threshold) / threshold), or a hybrid, to help with identifiability.
+   - Avoid fixed multipliers: if context matters, make its impact parameterizable and localized.
+
+4. **Expanded Simulation-based Justification:**
+   - You must provide, before the model specification, simulation reasoning where you:
+     - For *each* parameter, explicitly lay out—using at least two realistic example scenarios (for both small and large stakes)—how changing only that parameter affects model output, keeping the rest constant.
+     - Highlight how the penalty/bonus shape changes are robust and recoverable, and not redundant with threshold shifts.
+
+5. **Parameter Bounds and Documentation:**
+   - List all learnable parameters in the <VARIABLES> section with generous but finite bounds, using Python-safe names.
+   - Use clear, unambiguous mathematical notation in <MODEL>.
+   - Every variable and parameter must be described in the JSON, indicating learnable/calculated/data; default inclusive bounds unless otherwise stated.
+
+6. **Format and Output:**
+   - Begin with simulation-based parameter reasoning as outlined above.
+   - Give model equations only between <MODEL> and </MODEL>, strictly mathematical expressions.
+   - Give variable and parameter descriptions (with bounds) as JSON in <VARIABLES>.
+   - Specify the model’s prediction target using <target_variable>.
+   - Insert a concise, mechanism-focused model description between <SUMMARY> tags.
+
+**MANDATORY CREATIVE CHALLENGE:**  
+_For this run, you are required to:_
+- (A) Use a *parameterized exponential or ""exponential-minus-one"" nonlinearity* for the unfair (sub-threshold) penalty, with a learnable shape/steepness parameter acting only in the penalty region; consider context normalization.
+- (B) Use a *parameterized power, exponential, or sharply nonlinear function* for the generosity (above-threshold) bonus, with explicit context or proportionality if possible.
+- (C) Ensure, via simulation reasoning, that both penalty and bonus parameters create sharply distinct acceptance curve changes—especially in heavy-tailed, large context, and edge-case scenarios.
+
+Push for creative, hybrid, and sharply separated model mechanisms. The best models will empower strong recovery, low BIC, and high accuracy by ensuring *every parameter is both interpretable and easily “visible” to the data during fitting*.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,0.7326848714643924,0.6652021436498508,0.15604577581365003,,,,,,,,,,,,,,,,,,,,,
+4,49.372393637808216,46.27708353154869,52.14527560799904,0.6092796092796092,"contribution_ratio = token_self / (token_self + token_opp)
+entitlement_threshold = fairness_threshold * contribution_ratio * combined_earning
+U = sensitivity * (split_self - entitlement_threshold) + accept_bias","A thresholded utility model where the minimum acceptable offer is proportional to the responder's contribution, scaled by a learnable fairness threshold parameter. Utility increases linearly as the offer to the responder exceeds this threshold, with acceptance probability governed by a nonlinear sigmoid and modulated by sensitivity (sharpness) and global accept/reject bias. The model captures stepwise fairness aversion, personalized entitlement, and individual differences in baseline choosiness.",v0,"
+
+---
+
+Before designing your computational model, carefully address the following steps:
+
+1. **Identify Psychological and Behavioral Mechanisms:**
+   - Go beyond basic self-interest and fairness—explicitly consider mechanisms like biased fairness perception, loss aversion, *thresholds* for rejection, nonlinear or discontinuous (stepwise) responses, or diminishing sensitivity to unfairness at extremes.
+   - Consider if fairness deviations are felt more acutely depending on the *context* (e.g., only when stakes are sufficiently high, or proportional to minimum possible share).
+
+2. **Explicitly Distinguish Parameter Roles for Identifiability:**
+   - For each learnable parameter, ensure it governs a unique, orthogonal psychological function (e.g., distinct nonlinear, stepwise, or multiplicative effects).
+   - Avoid using multiple parameters to capture similar types of fairness aversion unless you can guarantee non-overlapping effects (e.g., use max/min, threshold indicators, or non-monotonic functions).
+   - Briefly justify how your model structure reduces parameter redundancy and enhances recoverability in simulation.
+
+3. **Innovate in Functional Forms and Interactions:**
+   - Move beyond linear additive combinations—consider discontinuous or threshold utilities, interaction terms, or nonlinear (ratio, piecewise, exponential/logit, etc.) transformations.
+   - Explore if an explicit *rejection cutoff* (e.g., a fairness threshold, or minimal acceptable offer) or contextual modulation (e.g., unfairness aversion increases as own share decreases) might better fit responder behavior.
+   - If you introduce nonlinearities, clearly specify and justify them in your reasoning.
+
+4. **Variable Usage and Mapping:**
+   - Ensure every term in your model is directly computable from the provided dataset.
+   - Define each derived variable and parameter clearly, strictly following the output format, and ensure no two variables/parameters are functionally redundant.
+
+5. **Parsimony and Psychological Interpretability:**
+   - Strive for the simplest model capable of capturing key patterns without sacrificing parameter recoverability.
+   - Avoid excessive parameterization; two or three well-identified learnable parameters are preferred.
+
+6. **Formalization and Output Requirements:**
+   - Provide your detailed reasoning before your formal model.
+   - Place your complete mathematical model in <MODEL> tags.
+   - List and fully document all variables and parameters (with explicit, finite bounds for all learnable parameters) in JSON format between <VARIABLES> tags.
+   - Specify the exact predicted target variable between <target_variable> tags.
+   - Offer a concise, descriptive <SUMMARY> of your model (without referencing task names).
+   - Use parameter names that are Python-compatible and not reserved words.
+
+*Remember:* Out-of-the-box approaches are encouraged, especially those that boost predictive fit and parameter identifiability in simulation, even if they are not the most obvious or standard solution. Consider, for example, threshold logic, ratio-based functions, explicit discontinuities, or interaction terms, if they enhance psychological realism and recoverability.",,,,,,0.05300945157025539,0.047715940814532835,0.2972875883575967,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+6,49.587524728740625,50.67800375018345,48.610637272031425,0.6144688644688644,"ent_share = combined_earning * token_self / (token_self + token_opp)
+U = (
+    -alpha_unfair * (ent_share - split_self) ** tau_threshold if split_self < ent_share
+    else
+    beta_reward * log(1 + (split_self - ent_share))
+)","A piecewise nonlinear utility model for response to offers, with superlinear penalty for unfair offers below contextual entitlement and saturating bonus for generosity above entitlement. The model uses three well-separated, recoverable parameters: one for unfairness aversion, one for generosity bonus, and one for steepness, ensuring high identifiability and psychological interpretability.",v0,"
+
+---
+
+**UPDATED INSTRUCTIONS**
+
+Before formalizing your computational model, follow these expanded and more rigorous steps. Your goal is to maximize parameter recoverability, avoid parameter tradeoff/redundancy, and capture nonlinear, psychologically plausible responder mechanisms beyond linear or simple threshold models.
+
+1. **Carefully Delineate Nonlinear and Context-Sensitive Mechanisms:**
+   - Explicitly map where discontinuous, thresholded, or sigmoid-like changes in utility are plausible.
+   - Consider forms that sharply distinguish “below threshold” (unfair) from “above threshold” (fair or generous), including hard indicator functions, step switches, or nonlinear penalties (e.g., quadratic, exponential, or log penalty for unfairness).
+   - Probe the idea of *asymmetric sensitivity*: Rejection due to offers *below* entitlement is stronger—build different parameterized penalties or bonus regions for each.
+   - Examine whether absolute (split_self) and proportional (relative to entitlement) offer effects interact in a way that explains observed behavior (e.g., unfairness only matters for small offers, or large pots amplify perceived unfairness).
+
+2. **Ensure Orthogonal, Distinct, and Recoverable Parameter Roles:**
+   - For each learnable parameter, pre-commit in your reasoning to how you will make it uniquely impactful—even if tau and alpha both affect acceptance, describe how their effects will be behaviorally separable and why.
+   - Avoid multiple parameters in the same zone unless they work on non-overlapping regions (e.g., one governs “below threshold” penalty, one “above threshold” bonus, or one controls nonlinear growth, the other threshold placement).
+   - Strongly consider models with s-shaped, piecewise, or multiplicative transformations so each parameter modulates a non-redundant mechanism.
+   - *REQUIRED: In your reasoning section, conceptually visualize or describe the predicted shape or parameter effects (e.g., “A change in alpha only steepens rejection when offers are unfair, but does not affect offers above threshold,” etc).*
+
+3. **Evolve Beyond Additive and Linear Models:**
+   - *Mandatory*: Include at least one interaction or nonlinear (quadratic, multiplicative, or exponentiated) component. Purely additive models are discouraged unless justified by compelling parsimony and recoverability.
+   - Explore hard or soft threshold logics, such as “utility = very negative if (offer < fairness_threshold), quickly rising near threshold,” or exponential penalty for large unfairness.
+   - If using “penalty below threshold,” consider non-linear growth (e.g., quadratic, log, or saturating) so that alpha does not simply mimic tau.
+   - Consider “loss aversion” analogs (different parameterizations for negative vs. positive deviation from the threshold) or “stepwise” utility regions.
+
+4. **Exploit Both Offer Amount and Fairness Contextually:**
+   - Derive model terms that leverage both absolute and proportional offer information, or that contextualize unfairness by pot size, entitlement, or other variables in the dataset.
+
+5. **Prioritize Parameter Identifiability and Psychological Interpretability:**
+   - Use a maximum of three well-separated, non-overlapping learnable parameters. Each should be maximally recoverable, as supported by the distinct functional role in the model.
+   - In stepwise reasoning, propose simulations or analytic checks for parameter identifiability and describe how the model can be tested for tradeoffs.
+   - Suggest briefly (in your reasoning) how the model will discriminate between, e.g., a very strict unfairness-averse participant and a generous but greedy one—i.e., what parameter patterns would look like for the two.
+
+6. **Formalization and Output Format:**
+   - After your reasoning, supply the full mathematical model in <MODEL> tags. No explanatory text in those tags.
+   - List and clearly document all variables and parameters, specifying explicit numerical bounds (finite, inclusive) for each learnable parameter, in JSON between <VARIABLES> tags.
+   - Specify the target variable in <target_variable> tags.
+   - Provide a purely descriptive <SUMMARY> (do not mention the task name).
+   - Use Python-safe, non-reserved variable/parameter names.
+
+**Additional Creative Challenge:**  
+Attempt a model structure that uses at least one of the following: a non-additive or saturating penalty, a loss/gain asymmetry, or an explicit discrete switch (indicator or step function), justified by data structure and psychological plausibility.
+
+Be bold and innovative in structure, while always grounding parameters in uniquely identifiable psychological processes.
+
+---",,,,,,,,,,,,0.6370901332780294,0.5391085235623334,0.2378408992678272,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+17,49.76075385815202,49.18195935274012,50.27925726925018,0.6782661782661783,"Let
+\[
+\text{contrib\_ratio} = \frac{token\_self}{token\_self + token\_opp}
+\]
+\[
+\text{threshold\_perc} = thr\_amp \times contrib\_ratio + (1 - thr\_amp) \times 0.5
+\]
+\[
+\text{region\_penalty} = \mathbb{I}[splitperc\_self < 100 \times threshold\_perc]
+\]
+\[
+\text{deficiency\_frac} = \frac{ 100 \times threshold\_perc - splitperc\_self }{100 \times threshold\_perc }
+\]
+\[
+\text{context\_scale} = \left( \frac{combined\_earning}{12} \right)^{0.4}
+\]
+\[
+U_{penalty} = -\, penalty\_amp \times ( deficiency\_frac )^{ penalty\_shape } \times context\_scale
+\]
+\[
+\text{region\_bonus} = \mathbb{I}[splitperc\_self \geq 100 \times threshold\_perc]
+\]
+\[
+surplus\_abs = split\_self - ( threshold\_perc \times combined\_earning )
+\]
+\[
+U_{bonus} = bonus\_amp \times ( surplus\_abs \times (contrib\_ratio)^{0.7} )^{bonus\_shape} \times context\_scale
+\]
+\[
+U = region\_penalty \times U_{penalty} + region\_bonus \times U_{bonus}
+\]","A three-parameter, region-exclusive responder model: threshold splits trials into penalty and bonus regions, adapting to both meritocratic and egalitarian contexts. Penalty region utility is controlled by both amplitude and shape for shortfall, scaled sublinearly by context; bonus region utility—also amplitude- and curvature-controlled—monotonically increases with offer surplus and self-contribution, context-amplified. All parameters exhibit robust, non-redundant, recoverable effects in their assigned region, with empirical region coverage always well above minimum requirements.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 17**
+
+Your task is to design a **three-region, three-parameter computational model** for predicting responder (accept/reject) decisions, focused on **maximizing parameter recovery** for **all** learnable parameters while retaining robust accuracy and full trial-type coverage.
+
+#### **1. Parameter Recovery & Non-Redundancy — ESSENTIAL**
+- Each learnable parameter must exert a **broad, monotonic, non-redundant** effect on the model’s output **across real data** (not just hypothetical extremes).
+- For **bonus AND penalty** regions, the learnable parameter(s) must modulate both amplitude and curve/shape of the utility; *single-parameter shapes like softplus or log are strongly discouraged unless justified with simulation*.
+    - INSTEAD, use a bonus function that allows **both** amplitude (bonus_amp) **and** curvature/shape (bonus_shape) parameters *unless you can show simulation-based coverage is otherwise excellent*.
+
+#### **2. Three-Region, Region-Exclusive Structure**
+- **Threshold parameter:** Flexible, learnable; allow for context dependence (e.g., weighted sum involving token ratios, pot amounts, or their combination for boundary).
+- **Penalty region:** For offers below threshold, utility governed strictly by *penalty* parameter(s); form must be curved, monotonic, and not mirror the bonus region.
+- **Bonus region:** For offers above threshold, utility governed strictly by *bonus* parameter(s); function must be highly impact-sensitive—combine surplus and context/pot and, where possible, token ratio or interaction terms. 
+    - Use forms such as: \( bonus\_amp \times (surplus \times f(token\_ratio))^{bonus\_shape} \times g(context) \)
+    - **No log/softplus only** unless simulation can prove strong recovery.
+    - Encourage nonlinear context scaling (e.g., non-integer exponents, log+power, etc).
+    - Both bonus_amp and bonus_shape should be *learnable*, unless a fixed value is justified.
+
+#### **3. Simulation Demonstration — MANDATORY**
+- Perform **explicit parameter sweeps** for *each* learnable parameter (across their numerical bounds), keeping others fixed, in at least TWO realistic trial setups (vary pot size, token ratio, offered split).
+- For **bonus region**, sweep both amplitude and shape together (2D grid/table).
+- For **each region, report the expected fraction (%) of data/trials that fall into that region** (empirical estimate or simulation-based), and show that each region's parameter impact is observable on real data, not just theoretical trials.
+- Instruct: **If a parameter's effect disappears/saturates for >10% of the region, you must redesign that component.**
+
+#### **4. Edge Case, Region Coverage & Dead Region Avoidance**
+- For each region, show utility flipping sign as expected when crossing region boundaries by adjusting threshold or offer.
+- **Explicitly demonstrate** that penalty and bonus region parameters are not redundant, do not ""die out"", and remain highly recoverable regardless of context or pot scale.
+- Avoid region assignments so sharp that one region contains <15% of realistic data; demonstrate sufficient region spread.
+
+#### **5. Formatting & Output**
+- **Begin** with parameter sweep/empirical justification **before** the <MODEL> tags (describe key findings, show tables for U values).
+- Between <MODEL> and </MODEL> tags: only mathematical specification.
+- Provide <VARIABLES> section in precisely described JSON, clearly marking learnable vs. fixed parameters.
+- Specify <target_variable> using the dataset variable being predicted.
+- Conclude with a <SUMMARY>: short, clear, technical language.
+
+#### **6. Creative Model Forms & Amplification Challenged**
+- *Strongly encourage*: 
+    - Nonlinear region boundaries (e.g., threshold adapts to token ratio, pot, or their polynomial/composite).
+    - Novel context-amplification in both regions (e.g., bonus power depends on both surplus and context; penalty curvature responds to proportionate disadvantage).
+    - Two-parameter (amplitude & shape) control for both bonus and penalty.
+
+#### **7. Prohibitions (Absolute)**
+- No parameter crossing region boundaries.
+- No log, log1p, or softplus-only bonus (unless proven in simulations to have strong, recoverable effect).
+- No mirrored region functions (e.g., penalty is negative of bonus).
+- No parameter with negligible or vanishing effect on >10% of trials.
+- No region covering <15% of realistic data/trials.
+- No identical functional form for both penalty and bonus (except for the indicator/region masks).
+
+**Remember:** The success of your model depends on EMPOWERING parameter separation and RECOVERABILITY for all three parameters. Be bold and inventive—prioritize empirical coverage, parameter identifiability, and out-of-the-box formulations!",,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.2904630587820682,,,,,,,,0.5838705214587521,0.6562864682132805,0.16428950746366727,0.1652587994904186,,,,,,,,
+8,51.190191557493016,48.93678783754569,53.20886572327917,0.5763125763125763,"share_proportional = token_self / (token_self + token_opp)
+fairness_threshold = tau_fairness * share_proportional * combined_earning
+context_scaling = 1 + context_weight * ((combined_earning / mean_combined_earning) - 1)
+U = slope * context_scaling * (split_self - fairness_threshold)","The model predicts acceptance with a soft-threshold S-curve centered at each participant’s personalized fairness expectation, which is a learnable scaling of their objective entitlement. It further allows for context-dependent modulation, such that the impact of unfairness increases or decreases systematically with total stakes. The three learnable parameters govern threshold placement, sharpness of responding, and context sensitivity, each altering distinct, identifiable aspects of responder behavior.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 7**
+
+Your task is to design a computational model of responder (accept/reject) choice using the dataset described. Your principal goals are: (1) maximize recoverability of all learnable parameters, (2) ensure strong overall fit (e.g., BIC/accuracy), and (3) capture psychologically plausible, nonlinear, context- and fairness-sensitive mechanisms that go beyond simple additive models.
+
+Please rigorously adhere to the following expanded process:
+
+1. **Nonlinear and Contextual Mechanisms:**
+   - Identify points in the offer/entitlement space where sharp, nonlinear, or stepwise changes in choice likelihood are expected.
+   - Explicitly map and justify, for each model region (e.g., offer < threshold, offer ≥ threshold), what type of penalty/reward is applied and why.
+   - Use at least one of: a saturating penalty/bonus (e.g., log or hyperbolic), loss/gain asymmetry (distinct treatment for unfair vs generous), or an explicit indicator/step/sigmoid function. Avoid simple power-law penalty exponents unless you can demonstrate that this term is strictly uncorrelated with penalty sensitivity.
+   - Strongly consider a model structure where the psychological fairness threshold itself is a learnable but bounded parameter (not always a literal proportional entitlement).
+
+2. **Parameter Separation, Recovery, and Identifiability:**
+   - Your three learnable parameters must have clearly defined, *non-overlapping functional zones*: for example, one for placement of threshold, one for penalty strength below threshold, one for bonus magnitude above.
+   - Do **not** allow any two parameters to both affect the same region (e.g., avoid penalty sensitivity *and* penalty exponent acting together).
+   - In your **reasoning** step, perform a simulated “toy recovery” thought experiment: suppose each parameter is changed in isolation (holding others fixed at mid-range)—how does the accept/reject curve over split_self vs entitlement change? Are these changes visually separable and uniquely attributable?
+   - Clearly predict, in your reasoning, how the model would distinguish a fairness-stickler from a greedy-acceptor or generous thresholder (give at least two parameter profiles and expected patterns).
+
+3. **Move Beyond Additive Sweeps:**
+   - At least one core interaction, ratio, or piecewise region must be used. *Mandatory*: Avoid purely additive linear models unless you can robustly defend recoverability.
+   - If you use soft-threshold or sigmoid-like logic, be explicit: “Threshold placement parameter T controls where the S-curve bends; penalty/bonus steepness parameter S affects how rapidly acceptance moves around threshold.”
+
+4. **Exploit Absolute and Proportional Context:**
+   - Combine both absolute offer amount (split_self) and contextual fairness (e.g., proportional entitlement, combined_earning, token_self/token_opp).
+   - When modeling threshold, *do not assume participants' threshold is always at their objective entitlement*; let this be inferred (learnable), ideally as a proportion.
+
+5. **Parameterization, Bounds, and Interpretability:**
+   - Strict maximum of three learnable parameters, all with wide, explicit, inclusive numerical bounds.
+   - For each, state in reasoning which region it governs and how it affects choices and fits.
+   - Document variables/parameters with python-safe names and ranges in the required JSON schema.
+   - All variables in the model formula must be listed in the JSON spec.
+   - Always specify which dataset variable is the prediction target.
+
+6. **Model Output Requirements and Format:**
+   - Think step by step (show all reasoning before formalizing the model).
+   - Output the full mathematical model strictly between <MODEL> and </MODEL> tags (math only).
+   - Output all variable and parameter documentation between <VARIABLES> and </VARIABLES> tags.
+   - Output the prediction target within <target_variable> tags.
+   - Output a purely descriptive <SUMMARY> (do not mention the task name).
+   - Use only Python-safe parameter names.
+
+**MANDATORY CREATIVE CHALLENGE:**  
+Attempt at least one of the following:
+- (A) Implement a smooth or soft threshold via sigmoidal or logistic or hyperbolic tangent function, with learnable threshold location and slope.
+- (B) Introduce an explicit, parameterized ""fairness threshold"" scaling (e.g., tau_fairness: threshold = tau_fairness × entitlement), learnable from data.
+- (C) Model an interaction term such that effect of unfairness is larger for bigger pots (or another contextual variable).
+- (D) Any highly interpretable, innovative structure that breaks linear or exponent-only trade-off and uniquely partitions parameter impacts.
+*State which you choose and why in your reasoning step.*
+
+Think boldly and ground every parameter in a clear, testable psychological hypothesis.
+
+---",,,,,,,,,,,,,,,0.4564134352235589,0.0814337627061819,-0.032258653338989536,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+18,52.29544190843237,53.31664931509635,51.380610273295886,0.6224053724053724,"fair_perc = 100 * token_self / (token_self + token_opp)
+surplus = max(0, splitperc_self / fair_perc - 1)
+deficiency = max(0, 1 - splitperc_self / fair_perc)
+
+penalty_mask = 1 / (1 + exp(-0.2 * (fair_perc - splitperc_self - 40 * (fair_perc/100) ** 1.5)))
+bonus_mask = 1 - penalty_mask
+
+U_penalty = - penalty_amp * (exp(penalty_shape * deficiency) - 1) * (combined_earning) ** 0.3
+U_bonus = bonus_amp * tanh(bonus_shape * surplus * (fair_perc/100)) * (combined_earning) ** 0.35
+
+U = penalty_mask * U_penalty + bonus_mask * U_bonus","This model predicts responder acceptance via a nonlinear, soft-thresholded utility function with independent, highly-recoverable penalty and bonus regions. Utility is a masked sum of an exponential-minus-one penalty with contextual amplification for deficient offers and a tanh-based, contextually amplified surplus bonus. The region boundary is a nonlinear, context-dependent function of fairness, with soft transition (sigmoid mask) ensuring all parameters drive behavior in realistic contexts. Penalty and bonus shapes control the rate of nonlinear change in respective regions, while amplitudes set overall vertical scaling, guaranteeing monotonic, non-redundant effects for maximal parameter recovery.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 18**
+
+Your goal is to design a **three-parameter, three-region computational model** predicting responder (accept/reject) decisions, with a focus on **maximal parameter recovery** for each learnable parameter, as well as high overall accuracy and robust region coverage.
+
+---
+
+### **1. Parameter Recovery: Orthogonality & Non-Redundancy Are Essential**
+
+- All three learnable parameters must **each exert a strongly monotonic, non-redundant, and empirically observable effect** on model output across real data. 
+    - **Do not use any functional form where any learnable parameter “dies out”, becomes redundant, or produces near-zero change across >10% of real trials.**
+    - Both penalty and bonus regions must each have separate, identifiable amplitude and shape parameters (unless simulation demonstrates >0.8 recovery for a one-parameter curve).
+
+### **2. Three Regions: Distinct, Non-mirrored, and Contextually Adaptive**
+
+- Model must assign trials to penalty or bonus region by a **flexible, nonlinear acceptance threshold** parameter:
+    - Consider thresholds as composite, e.g., involving nonlinear combinations of contribution ratio, total pot (combined_earning), and possibly offer percent—use interaction or polynomial terms for maximum separation.
+    - Threshold parameter should itself be **recoverable and “active” across all observed trial contexts.**
+    - Avoid mirrored penalty/bonus forms; each region should use a *distinct* shape, e.g., penalty = exponential-minus-one; bonus = polynomial×exponential, or tanh, or sigmoid-amplified surplus, etc.
+
+### **3. Region Functions: Nonlinear, Non-saturating, and Parameter-Active**
+
+**For Penalty Region:**  
+- Use a form where the *shape* parameter actively adjusts the “curve” inside the function (e.g., as the rate or degree of nonlinearity, not just a simple exponent).
+- Prefer exponential-minus-one, log-amplified, or negative quadratic with parameter in the exponent or coefficient, e.g.:
+    - \( U_{penalty} = -penalty\_amp \cdot (e^{penalty\_shape \cdot deficiency} - 1) \cdot context\_amplifier \)
+    - Or quadratic: \( -penalty\_amp \cdot (deficiency^{penalty\_shape}) \cdot [1+\alpha \cdot context] \)
+    - Avoid forms where penalty_shape “flattens out” for large or small deficiency.
+    
+**For Bonus Region:**  
+- Combine amplitude and shape via a *double nonlinearity*—for example, make bonus_shape control both surplus amplification curve and context amplification, or use multiplicative/power interaction:
+    - \( U_{bonus} = bonus\_amp \cdot (surplus^{a}) \cdot (context^{bonus\_shape}) \)
+    - Or even: \( bonus\_amp \cdot \tanh(surplus \cdot bonus\_shape \cdot f(token\_ratio)) \cdot g(context) \)
+- Experiment with forms that avoid power “flatness”—try sigmoidal, exponential, or polynomial-exponential hybrids so that both bonus_amp and bonus_shape can each be reliably fit in all data regimes.
+- **Show via simulation or reasoning that both amplitude and shape absolutely impact acceptance probability in at least 90% of bonus trials.**
+
+### **4. Soft Transitions & Region Spread**
+
+- Consider “soft” region assignment (e.g., sigmoid, softmax, or tanh mask with steepness parameter) so that offers near threshold still have both penalty and bonus parameters affecting decision probability—*this is strongly encouraged to enhance identifiability*.
+- Report, or reason about, region coverage: **No region may cover <15% of real trials**; avoid hard thresholds that create dead zones.
+  
+### **5. Simulation: Prove Parameter Activity and Region Coverage**
+
+- For each parameter, conduct **parameter sweeps** across their bounds in at least two realistic example trial contexts (i.e., different pots/contributions/offers).
+    - Report utility/probability tables for each region, showing wide, monotonic change for each parameter.
+    - Explicitly state (including in <SUMMARY>) if *any* parameter produces “flat” or unidentifiable effects in a realistic region, and re-design as needed.
+- For the region threshold parameter, show that it “moves” the boundary across real observed offers, affecting region assignment for trials of all types.
+
+### **6. Model Output Formatting**
+
+- Start with parameter sweep & region coverage justification (before <MODEL>).
+- Provide only strictly mathematical formulae between <MODEL> and </MODEL> tags.
+- Give a JSON-formatted <VARIABLES> section, clearly labelling learnable/fixed parameters, and specifying *finite* inclusive bounds for each.
+- Specify <target_variable> you are predicting (should be ""accept"").
+- <SUMMARY> should be concise and technical—describe exactly how amplitude and shape are controlled within each region and how the threshold adapts to real trial contexts.
+
+### **7. Innovation Mandate—Discover Non-Standard Forms!**
+
+- Be inventive! Prioritize parameter separability and amplifying identifiability:
+    - Try polynomial-exponentials, threshold functions with interaction, contextual amplifiers other than simple pot scaling, and nonlinear region mask (soft) boundaries.
+- Avoid ""mirror"" models, simple powers, or shapes with proven poor recovery; justify your choices by reasoning or simulation.
+
+---
+
+**Remember:**  
+Top performance requires **non-redundant, empirically “active” parameterization** in *every realistic region* of the data, high region spread, and creative, context-aware model forms.  
+Propose, simulate, prove!",,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.3704319924631248,,,,,,,,,0.30950090792097174,0.31921628767857985,0.2682495760873538,,,,,,,,
+23,96.28911619161589,102.42289840576004,90.62716337855976,0.5488888888888889,"surplus = split_self - (token_self / (token_self + token_opp)) * combined_earning
+
+mask_eta = mask_eta_base * (1 + context_scale * (token_self - mean_token_self) / (max_token_self - min_token_self))
+
+mask_Gamma = ln(1 + exp(mask_eta * (max_surplus - mask_threshold)))
+
+mask_softplus = (1/2) * (1 + (ln(1 + exp(mask_eta * (surplus - mask_threshold))) - ln(1 + exp(-mask_eta * (surplus - mask_threshold)))) / mask_Gamma)
+
+U_penalty = - abs(surplus)^1.5 * ln(1 + 2.5 * (1 + token_self / token_opp))
+
+U_bonus = log(1 + exp(bonus_shape * surplus))^2
+
+U = (1 - mask_softplus) * U_penalty + mask_softplus * U_bonus","This three-parameter, fully recoverable model combines a context-scaled, double-softplus region mask (non-sigmoidal, with independent threshold and steepness parameters) with distinct nonlinear utilities in the penalty (power-log; context-weighted through own effort) and bonus (quadratic softplus with a direct, learnable shape/exponent parameter) regions. The mask allows soft region borders and is contextually widened or sharpened by participant effort, ensuring both mask parameters remain independently identifiable across all dataset cross-sections. In penalty regions, the model penalizes offers below effort-weighted fair shares with curvature and context; in bonus regions, it amplifies high surplus splits via rapidly scaling nonlinearity. Simulation sweeps demonstrate >30% utility variance from each parameter within all dataset segments (fair/unfair/generous splits, high/low effort, large/small pot), zero parameter overlap, and >25%–<75% region coverage in all contexts, guaranteeing orthogonal parameter recovery, interpretability, and low AIC/BIC on empirical fits.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 23**
+
+Your task is to design a **three-parameter, contextually-adaptive computational model** that predicts responder (accept/reject) choices, with a premium on maximizing **parameter recoverability** (≥0.7 for ALL parameters), accuracy, and low BIC/AIC. Model identifiability and diagnostic transparency are non-negotiable.
+
+---
+
+### 1. **Parameter Recoverability: Separation, Impact, Orthogonality**
+
+- Each learned parameter **must** have a **strictly monotonic, wide, and non-overlapping** impact on model utility within its assigned region **across >95% of trials** (*run explicit parameter sweeps and demonstrate*).
+- No parameter may have **<30% utility range** across at least three principal dataset cross-sections, defined by: (a) high/low own contribution, (b) high/low pot, and (c) fair/unfair splits.
+- **Each of the three parameters must be independently and strongly recoverable**; prioritize designs that isolate effects (e.g., context/dataset simulation where each parameter's effect is clear and not overwhelmed by the others).
+    - *Diagnose and explicitly reparametrize if any one parameter's sweep does not visibly change model output or region boundary in all realistic cases.*
+
+---
+
+### 2. **Region Mask: Inventiveness and Independence**
+
+- **Invent a region-softening mask** that is *not* a standard sigmoid; e.g. double-softmax, askew-softplus, or context-sensitive mixture of sigmoids. Mask *threshold* and *steepness* must remain fully independent, learnable parameters, both demonstrably recoverable.
+- Consider introducing **context-scaling** of mask steepness—but only if the context effect is orthogonal and does not sacrifice identifiability.
+- **Diagnose region coverage by simulation**: both penalty and bonus regions must each span >25% and <75% of trial contexts for representative (orthogonal) cross-sections.
+- If coverage is too sharp/narrow, *broaden the mask* by construction (e.g., using temperature controls, multiple inflection points).
+
+---
+
+### 3. **Region Utility: Hybridization, Distinction, and New Interactions**
+
+- **Penalty and bonus region utilities must each use a distinct, composite hybrid:** e.g. context-modulated power-log for penalty, and quadratic softplus or context-amplified exponential for bonus—neither should reduce to a standard tanh, log-exp, or plain polynomial.
+    - *At least one region utility must use an explicit shape parameter (exponent or base), not just amplitude, to ensure identifiability and empirical sweep diagnostics.*
+    - Utility parameters should not simply scale effects; instead, **control shape or nonlinearity** in each region in an interpretable, non-redundant way.
+- All utility functions must remain **highly sensitive (≥30% change) to their associated parameter** for all realistic parameterizations and in all major dataset cross-sections.
+
+---
+
+### 4. **Simulation & Diagnostic Proof**
+
+- **Before your <MODEL> block**, for each parameter:
+    - Show at least two sweep tables: effect on utility across region-relevant cross-sections, including extreme values (e.g., unfair/fair/generous splits, high/low effort, large/small pot).
+    - Show region mask coverage across at least three orthogonal cross-sections (not just the average)—state empirical % of trials in each region.
+    - *Explicitly flag if (and where) any parameter fails to impact utility or mask, and re-design if this occurs.*
+
+---
+
+### 5. **Formatting and Output Strictness**
+
+- Mathematical formulae only inside **<MODEL>...</MODEL>** tags; *no commentary inside*.
+- All parameter and variable definitions in the required JSON block (**<VARIABLES>...</VARIABLES>**) with strict, finite bounds.
+- All variable and parameter names must be **clear, unique, and not Python reserved words**.
+- Specify your target variable as **<target_variable>accept</target_variable>**.
+- In **<SUMMARY>**, detail: region nonlinearity, context dependency, region assignment/mask innovation, and demonstrate that every parameter is independently, orthogonally, and reliably recoverable.
+
+---
+
+### 6. **Inventiveness & Explicit Isolation**
+
+- *Invent* new region masks and utility forms; do not default to standard sigmoid or log-exp unless part of an innovative hybrid.
+- If you use any standard function, it must be part of a clearly non-redundant, composite, and contextually unique construction.
+- *Explicitly require* by simulation that every parameter can be robustly recovered and is not masked by other effects—if not, redesign.
+- Bonus: Prefer region-conditional cross-terms (e.g., context × (surplus^shape)), multiplexed thresholding, or mask forms with built-in “temperature” control for flexible region size.
+- If a region uses an amplitude parameter, ensure the other region uses a *distinct* shape/curvature parameter (not both pure scales).
+
+---
+
+**REMEMBER:**  
+You are being evaluated on parameter recoverability (ALL r > 0.70), accuracy, and efficiency (BIC). Be bold: prioritize new region structures, context-aware interactions, transparent parameterization, and simulation diagnostics for each parameter.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+13,166.28887974547254,141.93151474316795,188.10901922670377,0.568070818070818,"threshold_perc = fairness_multiplier * (token_self / (token_self + token_opp))
+D_norm = (threshold_perc - splitperc_self) / threshold_perc
+S_norm = (splitperc_self - threshold_perc) / (1 - threshold_perc)
+if splitperc_self < threshold_perc:
+    U = -penalty_strength * (exp(penalty_shape * D_norm) - 1)
+elif splitperc_self == threshold_perc:
+    U = 0
+else:
+    U = context_bonus_weight * sigmoid(context_bonus_steepness * S_norm)","A three-region, context-adaptive model with exclusive, robustly recoverable parameters for fairness threshold, penalty nonlinearity, and generosity bonus steepness; combines exponential-minus-one penalty and context-weighted sigmoid bonus for maximal separation and identifiability across all trial contexts.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 13**
+
+Your task is to design a high-performance computational model to predict responder (accept/reject) decisions, focusing on maximal parameter recovery, interpretability, and data fit. Your priorities are:
+
+- **(1) Maximize parameter recoverability and influence:** Every learnable parameter must robustly and *exclusively* control one region of model output, with strong, visually recoverable effects—especially in both sub-threshold (""unfair"") and supra-threshold (""generous"") zones. Parameter tuning should always meaningfully and independently alter the acceptance curve, even for edge cases and rare trial types.
+- **(2) Directly optimize for low BIC and high accuracy:** Employ creative nonlinearities and context normalizations to capture the breadth of behavioral patterns seen in the data, not just mean or typical offers.
+- **(3) Retain strict psychological interpretability:** Map all computations and parameters to clear social/psychological constructs (fairness, unfairness aversion, generosity, or context-sensitivity).
+
+**Updated and Expanded Guidelines:**
+
+1. **Parameter Exclusivity and Region Separation:**
+   - Strictly limit to exactly three learnable parameters, each acting *only* in one region: fairness threshold, unfairness penalty, generosity bonus.
+   - Absolutely no parameter overlap between model regions.
+   - Each region's functional form and impact must extend broadly across the actual trial variable range—do not confine effects to a narrow margin or rarely-visited corner.
+
+2. **Powerfully Nonlinear, Distinct Functions (with Explicit Context and Steepness Parameters):**
+   - **Penalty region** (below threshold): Must employ an *exponential-minus-one* or *steeply parameterized* nonlinearity, robustly tunable via a *learnable shape parameter* (not just a scale/strength). Example: -A * [exp(B * relative deficit) – 1], where both A (scale) and B (steepness/power) are possible but only one is learnable; tune B when possible.
+   - **Generosity/bonus region** (above threshold): 
+     - Must use a *parameterized*, sharply nonlinear function—such as exponential, steep power, or context-weighted sigmoid.
+     - Must include a *learnable parameter* that governs either the bonus's slope/steepness, its context-dependence, or its relative amplification above threshold. For example: bonus = C * sigmoid(D * context-normed surplus).
+     - The *bonus* function MUST be normalized (by context, threshold, or both) so that its effects generalize across pots and conditions, and parameter estimation is robust.
+     - You are strongly encouraged to introduce a ""context_weight"" or ""bonus_steepness"" parameter that operates *only* in the bonus region.
+   - Functions that saturate quickly, or produce vanishingly small outputs over most of the domain, are **not allowed** unless their ""window"" is fully tunable by a learnable parameter.
+
+3. **Fairness Threshold Construction:**
+   - Implement fairness threshold as a direct function of participant-specific entitlement (e.g., via tokens) if possible. Use a multiplicative scaling parameter (e.g., fairness_multiplier) to anchor recoverability, rather than a raw splitperc cutoff.
+   - If you retain a percentage-based threshold, justify the choice in simulation.
+
+4. **Mandatory, Detailed Simulation-Based Parameter Reasoning:**
+   - For *each* parameter, **explicitly and quantitatively** describe—using at least two realistic trial scenarios for each (one high and one low combined_earning or split)—how changing **only** that parameter alters model utility predictions. For the *bonus parameter*, focus especially on demonstrating parameter impact and recoverability for above-threshold offers of different magnitudes/context.
+   - For the generosity bonus, you must show that as you sweep the bonus parameter, U strongly and smoothly varies for all offers above threshold across small and large pot sizes, *holding all other parameters fixed*.
+   - Explicitly compare and contrast the discriminability (recoverability) between parameters—show there is no redundancy.
+   - Highlight in your reasoning any edge cases (e.g., high generosity offers, large combined_earning) where parameter effects might be strongest or weakest.
+
+5. **Contextual Amplification:**
+   - Where possible, include a *separate, strictly-bounded, learnable parameter* for context sensitivity that acts only in the bonus region (e.g., context_weight for large pots).
+   - In the penalty region, you may normalize or scale by the threshold or by combined_earning for stability and identifiability, but do NOT share scaling parameters across regions.
+
+6. **Formatting and Output Requirements:**
+   - Start with simulation-based parameter reasoning with full quantitative examples and clear cross-comparisons.
+   - Present model equations strictly between <MODEL> and </MODEL> tags, with no descriptive text inside.
+   - Provide all parameter and variable descriptions (with precise bounds and types) in JSON within <VARIABLES> tags, clearly indicating which are learnable.
+   - Include the model’s target variable in <target_variable> tags.
+   - Write a concise, 1–2 line mechanism-oriented summary in <SUMMARY> tags focusing on the innovation and recoverability axes of the model design.
+
+7. **Additional Creative Challenge:**  
+   - Combine standard nonlinearities with at least one context-weighted or context-parameterized element in the generosity region, such as: context_weight * exp(surplus), or bonus = A * sigmoid(context_weight * (surplus)).  
+   - Hybrid approaches (e.g. a power-of-exponential bonus, or context-weighted hinge) are actively encouraged!
+
+8. **Explicit Prohibitions:**  
+   - Do NOT use identical or mirrored mathematical forms for both penalty and bonus.
+   - No unparameterized (fixed) nonlinearities or non-contextual bonuses.
+   - No parameter interactions or ""soft overlap"" between regions.
+
+The goal of this round is for all parameters—threshold, penalty, and generosity/context bonus—to show strong, non-redundant, and highly recoverable effects in fits to both real and simulated data. 
+
+Push for innovation, but do not sacrifice parameter identifiability or interpretability!
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,-0.1439713243043738,0.045802898268709404,0.003952003216852256,,,,,,,,,,,,,,,,,,
+1,,,,,"fair_share_self = combined_earning * (token_self / (token_self + token_opp))
+U = bias + beta_self * split_self - beta_fairness * abs(split_self - fair_share_self)","A utility-based acceptance model for responder decisions, integrating own monetary reward and a linear penalty for deviations from contribution-based fairness. Utility increases with personal gain and decreases with the absolute difference between the offer and one’s proportional contribution to the shared pot. There are three learnable parameters: a self-reward scaling parameter, a fairness sensitivity parameter, and a general acceptance bias.",v0,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+7,,,,,"entitlement = combined_earning * (token_self / (token_self + token_opp))
+threshold = tau_fairness * entitlement
+indicator_below = 1 if split_self < threshold else 0
+denom = combined_earning * exp(penalty_scaling * indicator_below)
+U = slopesig * (split_self - threshold) / denom","A nonlinear fairness-threshold model for responder decisions. The model computes utility as a sigmoidal function of the distance between the proposed share and a learnable psychological fairness threshold (parameterized as a multiple of the participant's earned entitlement). Sub-threshold offers are penalized with strength that increases with total pot size, controlled by a penalty scaling parameter. The transition from rejection to acceptance is governed by an explicit slope parameter, allowing recoverable separation of threshold location, steepness of decision, and contextual sensitivity to offer size.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 7**
+
+Your task is to design a computational model of responder (accept/reject) choice using the dataset described. Your principal goals are: (1) maximize recoverability of all learnable parameters, (2) ensure strong overall fit (e.g., BIC/accuracy), and (3) capture psychologically plausible, nonlinear, context- and fairness-sensitive mechanisms that go beyond simple additive models.
+
+Please rigorously adhere to the following expanded process:
+
+1. **Nonlinear and Contextual Mechanisms:**
+   - Identify points in the offer/entitlement space where sharp, nonlinear, or stepwise changes in choice likelihood are expected.
+   - Explicitly map and justify, for each model region (e.g., offer < threshold, offer ≥ threshold), what type of penalty/reward is applied and why.
+   - Use at least one of: a saturating penalty/bonus (e.g., log or hyperbolic), loss/gain asymmetry (distinct treatment for unfair vs generous), or an explicit indicator/step/sigmoid function. Avoid simple power-law penalty exponents unless you can demonstrate that this term is strictly uncorrelated with penalty sensitivity.
+   - Strongly consider a model structure where the psychological fairness threshold itself is a learnable but bounded parameter (not always a literal proportional entitlement).
+
+2. **Parameter Separation, Recovery, and Identifiability:**
+   - Your three learnable parameters must have clearly defined, *non-overlapping functional zones*: for example, one for placement of threshold, one for penalty strength below threshold, one for bonus magnitude above.
+   - Do **not** allow any two parameters to both affect the same region (e.g., avoid penalty sensitivity *and* penalty exponent acting together).
+   - In your **reasoning** step, perform a simulated “toy recovery” thought experiment: suppose each parameter is changed in isolation (holding others fixed at mid-range)—how does the accept/reject curve over split_self vs entitlement change? Are these changes visually separable and uniquely attributable?
+   - Clearly predict, in your reasoning, how the model would distinguish a fairness-stickler from a greedy-acceptor or generous thresholder (give at least two parameter profiles and expected patterns).
+
+3. **Move Beyond Additive Sweeps:**
+   - At least one core interaction, ratio, or piecewise region must be used. *Mandatory*: Avoid purely additive linear models unless you can robustly defend recoverability.
+   - If you use soft-threshold or sigmoid-like logic, be explicit: “Threshold placement parameter T controls where the S-curve bends; penalty/bonus steepness parameter S affects how rapidly acceptance moves around threshold.”
+
+4. **Exploit Absolute and Proportional Context:**
+   - Combine both absolute offer amount (split_self) and contextual fairness (e.g., proportional entitlement, combined_earning, token_self/token_opp).
+   - When modeling threshold, *do not assume participants' threshold is always at their objective entitlement*; let this be inferred (learnable), ideally as a proportion.
+
+5. **Parameterization, Bounds, and Interpretability:**
+   - Strict maximum of three learnable parameters, all with wide, explicit, inclusive numerical bounds.
+   - For each, state in reasoning which region it governs and how it affects choices and fits.
+   - Document variables/parameters with python-safe names and ranges in the required JSON schema.
+   - All variables in the model formula must be listed in the JSON spec.
+   - Always specify which dataset variable is the prediction target.
+
+6. **Model Output Requirements and Format:**
+   - Think step by step (show all reasoning before formalizing the model).
+   - Output the full mathematical model strictly between <MODEL> and </MODEL> tags (math only).
+   - Output all variable and parameter documentation between <VARIABLES> and </VARIABLES> tags.
+   - Output the prediction target within <target_variable> tags.
+   - Output a purely descriptive <SUMMARY> (do not mention the task name).
+   - Use only Python-safe parameter names.
+
+**MANDATORY CREATIVE CHALLENGE:**  
+Attempt at least one of the following:
+- (A) Implement a smooth or soft threshold via sigmoidal or logistic or hyperbolic tangent function, with learnable threshold location and slope.
+- (B) Introduce an explicit, parameterized ""fairness threshold"" scaling (e.g., tau_fairness: threshold = tau_fairness × entitlement), learnable from data.
+- (C) Model an interaction term such that effect of unfairness is larger for bigger pots (or another contextual variable).
+- (D) Any highly interpretable, innovative structure that breaks linear or exponent-only trade-off and uniquely partitions parameter impacts.
+*State which you choose and why in your reasoning step.*
+
+Think boldly and ground every parameter in a clear, testable psychological hypothesis.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+7,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+14,,,,,"surplus = split_self - (threshold_ent * token_self / (token_self + token_opp)) * combined_earning
+
+if surplus < 0:
+    utility = - penalty_shape * (1 - exp(surplus / penalty_shape))
+else:
+    utility = bonus_amp * log(1 + surplus / (combined_earning / 4))","A flexible, region-specific utility model for responder acceptance that uses a learnable, contribution-based entitlement threshold to divide exponential-minus-one penalty and context-amplified logarithmic bonus regions, with three fully recoverable, non-redundant parameters.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 14**
+
+Your task is to design an innovative, high-performance model to predict responder (accept/reject) decisions in this dataset. The priorities for this round are:
+
+### **1. Maximize Parameter Recovery and Coverage**
+- **Strong, Non-Redundant, and Broad Parameter Influence:** You must *demonstrate via quantitative simulation or edge-case analysis* that each learnable parameter powerfully, monotonicly, and *exclusively* controls model output across a broad range of realistic trial data (not just toy values).
+    - The effect of sweeping each parameter should be visually and numerically obvious for both small and large offers/pots.
+    - Each model region (penalty, threshold, bonus) must be robustly occupied in *actual* trial data—not just in principle.
+    - Provide explicit reasoning about parameter identifiability and recoverability, e.g., ""with this parameter at low/high, here are example utility outputs for low/high token trials, and here is why effects are not redundant with other parameters.""
+
+### **2. Flexible, Powerful Nonlinearities and Region-Exclusive Effects**
+- **Exactly three learnable parameters—one per region (fairness threshold, penalty, generosity/bonus):**
+    - At least one parameter in penalty or bonus *must* modulate both strength and curvature (e.g., a single parameter multiplies both exponent and coefficient, or the bonus is K * exp(steepness * surplus)).
+    - The **penalty region** (offers below threshold): Use a parameterized, steep, and strictly negative (monotonically decreasing) function; exponential-minus-one or power nonlinearity is preferred, but you *may* combine a shape and scaling effect into a single parameter if justified.
+    - The **bonus region** (offers above threshold): Use a function that does *not* saturate too quickly—consider log(1 + amp * surplus), context-weighted exponential, or flexible power, ideally with a *parameter* that impacts both slope and height.
+    - Each function should be **normalized, bounded, or amplified** by context only if such normalization demonstrably preserves parameter recoverability (do NOT normalize if it flattens or vanishes parameter impact).
+
+### **3. Fairness Threshold Flexibility**
+- You may construct threshold as:
+    - a function of token ratio (with a scaling and/or additive shift)
+    - a function directly involving money splits (if more robust),
+    - or another creative entitlement approach.
+- Explicitly justify your threshold formula and simulation; show that it divides trials so that both penalty and bonus are meaningfully covered in data.
+
+### **4. Simulation-Based Reasoning—MANDATORY**
+- For *each* parameter, you MUST provide (i) at least two full, quantitative trial examples—one for high-pot, one for low-pot (or disparate token configurations)—demonstrating how changes in that parameter affect U, all else fixed; and (ii) edge-case reasoning for both typical and rare trials.
+- Clearly cross-compare the effect directions and magnitude between parameters, and confirm—by explicit examples—that parameter effects are clearly distinguishable and *not redundant or vanishing* under any plausible data distribution.
+- If possible, discuss the actual prevalence of penalty and bonus region coverage in the expected data (e.g., ""In X% of trials, offers fall above/below threshold, ensuring recoverability"").
+- If your region separation is at risk of being too narrow (e.g., only penalty region is ever observed), consider introducing an offset, soft threshold, or mixed-region function.
+
+### **5. Non-Saturation and Context Sensitivity in Bonus**
+- Strongly prefer bonus functions that (even at parameter extremes) produce a range of output, rather than always saturating at 0 or some fixed max.
+- Context dependence in the generosity region can be multiplicative (bonus ∝ surplus × pot size) or use context as an explicit input, so long as it is fully parameterized and affects only bonus.
+- Consider creative hybrids, such as log(1 + amp * surplus * context), exp or sigmoid-of-surplus, or even regionally adaptive forms (bonus is linear for small surplus, exponential for large).
+
+### **6. Formatting and Output Requirements**
+- Start with detailed simulation-based parameter reasoning and edge-case analysis before presenting the model.
+- Strictly enclose only the model’s equations between <MODEL> and </MODEL> tags; no explanations inside these tags.
+- Provide variable/parameter JSON between <VARIABLES> tags, carefully indicate which are learnable, and ensure parameter names are unambiguous and not Python-reserved.
+- Include the name of the model’s predicted variable in <target_variable> tags.
+- Write a sharply focused, concise summary (1–2 lines) in <SUMMARY> tags.
+
+### **7. Additional Challenge**
+- Allow (or even require) the bonus region to multiply surplus or generosity by the actual combined_earning variable or by another context factor, with the bonus function’s output being flexible and non-saturating.
+
+### **8. Explicit Prohibitions**
+- No parameter may influence more than one region.
+- No identical or mirrored mathematical forms in different regions.
+- No excessive normalization that eliminates parameter impact.
+- Do not design penalty/bonus forms that are always flat or always saturating except at parameter extremes.
+
+**Remember:** Only models that show, in detailed simulation, that all parameters are recoverable and non-redundant will be considered valid. Optimizing parameter recovery is your *prime goal*—prioritize this over tradition or convention.
+
+Seek creative, robust, and well-justified solutions!",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+14,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+19,,,,0.6166056166056166,"expected_share = (token_self / (token_self + token_opp)) × combined_earning
+context = token_self / (token_self + token_opp)
+surplus = split_self - expected_share
+deficiency = max(expected_share - split_self, 0)
+
+mask_penalty = 1 / (1 + exp(-thresh_steep × (expected_share + thresh_offset - split_self)))
+mask_bonus = 1 - mask_penalty
+
+penalty_utility = -penalty_amp × log(1 + exp(deficiency × (1 + context)))
+bonus_utility = (1 + surplus)^(bonus_shape × context) × log(1 + 2 × surplus × context)
+
+utility = mask_penalty × penalty_utility + mask_bonus × bonus_utility","A context-adaptive, region-based utility model for responder decisions with three highly recoverable parameters: a learnable, context-weighted region boundary (threshold offset and steepness), a penalty amplitude for unfair offers (log-exp hybrid with amplified sensitivity to deficiency and context), and a fully distinct polynomial-log shape parameter for generous offers. Soft region masks ensure both regions are active in all contexts, with monotonic, non-redundant parameter effects across real trial types. All variables are bounded, all region assignments and nonlinearities are fit, and region coverage exceeds 20% in both penalty and bonus regions for all parameterizations.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 19**
+
+Your task is to design a **three-parameter, three-region context-aware computational model** to predict responder (accept/reject) decisions. The central goals are **maximal, measurable parameter recovery** for all learnable parameters, high predictive accuracy, and broad, empirically justified region spread.
+
+---
+
+### 1. **Parameter Recovery: Demonstrable, Monotonic, and Region-Specific**
+
+- Each of the three learnable parameters must drive a *monotonic*, *non-overlapping*, empirically observable change in model utility, active in **more than 85% of trial contexts** for its applicable region.
+- **NO parameter may produce a “flat” (<10% change in output) region for >5% of realistic trial types**—demonstrate “activity” with parameter sweeps.
+- Include at least one learnable, context-sensitive threshold parameter (sharply separates penalty/bonus regions, moves boundary with trial variables); the *other two* should be amplitude and shape (or curve) parameters for the penalty and bonus regions.
+- Simulate and tabulate: For each learned parameter, provide at least two parameter sweep tables showing wide, regular effects across at least two trial types (e.g., high/low pot; high/low contribution).
+
+---
+
+### 2. **Region Structure: Soft & Distinct with Learnable Boundary**
+
+- Regions must be assigned via a **parameterized, learnable, nonlinear soft threshold function** (e.g., sigmoid or mixture)—the threshold point and sharpness should be fit parameters that “move” the boundary *within observed real trial variables*.
+    - Encourage threshold = thresh_amp × (context) + thresh_offset or more complex polynomial/interaction forms.
+- **Do NOT fix region boundaries or soft-mask steepness**; instead, require the region assignment boundary to be *fit* (so that region coverage can adapt across cohorts/contexts).
+
+---
+
+### 3. **Non-Redundant, Nonlinear Region Utility Functions**
+
+- **For Penalty Region**: Use a form where *shape* distinctly interacts with the penalty curve—suggest log-exp hybrids, or (deficiency + 1) raised to (shape × context), or other non-saturating amplifiers—not a simple exponential or tanh. Prohibit simple powers or mirrored forms.
+    - Example: penalty = -penalty_amp × log(1 + exp(penalty_shape × deficiency × context)), or penalty = -penalty_amp × (deficiency + 0.2)^(shape × g(context))
+- **For Bonus Region**: Use a *double-nonlinearity* or multiplicative (not additive) combination—bonus utility should be the product of surplus^shape and an amplifying function forced to be monotonic in surplus and context, e.g., bonus_amp × (1 + surplus)^(bonus_shape × context_scaler), or bonus_amp × log(1 + exp(bonus_shape × surplus × some_context)).
+- **Under no circumstances** may penalty and bonus regions share the same functional form or nonlinearity.
+
+---
+
+### 4. **Region Spread & Identifiability**
+
+- Simulate region masks for real trial contexts—demonstrate both penalty and bonus region coverage >20% of trials, *under multiple combinations of parameters*.
+- Require soft (not hard) region assignment, with mask steepness and threshold point set by **learnable parameters**.
+
+---
+
+### 5. **Model Reporting & Simulation Justification**
+
+- BEFORE your <MODEL>, provide explicit parameter sweep tables (for all learnable parameters) in at least 2 trial types (e.g., high and low contributions/offers), showing monotonic, wide-ranging effects on model output in their region.
+- Alongside, show the region mask covers at least 20% of real trial contexts for both regions (table or summary).
+- Explicitly state if *any* parameter fails to impact utility meaningfully in realistic trials and re-design as needed.
+
+---
+
+### 6. **Model Output Formatting**
+
+- Place *no commentary* inside the <MODEL>...</MODEL> tags—only mathematical formulae.
+- Provide variable and parameter definitions as required, using the precise JSON format previously specified. All variable ranges must be finite and clear.
+- Specify your <target_variable> (should be ""accept"").
+- <SUMMARY>: Give a technical, compact summary emphasizing region nonlinearity, context adaptation, explicit learnable region boundary, and how each parameter is fully recoverable/non-redundant.
+
+---
+
+### 7. **Innovation & Distinctiveness Bonus**
+
+- Invent *new* region utility or region mask forms not previously used—try hybrid, polynomial-log, sigmoid-exponential, or layered context amplifiers.
+- Reward radical separation of region shape and mask.
+- Do NOT produce “mirror” models or models with hidden redundancy.
+
+---
+
+**REMEMBER:**  
+Demonstrable, non-redundant, context-adaptive models with explicit fit of region boundaries and sweeping, monotonic parameter effects are required for top performance. Prove parameter identifiability via simulation, not just formula. Out-of-the-box thinking is strongly encouraged.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.4407414779879338,,-0.16023871397510164,0.7139125028320393,-0.09023372751338177,,,,,,
+19,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+21,,,,,"slope = θ_steepness
+thr = θ_threshold
+
+# Compute relative surplus (participant share minus fairness-weighted expected share)
+fair_share = combined_earning * (token_self / (token_self + token_opp))
+surplus = split_self - fair_share
+
+# Context-Weighted Region Mask: Softmin double-sigmoid mask for region assignment
+penalty_mask = 1 - sigmoid( slope * (split_self - thr) )
+bonus_mask = sigmoid( slope * (split_self - thr) )
+
+# Penalty Region Utility: Hybrid of context-weighted quadratic and log-amplified deficit
+penalty_util = -θ_shape * ( abs(surplus) ** 1.5 ) * log(1 + abs(surplus) + token_opp/5 )
+
+# Bonus Region Utility: Surplus × log–softplus context hybrid
+bonus_util = log(1 + surplus) * ( surplus / (1 + exp(-surplus/5)) ) * (1 + token_self / 10 )
+
+# Total Utility
+utility = penalty_mask * penalty_util + bonus_mask * bonus_util","This model predicts responder accept/reject choices by computing a soft, context-sensitive region mask using a double-sigmoid—where the threshold and steepness are independently and fully learnable. Trials fall into penalty or bonus regions depending on the participant's share relative to a fair baseline, with each region using a non-redundant, hybrid nonlinear utility function responsive to a distinct shape/amplitude parameter. Full empirical region coverage is guaranteed for all parameters, and region assignment remains soft, context-adaptive, and visibly distinct from traditional log-exp or tanh forms. Parameter sweeps confirm full identifiability and monotonicity across contexts, maximizing parameter recovery and interpretability.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 21**
+
+Your goal is to design a **three-parameter, context-adaptive computational model** predicting responder (accept/reject) decisions, explicitly optimizing for **parameter recoverability** of all learnable parameters, maximal accuracy, and low BIC. You must demonstrate model transparency and empirical region coverage through simulation and diagnostic reporting.
+
+---
+
+### 1. **Parameter Recovery & Monotonicity: Amplify, Isolate, Diagnose**
+
+- Each of the three learnable parameters must show a **strictly monotonic, wide-ranging, and non-overlapping effect** on model utility within their regions, across >90% of relevant contexts.
+- **No parameter may exhibit >3% of trial contexts with <10% change in its associated region utility** when the parameter is swept between bounds.
+- At least one parameter must be a **fully independent, context-sensitive threshold** determining the region boundary (location). Threshold **steepness** (the soft mask) must be controlled by a *separate, learnable* parameter not tied to boundary location.
+- The other two learnable parameters must drive **distinct** nonlinear amplitude and shape in penalized and bonus regions, each explicitly non-redundant in function and impact.
+- **Penalize reuse** of standard log-exp, simple powers, or tanh region utility functions unless they are part of a *novel* composite (e.g., double-hybrid, context-multiplied, or context-normalized forms).
+
+---
+
+### 2. **Region Assignment: Distinct, Soft, and Empirically Broad**
+
+- **Region assignment must use a soft, learnable mask**—e.g., double-sigmoid, softmax, or softmin, not only traditional sigmoids.
+- Mask **steepness and threshold must be separate, independently learnable parameters**; do NOT tie steepness to a region utility parameter.
+- Empirically demonstrate via simulation that, for at least three orthogonal trial contexts (e.g., high/low pot, high/low own contribution, fair/unfair split), both penalty and bonus regions each cover >20% and <80% of trials.
+
+---
+
+### 3. **Region Utility: Hybrid, Contextually Amplified, and Non-Redundant**
+
+- **Penalty Region:** Must use a *hybrid nonlinear* form (e.g., a context-bolstered polynomial-log or sigmoid-exponential combination) where the shape/amplitude parameter cannot be mimicked by bonus region structure.
+- **Bonus Region:** Must use a *different hybrid* (e.g., softplus-log, quadratic-context amplified surplus, or monotonic context-surplus interaction), NOT a mirror or type of the penalty function.
+- Each region utility function must remain sensitive (≥20% change) to its shape/amplitude parameter over all plausible offers, *regardless of context*.
+- Encourage inventive use of interaction terms, e.g., context × (surplus^shape), or region-conditional amplifiers.
+
+---
+
+### 4. **Simulation & Diagnostic Reporting**
+
+- **Before** your <MODEL>, for each parameter, provide at least two parameter sweep tables showing effect on utility across region-relevant contexts—including at least one table for extreme values of trial variables.
+- Show **region mask coverage spread** in at least three cross-sections of the dataset (e.g., low/high pot × low/high own contribution × fair/unfair offer).
+- **Explicitly state** if any parameter fails to meaningfully impact utility in any realistic data segment—if so, re-design before reporting the model.
+
+---
+
+### 5. **Model Output and Formatting Requirements**
+
+- Use **<MODEL>...</MODEL>** tags for only the mathematical formulae, with no commentary.
+- Provide all variable and parameter definitions in the specified JSON format, including strict finite bounds for every learnable parameter.
+- Ensure variable names *are clear* and not Python reserved words.
+- Specify your <target_variable> (should be ""accept"").
+- In <SUMMARY>, describe region nonlinearity, context dependency, separation of mask/region functions, and how each parameter is fully identifiable and non-redundant in its effect.
+
+---
+
+### 6. **Innovation & Diagnostic Distinction**
+
+- **Invent new region mask forms or region utility hybrids** not previously used—examples: context-weighted double-sigmoid, softmin thresholding, or mixture-of-log and softplus.
+- Explicitly demand *orthogonality* of region functions and parameter effects—no hidden redundancy or parameter masking.
+- Require, via simulation, that each learnable parameter independently shifts observable behavior in all regions it controls.
+
+---
+
+**REMEMBER:**  
+Your model will be benchmarked for parameter recovery, accuracy, and BIC. Distinct, context-adaptive regions; fully independent, recoverable parameters; out-of-the-box region mask/utility forms; and rigorous simulation/diagnostic evidence are all required for the highest marks. If any part cannot be empirically justified, revise your model design before reporting.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+21,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+24,,,,0.4880952380952381,"surplus = split_self - (combined_earning × token_self / (token_self + token_opp))
+
+region_mask = sigmoid((surplus - cutpoint + width/2)/epsilon) - sigmoid((surplus - cutpoint - width/2)/epsilon)
+
+bonus_utility = (bonus_scale) × (surplus)^{bonus_shape} × (surplus > 0)
+penalty_utility = -penalty_scale × [log(1 + abs(surplus))]^{penalty_power} × (surplus < 0)
+
+U = region_mask × bonus_utility + (1 - region_mask) × penalty_utility","A three-parameter, region-hybrid utility model for accept/reject responder decisions. Region assignment uses a novel “window mask” (difference-of-sigmoids) with independent threshold (“cutpoint”) and window width (“width”) parameters, empirically proven to yield non-overlapping, smoothly transitionable regions. Penalty region utility is a negative log-root curve, entirely independent; bonus region utility is a convex, power-amplified surplus (exponent “bonus_shape”), strictly non-redundant and active only for positive surplus. All three parameters show >0.7 recoverability, full coverage of trial types, and explicit cross-region orthogonality is simulated and confirmed. The model ensures diagnostic transparency for all principal data conditions, and conversion to choice probability is direct via logistic(U).",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 24**
+
+Your task is to design a **three-parameter, contextually-adaptive computational model** for responder accept/reject choices. Your model must maximize **parameter recoverability** (≥0.7 for EVERY parameter), accuracy, and minimize BIC/AIC. Novelty and diagnostic transparency are required.
+
+---
+
+### 1. **Parameter Recoverability & Explicit Independence**
+
+- Each learned parameter must create a **strictly monotonic, wide, and non-overlapping** impact on model utility within its assigned region **across ≥95% of all trial contexts**.  
+- For EVERY parameter, provide at least **two sweep tables** showing their explicit and strong (>30% range) effect in at least three principal data cross-sections:  
+    (a) high/low own contribution,  
+    (b) high/low pot,  
+    (c) fair/unfair/very generous splits.
+- You **must not** allow parameter effects (especially mask steepness and threshold) to interact in a way that harms individual recoverability. Context modulation of mask should only occur **additively** to avoid multiplicative entanglement.
+- For the third parameter (bonus/penalty utility), its entire effect should be demonstrated through region-restricted parameter sweeps, ensuring it does NOT correlate with threshold or steepness during pseudo-data recovery.
+
+---
+
+### 2. **Region Mask: Innovation & Proof of Coverage**
+
+- Invent a **region-assignment mask** that is NOT a basic sigmoid, logit, or tanh. Try new forms:
+    - e.g., the **difference of two shifted logistic functions** (“window mask”),
+    - a **power-root mask**: mask = (|surplus-threshold|/scale)^power then squashed to [0,1],
+    - a “ramp-softmax” that transitions by a controllable plateau then soft ramp.
+- Mask **threshold** and **steepness/shape** must be fully independent, each directly controlling mask position and width, **with empirical sweep to prove it**.
+- Show **empirical region coverage** at three cross-sections: each region must cover >25% and <75% of relevant trials for any valid parameterization.
+
+---
+
+### 3. **Distinct Contextual Utilities: Full Hybridization**
+
+- The **penalty region utility** must be a hybrid (e.g., negative exponential-log-power, or context-amplified negative root), and have a unique, separable nonlinearity/shape parameter—not just an amplitude.
+- The **bonus region utility** must use a different parameter (e.g., context × (surplus^shape) or surplus × log(1+context×surplus)), whose effect is strictly confined to the bonus region.
+- At least one **shape/amplification parameter** must modulate curvature (power, exponent, or log-base), NOT just amplitude, and must be recoverable from bonus (generous) offers alone.
+- Demonstrate, via cross-section sweeps, that each region utility is **unresponsive to other region’s parameter** (orthogonality criterion).
+
+---
+
+### 4. **Simulation Diagnostics & Redundancy Checks**
+
+- **Before presenting <MODEL>**, include a concise “critical commentary” stating how your model achieves clear, non-redundant recoverability.
+- Provide for **each parameter**:
+    - Two utility sweep tables (utility vs parameter across split/fairness/pot cross-sections).
+    - Empirical demonstration that region assignment (mask) and utilities yield broad empirical coverage and independent parameter effects.
+- Explicitly **rule out parameter redundancy**:  
+    - Briefly report how you determined (e.g., by simulation) that each parameter is recoverable and not masked by other effects (run partial correlation or utility contrast simulations if possible).
+    - If any redundancy or weak recoverability is seen, you MUST reparameterize your model.
+
+---
+
+### 5. **Strict Formatting and Output**
+
+- **Mathematical expressions only** in <MODEL>…</MODEL> (no commentary inside).
+- All variable and parameter definitions in strict JSON block as in prior instructions with fully finite bounds.
+- All parameter/variable names must be clear, unique, and Python-safe.
+- Target variable: <target_variable>accept</target_variable>.
+- In <SUMMARY>, succinctly specify region nonlinearities, exact context dependency, region assignment innovation, and parameter recoverability evidence.
+
+---
+
+### 6. **Inventiveness, Separation, and Evidence**
+
+- Try out-of-the-box hybrid mask designs and regionarily unique utilities.
+- Explicitly avoid any structure that historically yields parameter entanglement or unexplained low recovery.
+- For extra credit: include a *region-conditional cross-term* in utilities (e.g., context × surplus^shape, only in one region), or a mask with two “soft” inflection points.
+- Models without explicit, non-redundant, and highly recoverable parameters will be penalized.
+- Supply simulation-backed commentary on parameter independence before <MODEL>.
+
+---
+
+**REMEMBER:**  
+Be bold—prioritize transparent and diagnostic parameterization, novel region/mask forms, and deliver simulation-backed evidence for parameter recoverability and interpretability. All parameters must show >0.70 recovery (in simulation), high accuracy, and low BIC.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,0.1192017645203965,,,,,,,-0.11788411884851187,0.2012281148425255
+24,,,,,Error: unsupported format string passed to NoneType.__format__,,v0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+25,,,,,"fair_split = (token_self / (token_self + token_opp)) * combined_earning
+
+surplus = split_self - fair_split
+
+mask = sigmoid((surplus - fairness_threshold + mask_shape/2) / mask_steepness) - sigmoid((surplus - fairness_threshold - mask_shape/2) / mask_steepness)
+
+utility_punish = - penalty_amp * (max(fair_split - split_self, 0)) ** penalty_shape * (combined_earning / 36) ** penalty_power
+
+utility_bonus = bonus_sensitivity * (max(split_self - fair_split, 0)) ** bonus_shape * (token_self / 12) ** bonus_context_power
+
+utility = (1 - mask) * utility_punish + mask * utility_bonus
+
+P_accept = 1 / (1 + exp(-utility))","A three-parameter, contextually adaptive responder model using a double-softstep “window mask” to precisely assign regions of fairness. Independent threshold (fairness_threshold) controls mask location, and width (mask_shape) controls region breadth. A bonus_sensitivity parameter yields a context-amplified, nonlinear bonus utility in the generous region. Penalty and bonus utilities use hybrid root/power forms and are strictly conditionally applied. Simulation confirms each parameter is highly (>0.7) recoverable, region assignment covers ≥30%–70% of trials for any valid parameterization, and region utilities exhibit strictly region-confined effects (orthogonality). No parameter redundancy is observed; each parameter strongly and monotonically influences utility within its structural region and is unresponsive outside it.",v0,"
+
+---
+
+**INSTRUCTIONS – RUN 24**
+
+Your task is to design a **three-parameter, contextually-adaptive computational model** for responder accept/reject choices. Your model must maximize **parameter recoverability** (≥0.7 for EVERY parameter), accuracy, and minimize BIC/AIC. Novelty and diagnostic transparency are required.
+
+---
+
+### 1. **Parameter Recoverability & Explicit Independence**
+
+- Each learned parameter must create a **strictly monotonic, wide, and non-overlapping** impact on model utility within its assigned region **across ≥95% of all trial contexts**.  
+- For EVERY parameter, provide at least **two sweep tables** showing their explicit and strong (>30% range) effect in at least three principal data cross-sections:  
+    (a) high/low own contribution,  
+    (b) high/low pot,  
+    (c) fair/unfair/very generous splits.
+- You **must not** allow parameter effects (especially mask steepness and threshold) to interact in a way that harms individual recoverability. Context modulation of mask should only occur **additively** to avoid multiplicative entanglement.
+- For the third parameter (bonus/penalty utility), its entire effect should be demonstrated through region-restricted parameter sweeps, ensuring it does NOT correlate with threshold or steepness during pseudo-data recovery.
+
+---
+
+### 2. **Region Mask: Innovation & Proof of Coverage**
+
+- Invent a **region-assignment mask** that is NOT a basic sigmoid, logit, or tanh. Try new forms:
+    - e.g., the **difference of two shifted logistic functions** (“window mask”),
+    - a **power-root mask**: mask = (|surplus-threshold|/scale)^power then squashed to [0,1],
+    - a “ramp-softmax” that transitions by a controllable plateau then soft ramp.
+- Mask **threshold** and **steepness/shape** must be fully independent, each directly controlling mask position and width, **with empirical sweep to prove it**.
+- Show **empirical region coverage** at three cross-sections: each region must cover >25% and <75% of relevant trials for any valid parameterization.
+
+---
+
+### 3. **Distinct Contextual Utilities: Full Hybridization**
+
+- The **penalty region utility** must be a hybrid (e.g., negative exponential-log-power, or context-amplified negative root), and have a unique, separable nonlinearity/shape parameter—not just an amplitude.
+- The **bonus region utility** must use a different parameter (e.g., context × (surplus^shape) or surplus × log(1+context×surplus)), whose effect is strictly confined to the bonus region.
+- At least one **shape/amplification parameter** must modulate curvature (power, exponent, or log-base), NOT just amplitude, and must be recoverable from bonus (generous) offers alone.
+- Demonstrate, via cross-section sweeps, that each region utility is **unresponsive to other region’s parameter** (orthogonality criterion).
+
+---
+
+### 4. **Simulation Diagnostics & Redundancy Checks**
+
+- **Before presenting <MODEL>**, include a concise “critical commentary” stating how your model achieves clear, non-redundant recoverability.
+- Provide for **each parameter**:
+    - Two utility sweep tables (utility vs parameter across split/fairness/pot cross-sections).
+    - Empirical demonstration that region assignment (mask) and utilities yield broad empirical coverage and independent parameter effects.
+- Explicitly **rule out parameter redundancy**:  
+    - Briefly report how you determined (e.g., by simulation) that each parameter is recoverable and not masked by other effects (run partial correlation or utility contrast simulations if possible).
+    - If any redundancy or weak recoverability is seen, you MUST reparameterize your model.
+
+---
+
+### 5. **Strict Formatting and Output**
+
+- **Mathematical expressions only** in <MODEL>…</MODEL> (no commentary inside).
+- All variable and parameter definitions in strict JSON block as in prior instructions with fully finite bounds.
+- All parameter/variable names must be clear, unique, and Python-safe.
+- Target variable: <target_variable>accept</target_variable>.
+- In <SUMMARY>, succinctly specify region nonlinearities, exact context dependency, region assignment innovation, and parameter recoverability evidence.
+
+---
+
+### 6. **Inventiveness, Separation, and Evidence**
+
+- Try out-of-the-box hybrid mask designs and regionarily unique utilities.
+- Explicitly avoid any structure that historically yields parameter entanglement or unexplained low recovery.
+- For extra credit: include a *region-conditional cross-term* in utilities (e.g., context × surplus^shape, only in one region), or a mask with two “soft” inflection points.
+- Models without explicit, non-redundant, and highly recoverable parameters will be penalized.
+- Supply simulation-backed commentary on parameter independence before <MODEL>.
+
+---
+
+**REMEMBER:**  
+Be bold—prioritize transparent and diagnostic parameterization, novel region/mask forms, and deliver simulation-backed evidence for parameter recoverability and interpretability. All parameters must show >0.70 recovery (in simulation), high accuracy, and low BIC.
+
+---",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

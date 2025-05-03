@@ -1,0 +1,26 @@
+Instructions for Run 38 of 100:
+
+The primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is non-negotiable for a usable model. Improved BIC and accuracy are important secondary goals.
+
+Prior attempts have struggled significantly with parameter identifiability, leading to poor recovery values (e.g., the model in the previous run, Run 37, which used the formula `U = beta_split * split_perc_self - beta_unfair * loss_relative_to_fair`, failed to achieve recovery above 0.7 for either parameter). This suggests that simple linear combinations of the proposed percentage and deviations from fairness may not yield uniquely identifiable parameters given this dataset structure.
+
+For this run, design a computational model for responder decisions (`trial_role == 1`) that predicts the utility of accepting an offer. Your model should utilize the proposed share percentage (`split_perc_self`) and a calculated fair percentage for the participant (`fair_perc_self`) based on token contributions as key inputs.
+
+*   **Parameter Identifiability is Key:** The central challenge is to design a mathematical structure (formula for `U`) using these inputs and **2 or 3 learnable parameters** such that these parameters have distinct and identifiable influences on utility across the range of possible offers. Avoid structures where the effect of changing one parameter can be easily compensated by changing another parameter. Simple linear or piecewise linear combinations that start from an intercept, or linearly combine terms like `split_perc_self` and `loss_relative_to_fair` (as in Run 37), have shown poor identifiability in previous attempts. Encourage thinking about novel ways these factors might combine or interact to determine utility.
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self` directly as a data variable.
+    *   Calculate `sum_tokens` as `token_self + token_opp`.
+    *   Calculate `fair_perc_self` as `(token_self / sum_tokens) * 100` if `sum_tokens > 0`, and `50.0` if `sum_tokens == 0`.
+    *   Your model may use `split_perc_self` and `fair_perc_self` directly, or variables derived from them (e.g., difference, ratio, gain/loss deviation). Define any such derived variables within your <MODEL> tag calculations.
+*   **Model Formula:** Define the utility (`U`) based on `split_perc_self`, `fair_perc_self` (or variables derived from them), and your 2 or 3 learnable parameters. Focus on finding a mathematical relationship that allows for better parameter recovery than previously attempted linear/piecewise structures.
+*   **Learnable Parameters:** Your model must have exactly 2 or 3 learnable parameters. Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds (e.g., [-50, 50] or similar, depending on how parameters scale inputs).
+*   **Calculated Variables:** Ensure `sum_tokens` and `fair_perc_self` (and any other variables you calculate as intermediate steps in your model) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`, etc.).
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for `sum_tokens`, `fair_perc_self`, and any other derived variables needed before the final formula for `U`. Use clear mathematical notation.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by the proposed share and fairness, and how your chosen mathematical structure and parameterization aim to improve parameter identifiability compared to previous attempts.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions.

@@ -1,0 +1,70 @@
+
+
+---
+
+**INSTRUCTIONS – RUN 18**
+
+Your goal is to design a **three-parameter, three-region computational model** predicting responder (accept/reject) decisions, with a focus on **maximal parameter recovery** for each learnable parameter, as well as high overall accuracy and robust region coverage.
+
+---
+
+### **1. Parameter Recovery: Orthogonality & Non-Redundancy Are Essential**
+
+- All three learnable parameters must **each exert a strongly monotonic, non-redundant, and empirically observable effect** on model output across real data. 
+    - **Do not use any functional form where any learnable parameter “dies out”, becomes redundant, or produces near-zero change across >10% of real trials.**
+    - Both penalty and bonus regions must each have separate, identifiable amplitude and shape parameters (unless simulation demonstrates >0.8 recovery for a one-parameter curve).
+
+### **2. Three Regions: Distinct, Non-mirrored, and Contextually Adaptive**
+
+- Model must assign trials to penalty or bonus region by a **flexible, nonlinear acceptance threshold** parameter:
+    - Consider thresholds as composite, e.g., involving nonlinear combinations of contribution ratio, total pot (combined_earning), and possibly offer percent—use interaction or polynomial terms for maximum separation.
+    - Threshold parameter should itself be **recoverable and “active” across all observed trial contexts.**
+    - Avoid mirrored penalty/bonus forms; each region should use a *distinct* shape, e.g., penalty = exponential-minus-one; bonus = polynomial×exponential, or tanh, or sigmoid-amplified surplus, etc.
+
+### **3. Region Functions: Nonlinear, Non-saturating, and Parameter-Active**
+
+**For Penalty Region:**  
+- Use a form where the *shape* parameter actively adjusts the “curve” inside the function (e.g., as the rate or degree of nonlinearity, not just a simple exponent).
+- Prefer exponential-minus-one, log-amplified, or negative quadratic with parameter in the exponent or coefficient, e.g.:
+    - \( U_{penalty} = -penalty\_amp \cdot (e^{penalty\_shape \cdot deficiency} - 1) \cdot context\_amplifier \)
+    - Or quadratic: \( -penalty\_amp \cdot (deficiency^{penalty\_shape}) \cdot [1+\alpha \cdot context] \)
+    - Avoid forms where penalty_shape “flattens out” for large or small deficiency.
+    
+**For Bonus Region:**  
+- Combine amplitude and shape via a *double nonlinearity*—for example, make bonus_shape control both surplus amplification curve and context amplification, or use multiplicative/power interaction:
+    - \( U_{bonus} = bonus\_amp \cdot (surplus^{a}) \cdot (context^{bonus\_shape}) \)
+    - Or even: \( bonus\_amp \cdot \tanh(surplus \cdot bonus\_shape \cdot f(token\_ratio)) \cdot g(context) \)
+- Experiment with forms that avoid power “flatness”—try sigmoidal, exponential, or polynomial-exponential hybrids so that both bonus_amp and bonus_shape can each be reliably fit in all data regimes.
+- **Show via simulation or reasoning that both amplitude and shape absolutely impact acceptance probability in at least 90% of bonus trials.**
+
+### **4. Soft Transitions & Region Spread**
+
+- Consider “soft” region assignment (e.g., sigmoid, softmax, or tanh mask with steepness parameter) so that offers near threshold still have both penalty and bonus parameters affecting decision probability—*this is strongly encouraged to enhance identifiability*.
+- Report, or reason about, region coverage: **No region may cover <15% of real trials**; avoid hard thresholds that create dead zones.
+  
+### **5. Simulation: Prove Parameter Activity and Region Coverage**
+
+- For each parameter, conduct **parameter sweeps** across their bounds in at least two realistic example trial contexts (i.e., different pots/contributions/offers).
+    - Report utility/probability tables for each region, showing wide, monotonic change for each parameter.
+    - Explicitly state (including in <SUMMARY>) if *any* parameter produces “flat” or unidentifiable effects in a realistic region, and re-design as needed.
+- For the region threshold parameter, show that it “moves” the boundary across real observed offers, affecting region assignment for trials of all types.
+
+### **6. Model Output Formatting**
+
+- Start with parameter sweep & region coverage justification (before <MODEL>).
+- Provide only strictly mathematical formulae between <MODEL> and </MODEL> tags.
+- Give a JSON-formatted <VARIABLES> section, clearly labelling learnable/fixed parameters, and specifying *finite* inclusive bounds for each.
+- Specify <target_variable> you are predicting (should be "accept").
+- <SUMMARY> should be concise and technical—describe exactly how amplitude and shape are controlled within each region and how the threshold adapts to real trial contexts.
+
+### **7. Innovation Mandate—Discover Non-Standard Forms!**
+
+- Be inventive! Prioritize parameter separability and amplifying identifiability:
+    - Try polynomial-exponentials, threshold functions with interaction, contextual amplifiers other than simple pot scaling, and nonlinear region mask (soft) boundaries.
+- Avoid "mirror" models, simple powers, or shapes with proven poor recovery; justify your choices by reasoning or simulation.
+
+---
+
+**Remember:**  
+Top performance requires **non-redundant, empirically “active” parameterization** in *every realistic region* of the data, high region spread, and creative, context-aware model forms.  
+Propose, simulate, prove!

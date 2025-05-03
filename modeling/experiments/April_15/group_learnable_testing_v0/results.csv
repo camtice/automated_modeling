@@ -1,0 +1,54 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,alpha_self_recovery,beta_ineq_recovery,bias_recovery,alpha_dis_recovery,alpha_adv_recovery
+1,34.67753004049099,,,0.7997557997557997,"U_accept = alpha_self * split_self - beta_ineq * max(0, (token_self / (token_self + token_opp) * 100) - splitperc_self) + bias","A utility model predicting responder acceptance of offers as a function of their own monetary share and disadvantageous inequity relative to contribution-based fairness. The model includes three learnable parameters: own-gain weight, inequity aversion, and a bias, ensuring interpretability and parameter identifiability.",v0,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.4302869436024894,0.7465960146340948,0.6496877007488735,,
+2,40.60996385428182,,,0.7512210012210012,"utility = bias \
+        + alpha_self * (split_self / combined_earning) \
+        + alpha_dis * max((token_self / (token_self + token_opp)) - (split_self / combined_earning), 0) \
+        + alpha_adv * max((split_self / combined_earning) - (token_self / (token_self + token_opp)), 0)","A normalized, multipart utility model of responder behavior. The model predicts accept/reject decisions based on self-gain (as a percentage of the total pot), aversion to disadvantageous and advantageous inequity (relative to each participant’s share of the group’s total contribution), and an individual-specific response bias. Each learnable parameter uniquely maps onto a key psychological mechanism—maximizing identifiability and minimizing covariance—while all terms are normalized to eliminate scaling confounds due to trial-by-trial pot size differences.",v0,"<think>
+Reviewing the results, it's clear the previous model had suboptimal parameter recovery for alpha_self (r = 0.43) and moderate recovery for bias (r = 0.65). BIC and accuracy are reasonable but there's clear room for improvement, especially in interpretability and parameter identifiability. The most likely issue is either high parameter covariance or insufficient informativeness of each component. The model was a simple weighted combination of self-gain and disadvantageous inequity (relative to contribution), with a bias.
+
+Key possible limitations:
+- The monetary gain and inequity terms may not be normalized, possibly leading to scale mismatch.
+- Only disadvantageous inequity is included; advantageous inequity (where the responder gets more than is ""fair"") is ignored, which could add useful variance for parameter estimation.
+- Lack of scaling or normalization can introduce unintended confounding between parameter effects.
+- The model ignores non-linearities and threshold effects in fairness perceptions (e.g., strong aversion to low % offers regardless of contribution).
+- Other features (such as combined_earning or offer size in proportional/fairness context) could meaningfully modulate behavior.
+
+To encourage out-of-the-box improvements, the instructions should explicitly advise:
+- Consider how to mathematically separate and normalize effects (e.g., divide all terms by combined_earning for interpretable scales).
+- Add an advantageous inequity aversion term if justified, ideally with a minimal parameter expansion (possibly constraining it or relating it to the main inequity).
+- Explore non-linear or threshold effects if likely (using, e.g., a sigmoidal or piecewise penalty for unfairness).
+- If appropriate, test parameterizations that produce ""tunable"" nonlinearities (e.g., softmax/fairness sensitivity terms).
+- Make sure parameters have as little redundant explanatory power as possible, perhaps via explicit standardization or normalization of raw variables in the model.
+- Always briefly justify the necessity of every learnable parameter and defend its identifiability.
+- Encourage creativity: e.g., could combine gain-above-minimum with fairness, or implement a model with a fairness threshold parameter.
+
+The ""step by step"" modeling should include explicit consideration of parameter recoverability: for each parameter, ask how variance in its true value can be uniquely mapped onto observed responses.
+
+The model needs to stick to minimal, non-covariant parameters and must clearly relate each parameter to an observable, separable behavioral effect.
+
+</think>
+
+UPDATED INSTRUCTIONS:
+
+Be highly critical and creative in your model design to maximize predictive accuracy, parameter recovery, and overall model interpretability. In addition to accuracy and BIC, strive for independent, identifiable parameters with minimal covariance. Avoid redundant parameters and ensure every learnable parameter maps uniquely to a separable behavioral construct.
+
+First, reason step by step about:
+* The psychological mechanisms (e.g., self-interest, fairness, inequity aversion—including both disadvantageous and advantageous forms, sensitivity to absolute amounts, proportion effects, and thresholds);
+* How these mechanisms might mathematically interact (e.g., via additive, multiplicative, or non-linear forms);
+* How to parameterize these mechanisms in a way that minimizes parameter covariance and maximizes identifiability (e.g., normalization, explicit thresholds, or constrained relationships between parameters);
+* Whether you can improve the model by including both disadvantageous and advantageous inequity, non-linear sensitivity to unfairness, or normalization of terms (e.g., scaling by combined_earning);
+* How each parameter you propose will map distinctly to observable data variance (explicitly ask yourself: ""how would this parameter be recoverable in real behavior?"");
+* Ways to introduce creative or non-standard approaches (such as fairness perception thresholds, context-dependent biases, or nonlinear fairness functions).
+
+For every learnable parameter you include, briefly justify its necessity and how it improves model recovery or interpretability. Always prefer the minimal number of parameters consistent with good psychological modeling.
+
+After this reasoning, provide your model as before, but focus on avoiding excessive parameter entanglement, maximizing interpretability, and grounding every parameter’s interpretability in observable behavior.
+
+Push yourself to examine both standard and out-of-the-box ways to enhance identifiability or predictive performance.",0.4281653055903602,,0.8924800416551136,0.4491633816147631,0.12753100208108198

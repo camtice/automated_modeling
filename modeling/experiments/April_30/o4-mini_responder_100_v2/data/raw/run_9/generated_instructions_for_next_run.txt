@@ -1,0 +1,50 @@
+
+
+New Instructions for Run 10:
+
+1. Candidate Families (≤5 Learnable Parameters)  
+   a. Reference‐Dependent Utility (4 params):  
+      U = α + β·(z_share − 0.5) + γ·sign(z_share − 0.5)·|z_share − 0.5|^φ  
+      – φ∈[0.5,2] captures sensitivity curvature.  
+   b. Simplified Mixture (5 params):  
+      – Expert1: U1 = α + β·z_share  
+      – Expert2: U2 = α + γ·(log(z_share/(1−z_share)))  
+      – Gating: π = sigmoid(δ·(z_share − 0.5))  
+      – Combined U = πU1 + (1−π)U2  
+   c. Trial‐Aware Linear (5 params):  
+      U = α + β·z_share + γ·(z_mag) + θ·MA_accept_t + η·(trial_role==responder)  
+      – MA_accept_t = running average of past acceptances (decay=.2)  
+
+2. Feature Engineering & Transformations  
+   • Pre‐orthogonalize any two correlated fairness features using PCA and retain only the leading component.  
+   • Scale all features to [−1,1].  
+   • For nonlinear families, use power or log transforms but enforce φ∈[0.5,2].  
+
+3. Link Functions & Temperature  
+   • Implement both logistic and probit links in parallel; fit a single “temperature” τ∈[0.1,2] to modulate.  
+   • Compare via leave‐one‐subject‐out stacking weights; include the best link in final model.  
+
+4. Priors, Bounds & Regularization  
+   • Hierarchical shrinkage priors: weight∼Normal(0,0.5), truncated at [−1,1].  
+   • Curvature φ∼Uniform(0.5,2].  
+   • Apply Elastic‐Net penalty (L1 ratio=.5) on all weights; tune global penalty λ in recovery stage.  
+
+5. Two‐Stage Simulation & Recovery  
+   Stage 1: Simulate 1,000 datasets from priors; estimate MAP with penalties; compute Pearson r.  
+   Stage 2: If any r<0.70:  
+     – Collapse or tie the worst‐recovered parameter(s).  
+     – Re‐fit until all r≥0.70 or reduce model to next simpler family.  
+
+6. Validation & Model Selection  
+   • Nested 10‐fold cross‐validation reporting out‐of‐sample accuracy and log‐score.  
+   • Compute BIC, WAIC, LOO; require ≥7‐point BIC drop and ≥6% accuracy gain versus baseline.  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: Final chosen formula (no prose).  
+   • <VARIABLES>…</VARIABLES>: Every parameter with description, bounds, prior, source; each feature with transform and source.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • Specify selected family and psychological rationale (e.g., reference‐dependence, adaptive mixture, trial‐wise fatigue).  
+   • Emphasize strong shrinkage priors, elastic‐net, two‐stage recovery ensuring r>0.70, better BIC, and higher accuracy.  
+   • Highlight innovative elements (psychophysical curvature φ, dynamic MA_accept, alternative links).

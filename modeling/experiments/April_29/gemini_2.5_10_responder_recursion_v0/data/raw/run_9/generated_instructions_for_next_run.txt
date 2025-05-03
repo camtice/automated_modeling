@@ -1,0 +1,52 @@
+Okay, here are the instructions for the next run (Run 10):
+
+<instructions>
+**Analysis of Previous Attempt (Run 9):**
+The prior model attempted to improve parameter recovery by using proportional gain (`split_perc`) combined with a non-linear (logarithmic) transformation of proportional inequity (`log(inequity_perc + epsilon)`). The model specification was: `Utility = bias + sensitivity_prop * split_perc - alpha_log_ineq_prop * log_inequity_perc`.
+
+*   **Results:**
+    *   BIC: 31.20 (Slightly worse than the previous linear proportional model's 31.01).
+    *   Accuracy: 0.821 (Met the target > 0.82).
+    *   Parameter Recovery: Failed significantly. `bias` recovery was acceptable (r=0.760), but `sensitivity_prop` recovery collapsed (r=0.118) and `alpha_log_ineq_prop` recovery remained poor (r=0.488).
+
+*   **Conclusion:** Introducing logarithmic non-linearity to the *proportional* inequity term did not resolve, and in fact worsened, the parameter identifiability issues, particularly between gain sensitivity and inequity aversion. While accuracy was good, the model is unreliable due to poor parameter recovery.
+
+**Your Goal for Run 10 (Final Run):**
+Develop a model that achieves **excellent parameter recovery (r > 0.75 for ALL learnable parameters)** as the primary goal. Secondary goals are to maintain **good accuracy (Accuracy > 0.82)** and achieve a **reasonable BIC score (aim for BIC < 33)**. Given the persistent recovery challenges, a slight increase in BIC might be acceptable if recovery targets are met.
+
+**New Direction: Revisit Absolute Values with Interaction**
+
+Previous attempts with proportional values consistently struggled with recovery for sensitivity and inequity parameters. An earlier model (Run 4) using **absolute values** (`Utility = bias + sensitivity * split_self - alpha_log_ineq * log(inequity_abs + 1)`) showed more promising recovery (`sensitivity`: r=0.787, `alpha_log_ineq`: r=0.670), although it still fell short for the inequity parameter.
+
+The persistent difficulty in separating gain and inequity effects suggests they might not exert independent influences on utility. Their impact could be **interdependent**. For this final run, let's explicitly model this potential interaction. We will revert to using **absolute monetary values** (which showed better sensitivity recovery previously) and add an **interaction term**. This will result in a 4-parameter model.
+
+**Proposed Model Structure (Primary Focus):**
+
+Build upon the structure of the promising Run 4 model (absolute gain, log-transformed absolute inequity) by adding an interaction term between the gain (`split_self`) and the log-inequity (`inequity_log`).
+
+1.  **Calculate Intermediate Absolute Terms:**
+    *   `total_tokens = token_self + token_opp`
+    *   `contribution_ratio = (token_self / total_tokens) if total_tokens > 0 else 0.5`
+    *   `deserved_split = contribution_ratio * combined_earning`
+    *   `inequity_abs = max(0, deserved_split - split_self)`
+    *   `inequity_log = log(inequity_abs + 1)` *(Note: using `log(x+1)` avoids issues with log(0))*
+
+2.  **Calculate Utility with Interaction:**
+    *   `Utility = bias + sensitivity * split_self - alpha_log_ineq * inequity_log + delta_interaction * split_self * inequity_log`
+
+This model uses 4 learnable parameters:
+*   `bias`: Baseline acceptance tendency.
+*   `sensitivity`: Sensitivity to the *absolute amount* offered (`split_self`).
+*   `alpha_log_ineq`: Sensitivity (aversion) to the *logarithm* of absolute disadvantageous inequity (`inequity_log`).
+*   `delta_interaction`: Parameter capturing how the effect of log-inequity is modulated by the absolute amount offered (or vice-versa).
+
+**Emphasis:**
+*   Implement the **4-parameter absolute value model with the specified interaction term** (`delta_interaction * split_self * inequity_log`).
+*   **Parameter recovery (r > 0.75 for ALL parameters)** is the most critical goal for this run.
+*   Justify this approach by referencing the partial success of absolute value models (like Run 4) in terms of recovery compared to proportional models, and the hypothesis that an interaction term is needed to disentangle gain and inequity effects.
+*   Ensure your model uses exactly 4 learnable parameters (`bias`, `sensitivity`, `alpha_log_ineq`, `delta_interaction`).
+*   Define appropriate, generous but finite numerical bounds for all parameters. Note that the `delta_interaction` term could potentially be positive or negative, so its bounds should reflect that (e.g., -10 to 10). Consider the scale of `split_self` and `inequity_log` when setting bounds.
+*   Think outside the box: While the interaction model is the primary focus, if you have a strong alternative rationale for a different 3 or 4-parameter model structure (perhaps using a different transformation or interaction) that you believe is more likely to achieve the recovery goals based on all previous run information, feel free to propose and justify it clearly. However, the proposed interaction model directly addresses the core observed problem.
+
+Please provide your reasoning step-by-step, justify your chosen model structure by explaining how it addresses the limitations of previous models and aims to meet all performance goals (especially Recovery), and detail the model specification in the required format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>).
+</instructions>

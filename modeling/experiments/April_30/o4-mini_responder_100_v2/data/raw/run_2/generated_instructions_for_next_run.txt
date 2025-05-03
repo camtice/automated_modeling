@@ -1,0 +1,42 @@
+
+
+Be bold and go beyond a single squared‐inequity term. Your goal is to build a compact (≤3 learnable parameters), interpretable logistic utility model that (a) captures self‐interest and asymmetric fairness sensitivities, (b) yields a lower BIC, higher accuracy, and strong parameter recovery (r > 0.8 on all parameters), and (c) fits the responder “accept” outcome.
+
+1. Psychological Drivers & Transformations  
+   • Separate disadvantageous and advantageous inequity: define two fairness metrics—one activated when share <50% (“envy”), one when share >50% (“guilt”).  
+   • Consider a non‐linear sensitivity (e.g. power, absolute value) so that small deviations feel smaller than large ones.  
+   • Orthogonalize fairness from self‐interest by residualizing: regress fairness metrics on z_share and use residuals to ensure near zero correlation.
+
+2. Model Form & Constraints  
+   • Between <MODEL>…</MODEL>, specify:  
+     – An intercept.  
+     – One weight for self‐interest (z_share).  
+     – One weight that applies piecewise to disadvantageous vs advantageous residualized fairness.  
+   • No more than three learnable parameters.  
+   • Bound each parameter tightly (e.g. [–3,3] or [–2,2]) to aid recovery.  
+   • Use a logistic link with temperature 1.
+
+3. Standardization & Orthogonalization  
+   • Compute z_share = (split_self/combined_earning – μ_share)/σ_share across responder trials.  
+   • Let raw_fairness = |split_self/combined_earning – 0.5|.  
+   • Split raw_fairness into raw_dis = max(0, 0.5 – share) and raw_adv = max(0, share – 0.5).  
+   • Residualize each: res_dis = raw_dis − ŷ_dis (fit raw_dis ∼ z_share), and similarly res_adv. Then z‐score res_dis and res_adv.
+
+4. Parameter Recovery & Fit Criteria  
+   • Simulate ≥200 datasets using true parameters drawn uniformly from your specified bounds.  
+   • Re‐fit the model to each simulated dataset.  
+   • Require Pearson r > 0.80 for every learnable parameter.  
+   • Report average BIC across control and treatment groups; target a reduction of ≥5 points relative to the baseline.  
+   • Report accuracy on held‐out or cross‐validated responder trials.
+
+5. Variable Specification (<VARIABLES>…</VARIABLES>)  
+   • For each learnable parameter: include description, finite bounds, uniform priors, and plan for recovery sims.  
+   • For calculated predictors: document the standardization and residualization steps.  
+   • Identify <target_variable>accept</target_variable>.
+
+6. Summary (<SUMMARY>…</SUMMARY>)  
+   • Briefly describe the psychological rationale: asymmetric fairness (envy vs guilt), self‐interest.  
+   • Note the non‐linear/orthogonalization steps.  
+   • Explain why tighter bounds, residualization, and piecewise fairness should boost identifiability, lower BIC, and improve recovery and accuracy.
+
+Be creative—piecewise or non‐linear transforms are encouraged so long as you remain within three learnable parameters.

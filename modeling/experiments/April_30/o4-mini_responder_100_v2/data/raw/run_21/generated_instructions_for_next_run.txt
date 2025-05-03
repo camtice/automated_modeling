@@ -1,0 +1,52 @@
+
+
+New Instructions for Run 22:
+
+1. Candidate Families (≤3 Learnable Parameters, fixed τ=1)  
+   • Propose up to three distinct ≤3‐parameter transforms. Each basis must be orthonormalized or explicitly piecewise to ensure identifiability and low mutual correlation (<0.2).  
+   • Mandatory inclusion of at least two of the following:  
+     a. Log-Modulated (2 params):  
+        U = α + β·dev_std·log(1 + δ·dev_std),   δ∈[0.1,5]  
+     b. Threshold-Spline (3 params):  
+        U = α + β1·min(dev_std,θ) + β2·max(dev_std – θ,0),   θ∈[0.1,1]  
+     c. Hybrid-Sigmoid (2 params):  
+        U = α + β·(1 / (1 + exp(–γ·(dev_std – 0)))) ,   γ∈[0.1,5]  
+
+2. Feature Pipeline  
+   • Compute z_share = split_self / combined_earning (exclude any trial where combined_earning=0).  
+   • dev = |z_share – 0.5|; derive any neg_dev, pos_dev, thresholds.  
+   • Standardize all raw features on each training fold (zero mean, unit variance).  
+   • Build candidate bases (log·dev, splines, sigmoid); apply Gram–Schmidt to decorrelate every pair of bases (target correlation <0.2).  
+
+3. Choice Rule  
+   P_accept = sigmoid(U) = 1 / (1 + exp(–U))   (τ fixed = 1).  
+
+4. Priors & Parameter Bounds (ultra-strong shrinkage)  
+   • α ∼ TruncatedNormal(mean=0, sd=0.015) in [–0.075,0.075]  
+   • All slope parameters (β, β1, β2) ∼ TruncatedNormal(0,0.015) in [–0.075,0.075]  
+   • Nonlinear controls (δ, θ, γ) ∼ Uniform(lower=0.1, upper=5)  
+
+5. Five-Stage Recovery & Adaptive Refinement  
+   Stage 1: Simulate 5,000 synthetic datasets → MAP estimate → require Pearson r ≥ 0.90 for every parameter.  
+   Stage 2: If r < 0.90, reduce that parameter’s prior sd by 20% → re‐simulate and retest.  
+   Stage 3: If still r < 0.90, replace offending basis with a simpler alternative (e.g., linear or piecewise) → re‐orthonormalize → retest once.  
+   Stage 4: Enforce maximum pairwise parameter correlation |r| < 0.2 in recovery fits.  
+   Stage 5: Repeat Stage 1–4 within each of 5 cross‐validation folds; only families passing all folds are retained.  
+
+6. Model Selection & Validation  
+   • 10-fold cross-validation → report out-of-sample accuracy, BIC, WAIC, LOO-CV, Bayes Factor vs. next best.  
+   • Posterior predictive checks in six P_accept quantile bins.  
+   • Final model criteria:  
+     – ΔBIC ≥ 10 OR Bayes Factor ≥ 10 vs. runner-up  
+     – All parameters r ≥ 0.90 in every recovery fold  
+     – Out-of-sample accuracy ≥ +20% above the simple 2-param baseline U = α + β·dev_std  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact U formula, no commentary.  
+   • <VARIABLES>…</VARIABLES>: every raw feature, basis, and parameter (with bounds, priors, learnable flags, source).  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • List chosen family(ies), each transform term, orthonormalization, ultra-strong shrinkage priors, τ=1, recovery threshold (r ≥ 0.90), any basis swaps or shrinkage steps.  
+
+Encouragement: Innovate with nonstandard nonlinearities or hybrid constructs, enforce explicit piecewise definitions, and prioritize parameter identifiability.

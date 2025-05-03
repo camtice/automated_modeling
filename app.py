@@ -26,7 +26,8 @@ def timestamp_to_datetime(timestamp):
     if timestamp is None:
         return "N/A"
     from datetime import datetime
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
 # Add safe float format filter
@@ -45,22 +46,23 @@ def safe_float_filter(value):
 EXPERIMENTS_DIR = os.path.abspath(os.path.join(os.getcwd(), "modeling", "experiments"))
 CONFIGS_DIR = os.path.abspath(os.path.join(os.getcwd(), "modeling", "configs"))
 
+
 # Function to find the most recent experiment with results.csv
 def find_most_recent_experiment():
     """Find the most recent experiment directory that contains a results.csv file."""
     fallback = "testing_v1"  # Default fallback if no valid experiment is found
-    
+
     if not os.path.exists(EXPERIMENTS_DIR):
         return fallback
-    
+
     def get_creation_time(path):
         return os.path.getctime(path)
-    
+
     # Function to recursively find directories with results.csv
     def find_results_dirs(base_dir, max_depth=3, current_depth=0):
         if current_depth > max_depth:
             return []
-        
+
         valid_dirs = []
         try:
             for item in os.listdir(base_dir):
@@ -70,31 +72,35 @@ def find_most_recent_experiment():
                     if os.path.exists(results_path):
                         valid_dirs.append(item_path)
                     # Recursively search in subdirectories
-                    valid_dirs.extend(find_results_dirs(item_path, max_depth, current_depth + 1))
+                    valid_dirs.extend(
+                        find_results_dirs(item_path, max_depth, current_depth + 1)
+                    )
         except Exception as e:
             print(f"Error scanning directory {base_dir}: {e}")
-        
+
         return valid_dirs
-    
+
     # Find all directories with results.csv
     valid_experiment_dirs = find_results_dirs(EXPERIMENTS_DIR)
-    
+
     if not valid_experiment_dirs:
         print("Warning: No valid experiment directories found with results.csv")
         return fallback
-    
+
     # Sort by creation time (newest first) and get the most recent
     valid_experiment_dirs.sort(key=get_creation_time, reverse=True)
     most_recent_dir = valid_experiment_dirs[0]
-    
+
     # Get the relative path from EXPERIMENTS_DIR
     rel_path = os.path.relpath(most_recent_dir, EXPERIMENTS_DIR)
     print(f"Using most recent experiment: {rel_path}")
-    
+
     return rel_path
+
 
 # Set default experiment to the most recent valid one
 DEFAULT_EXPERIMENT = find_most_recent_experiment()
+
 
 def validate_experiment_dir():
     """Validate that the experiments directory exists."""
@@ -160,9 +166,9 @@ def load_experiment_metadata(exp_version):
                                 run_metadata["average_bic"]
                             )
                         if "overall_accuracy" in run_metadata:
-                            df.loc[df["run_number"] == run_number, "overall_accuracy"] = (
-                                run_metadata["overall_accuracy"]
-                            )
+                            df.loc[
+                                df["run_number"] == run_number, "overall_accuracy"
+                            ] = run_metadata["overall_accuracy"]
                         for key in run_metadata:
                             if key.startswith("bic_"):
                                 df.loc[df["run_number"] == run_number, key] = (
@@ -195,21 +201,30 @@ def load_experiment_metadata(exp_version):
                                 )
 
     # Add accuracy information if it's a utility model
-    if df is not None and not df.empty and 'prediction_type' in df.columns:
-        utility_runs = df[df['prediction_type'] == 'utility']
-        if not utility_runs.empty and 'accuracy' in utility_runs.columns:
+    if df is not None and not df.empty and "prediction_type" in df.columns:
+        utility_runs = df[df["prediction_type"] == "utility"]
+        if not utility_runs.empty and "accuracy" in utility_runs.columns:
             # Calculate average accuracy across all participants
-            metadata['average_accuracy'] = utility_runs['accuracy'].mean()
-            
+            metadata["average_accuracy"] = utility_runs["accuracy"].mean()
+
             # If group analysis is enabled, calculate per-group accuracy
-            if config.get("group_analysis", {}).get("enabled", False) and 'group' in df.columns:
+            if (
+                config.get("group_analysis", {}).get("enabled", False)
+                and "group" in df.columns
+            ):
                 group_column = config["group_analysis"]["group_column"]
-                metadata.setdefault("group_analysis", {}).setdefault("metrics", {})["accuracy"] = {}
-                
+                metadata.setdefault("group_analysis", {}).setdefault("metrics", {})[
+                    "accuracy"
+                ] = {}
+
                 for group in df[group_column].unique():
-                    group_accuracy = df[(df['prediction_type'] == 'utility') & 
-                                       (df[group_column] == group)]['accuracy'].mean()
-                    metadata["group_analysis"]["metrics"]["accuracy"][group] = group_accuracy
+                    group_accuracy = df[
+                        (df["prediction_type"] == "utility")
+                        & (df[group_column] == group)
+                    ]["accuracy"].mean()
+                    metadata["group_analysis"]["metrics"]["accuracy"][group] = (
+                        group_accuracy
+                    )
 
     return df, metadata
 
@@ -280,48 +295,52 @@ def get_all_experiments():
         if "results.csv" in files:
             # Parse the path to extract components
             path_parts = rel_path.split(os.sep)
-            
+
             # Track the full path for folder hierarchy
             current_level = folder_structure
             folder_path = []
-            
+
             # Build folder hierarchy
             for i, part in enumerate(path_parts[:-1]):
                 folder_path.append(part)
                 folder_key = os.sep.join(folder_path)
-                
+
                 if folder_key not in current_level:
                     current_level[folder_key] = {"items": [], "subfolders": {}}
-                
+
                 current_level = current_level[folder_key]["subfolders"]
-            
+
             # Add the experiment to the appropriate folder
             folder_key = os.sep.join(path_parts[:-1]) if len(path_parts) > 1 else ""
             if folder_key not in folder_structure:
                 folder_structure[folder_key] = {"items": [], "subfolders": {}}
-            
+
             # Add the experiment
-            folder_structure[folder_key]["items"].append({
-                "path": rel_path,
-                "name": path_parts[-1],
-                "full_path": rel_path,
-                "folder": folder_key
-            })
-            
+            folder_structure[folder_key]["items"].append(
+                {
+                    "path": rel_path,
+                    "name": path_parts[-1],
+                    "full_path": rel_path,
+                    "folder": folder_key,
+                }
+            )
+
             # Also add to flat list for backward compatibility
-            experiments.append({
-                "path": rel_path, 
-                "name": path_parts[-1], 
-                "full_path": rel_path,
-                "folder": folder_key
-            })
-    
+            experiments.append(
+                {
+                    "path": rel_path,
+                    "name": path_parts[-1],
+                    "full_path": rel_path,
+                    "folder": folder_key,
+                }
+            )
+
     # Sort everything alphabetically
     sorted_experiments = sorted(experiments, key=lambda x: (x["folder"], x["name"]))
-    
+
     # Get unique folder names for folder-based filtering
     folders = sorted(set(exp["folder"] for exp in experiments if exp["folder"]))
-    
+
     return sorted_experiments, folders, folder_structure
 
 
@@ -331,15 +350,17 @@ def index():
     exp_version = request.args.get("experiment", DEFAULT_EXPERIMENT)
 
     try:
-        # Load experiment data
+        # Load experiment data (results.csv and overall metadata)
+        # Note: load_experiment_metadata might already load some run metadata,
+        # but we'll explicitly load it again here to ensure we get group_parameter_averages
         models_df, metadata = load_experiment_metadata(exp_version)
 
         # Get list of available experiments
         experiments, folders, folder_structure = get_all_experiments()
 
         model_list = models_df.to_dict(orient="records") if not models_df.empty else []
-        
-        # Add overall_accuracy to each model from its run_metadata
+
+        # Add run-specific metadata (including group_parameter_averages) to each model
         for model in model_list:
             run_number = model["run_number"]
             run_metadata_path = os.path.join(
@@ -353,15 +374,26 @@ def index():
             if os.path.exists(run_metadata_path):
                 with open(run_metadata_path) as f:
                     run_metadata = json.load(f)
-                    if "overall_accuracy" in run_metadata and "overall_accuracy" not in model:
+                    # Add overall_accuracy if not already present from load_experiment_metadata
+                    if (
+                        "overall_accuracy" in run_metadata
+                        and "overall_accuracy" not in model
+                    ):
                         model["overall_accuracy"] = run_metadata["overall_accuracy"]
+                    # Add group parameter averages if they exist
+                    if "group_parameter_averages" in run_metadata:
+                        model["group_parameter_averages"] = run_metadata[
+                            "group_parameter_averages"
+                        ]
+                    # Optionally add other specific metadata you might want directly on the model dict
+                    # e.g., model['average_bic'] = run_metadata.get('average_bic')
 
         return render_template(
             "index.html",
             exp_version=exp_version,
             experiments=experiments,
-            models=model_list,
-            metadata=metadata,
+            models=model_list,  # model_list now contains group_parameter_averages for each run
+            metadata=metadata,  # overall experiment metadata
             folders=folders,
             folder_structure=folder_structure,
         )

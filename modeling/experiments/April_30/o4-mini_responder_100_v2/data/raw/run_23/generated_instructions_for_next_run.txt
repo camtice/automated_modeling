@@ -1,0 +1,49 @@
+
+
+New Instructions for Run 24:
+
+1. Candidate Families (≤2 Learnable Slopes + intercept, fixed τ=1)  
+   • Propose **exactly three** distinct families of the form U = α + f(dev_std; θ) with at most two non-intercept parameters. Each f(·) must be monotonic in dev_std and either:  
+     1) Power-Law (2 params):  
+        U = α + β · (dev_std)^p  
+        – β∈[–1,1], p∈[0.1,5]  
+     2) Exponential-Decay (2 params):  
+        U = α – β · exp(–k · dev_std)  
+        – β∈[–1,1], k∈[0.1,5]  
+     3) Hybrid-Logistic (2 params):  
+        U = α + β · tanh(γ · dev_std)  
+        – β∈[–1,1], γ∈[0.1,5]  
+
+2. Feature Pipeline  
+   • Exclude trials with combined_earning=0. Compute z_share = split_self/combined_earning.  
+   • dev = |z_share – 0.5|, then standardize dev to dev_std per fold (zero mean, unit variance).  
+
+3. Choice Rule  
+   P_accept = sigmoid(U) = 1 / (1 + exp(–U)).  
+
+4. Priors & Bounds  
+   • α ∼ TruncatedNormal(0, 0.05) in [–0.2,0.2]  
+   • Slopes (β) ∼ TruncatedNormal(0, 0.05) in [–0.2,0.2]  
+   • Nonlinear controls (p, k, γ) ∼ Uniform(0.1, 5).  
+
+5. Two-Stage Recovery & Adaptive Refinement  
+   Stage A: Simulate 2,000 datasets → MAP → require Pearson r ≥ 0.80 for every parameter.  
+   Stage B: For families passing A, increase to 5,000 sims and require r ≥ 0.90. If any parameter fails in B, drop that family.  
+
+6. Model Selection & Validation  
+   • 5-fold cross-validation → report out-of-sample accuracy, BIC, and ΔBIC vs. runner-up.  
+   • Posterior predictive check: plot predicted P_accept vs. empirical accept rate in six dev_std bins.  
+   • Final criteria:  
+     – All parameters r ≥ 0.90 in Stage B  
+     – ΔBIC ≥ 6 vs. second-best family  
+     – Out-of-sample accuracy ≥ 10% above baseline U = α + β·dev_std  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact formula for U.  
+   • <VARIABLES>…</VARIABLES>: full JSON for raw features, f(·) inputs, α, β, and nonlinear controls with bounds, priors, learnable flags, and source.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • List the three chosen families, their transform terms, priors, recovery thresholds, CV results, and final selection.  
+
+Encouragement: You may innovate with other two-parameter monotonic functions (e.g., rational or root-power blends) as long as the families remain ≤2 learnable parameters plus intercept and satisfy monotonicity, identifiability, and the recovery pipeline above.

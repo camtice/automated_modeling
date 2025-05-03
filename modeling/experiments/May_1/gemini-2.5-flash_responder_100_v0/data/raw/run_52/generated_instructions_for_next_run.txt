@@ -1,0 +1,48 @@
+Okay, here are the improved instructions for the next run (Run 53), building on the results of the previous runs.
+
+Instructions for Run 53 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The previous run (Run 52) implemented a piecewise linear model based on fairness difference (`U = beta_value * split_perc_self + beta_unfairness_penalty * MIN(0.0, perc_difference)`). While achieving decent accuracy (0.763) and a fair BIC (311.86), it unfortunately failed the parameter recovery test for `beta_unfairness_penalty` (r = 0.561). `beta_value` recovered well (r = 0.768).
+
+Analysis of Run 52's failure: The structure, while piecewise on the fairness difference, had `beta_value` scaling `split_perc_self` across all trials (implicitly or explicitly), while `beta_unfairness_penalty` scaled a term (`MIN(0.0, perc_difference)`) that is linearly related to `split_perc_self` and `fair_perc_self_calc` only in the "unfair" regime, and is zero otherwise. This likely led to confounding influences between `beta_value` and `beta_unfairness_penalty` in the "unfair" regime, preventing `beta_unfairness_penalty` from being uniquely identifiable from `beta_value`'s influence on `split_perc_self`. The parameters' roles were not sufficiently structurally independent across the data to allow for reliable separate estimation of `beta_unfairness_penalty`.
+
+Recall the relative success of Run 1 (BIC 40.53, Acc 0.671, Recovery >= 0.727 for both parameters), which used a piecewise structure on the *ratio* (`R_val`) and applied *different functional forms* (log vs. linear difference) scaled by the two parameters (`beta_gain_log` and `beta_loss_linear_diff`) in distinct gain vs. loss regimes. This structure seems to have created more distinct influences for the two parameters.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** such that *both* parameters have truly distinct and identifiable influences on responder decisions (`trial_role == 1`). This means designing the model such that the parameters' effects are mathematically separable.
+
+Based on this analysis, focus your exploration for Run 53 on model structures where the two learnable parameters scale terms that are mathematically distinct from each other, or whose influence is primarily expressed in distinct parts of the decision space. This can be effectively achieved via:
+
+*   **Piecewise Structures with Orthogonal Parameter Roles per Regime:** Continue exploring piecewise functions based on the fairness point (e.g., `R_val >= 1`, `R_diff >= 0`, or `perc_difference >= 0`). The key is to assign one learnable parameter to scale a specific term or function *exclusively or primarily* in one regime (e.g., gains/favorable offers), and the *other* learnable parameter to scale a *different* term or function *exclusively or primarily* in the other regime (e.g., losses/unfair offers). This ensures the parameters' main influences are in different parts of the data space. Avoid structures like Run 52 where one parameter scales a common input across all data while the other scales a modified input in only one regime; instead, aim for parameters to scale terms that are functionally distinct and active in different, separated regions.
+    *   *Structural Principle:* Design the model as `U = IF(Condition based on fairness, beta1 * f1(Inputs), beta2 * f2(Inputs))`, where `f1` and `f2` are different functions of the relevant inputs (like `split_perc_self`, `fair_perc_self_calc`, `R_val`, `R_diff`, etc.). This ensures `beta1` influences utility through `f1` only when the condition is met, and `beta2` influences utility through `f2` only when the condition is *not* met.
+    *   *Example Ideas:*
+        *   `U = IF(R_val >= 1.0, beta_gain_sensitivity * log(R_val + 1e-6), beta_loss_slope * (R_val - 1.0))` (Similar to Run 1, perhaps experiment with slightly different functions).
+        *   `U = IF(split_perc_self >= fair_perc_self_calc, beta_pos_gain * split_perc_self, beta_neg_fairness * (fair_perc_self_calc - split_perc_self)^2)` (One parameter scales proposed share for gains, other scales squared fairness difference for losses - using squared difference helps make it non-linear).
+        *   `U = IF(perc_difference >= 0, beta_good_offer * split_perc_self, beta_bad_offer * perc_difference)` (This is similar to Run 52, but perhaps re-evaluate if the linear terms were the issue - unlikely, but worth noting).
+        *   `U = IF(perc_difference >= 0, beta_value_gain * sqrt(split_perc_self), beta_penalty_loss * abs(perc_difference))` (Using non-linear transformations like sqrt and absolute difference).
+*   **Single Non-Linear Function with Orthogonal Parameter Roles:** If not using a piecewise structure, design a single non-linear function of the inputs (`split_perc_self`, `fair_perc_self_calc`, ratio, difference) such that the two parameters affect mathematically distinct properties of the function's shape or response. For example, one parameter could control the overall scale or sensitivity, while the other parameter controls an asymmetry, curvature, or a threshold effect in a non-linear way.
+
+*   **Avoid:** Any model that simplifies to `U = c1 * Input1 + c2 * Input2` where `c1` and `c2` are simple combinations of `beta1` and `beta2`. Avoid structures where the terms scaled by `beta1` and `beta2` are highly correlated or linearly dependent across the dataset. This was the likely downfall of Run 52.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens = token_self + token_opp` and `fair_perc_self_calc = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)`. Calculate intermediate variables like ratios (`R_val = split_perc_self / fair_perc_self_calc`), differences (`perc_difference = split_perc_self - fair_perc_self_calc`), or any other transformations (log, power, exp, sqrt, abs) as needed for your chosen structure.
+
+*   **Model Formula:** Define the utility (`U`). Include calculation steps for necessary derived variables *before* the final formula for `U`. Use clear mathematical notation within the <MODEL> tags.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**. Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds (e.g., [-20.0, 20.0] or wider/narrower if appropriate for the variable scale).
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model formula (including `sum_tokens`, `fair_perc_self_calc`, any intermediate terms like ratios/differences/transformed values, and `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`. Ensure the description for `fair_perc_self_calc` includes the `sum_tokens > 0` condition.
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Only the formula should be inside these tags.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Use `split_perc_self` as the variable name for the proposed percentage share for self.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea and, crucially, how its specific mathematical structure is designed to ensure parameter identifiability for *both* learnable parameters (e.g., by having them scale distinct terms in different regimes, or influence separate, non-linearly related aspects of the utility calculation).
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This requires making their contributions to utility as distinct and non-overlapping as possible, often by having them scale different, non-linearly related terms or influence different regimes of the decision space. Be creative in designing the mathematical relationship between inputs, parameters, and utility to achieve this separation.

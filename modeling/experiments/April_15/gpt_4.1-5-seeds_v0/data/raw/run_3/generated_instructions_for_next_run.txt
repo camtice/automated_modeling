@@ -1,0 +1,70 @@
+<think>
+The previous model, although hybrid and flexible, produced extremely poor parameter recovery (correlations near zero or negative), low accuracy (53%), and moderate BIC, signaling severe identifiability and specification issues. This suggests the following problems:
+
+1. **Parameter Redundancy and Entanglement:** The hybrid model sought to capture both threshold and fairness aversion via a soft sigmoid threshold and a fairness penalty. However, both control the slope and midpoint, leading to collinearity or mutual compensation, which destroys interpretability and recovery.
+2. **Over-parameterization:** Four learnable parameters (threshold location, steepness, fairness weight, lapse rate) is aggressive, especially if their influence is not orthogonalized.
+3. **Form of Nonlinearity:** The model’s use of multiplicative elements (sigmoid × fairness penalty) is interpretable, but may be too smooth or too subtle to separate out real behavioral discontinuities (e.g., hard rejections below threshold).
+4. **Lapse Parameter:** Lapse rates typically recover well only if there is clear evidence of pure randomness. If confounded with poor model fit on systematic behavior, this parameter can become noise-catching and confound others.
+5. **Lack of Strong “Discontinuity”/Categoriality:** Human data often shows abrupt drop-offs below minimum acceptable shares; modeling this as a very soft sigmoid can mask sharp realities.
+
+Given these, new instructions should:
+- Enforce a much more *parsimonious* parameterization per model (e.g., at least one proposal with only one genuinely learnable parameter, such as an exact threshold).
+- Explicitly *separate* functional forms: try models with only a step/indicator function (hard or very steep), and others with only fairness penalty, not both at once unless identifiability is proven (e.g., by simulated recovery checks).
+- Make the modeler formally check identifiability logic: for each parameter, “What distinct behavioral curve, pattern, or feature uniquely identifies this parameter, even if all others are known or set to default? Would I recover it if fitting to realistic (non-ideal) data?”
+- Encourage the modeler to:
+    - Propose at least one "hard" (piecewise, discontinuous) function and justify when such abrupt changes are appropriate.
+    - Try at least one "winner-take-all" or "max/min"-style model; e.g., utility = min(self-interest, fairness discrepancy effect), or utility switches as soon as a threshold or criterion is met.
+    - Consider drastically reducing the number of learnable parameters to maximize recovery and avoid co-linearity.
+- Emphasize that *linear additive* models with clear separation of terms and bounds often outperform complex hybrids on recovery, despite being "simpler."
+- Suggest modeling the *step location* (minimum acceptable percent) as the *sole* parameter in a minimalist model—see if a step function alone can outperform cumbersome hybrids.
+- Insist on thorough, argument-based *parameter separability*: for any multi-parameter proposal, include a sketch of how each parameter would be estimated from data features, or what would force model degeneracy.
+- Make the modeler explicitly model and discuss “catastrophic collinearity” and set minimal model as baseline, justifying any additional parameter as showing incremental, not overlapping, value.
+- Encourage at least one “reference-dependent” or “relative loss aversion” model that penalizes either direction of deviation from a fairness standard—consider non-monotonic or symmetric penalty (e.g., quadratic or absolute deviation), and avoid making both threshold and penalty strengths “free” unless data can distinguish.
+- Suggest testing their models on *simulated data* for extreme test cases: strong threshold-only responder, fairness-only responder, noiseless/random responder; ensure the model recovers parameters when data is drawn from such known patterns.
+
+Encourage truly creative, not just “incrementally different” models.
+</think>
+
+**Updated Instructions for Run 4:**
+
+**Goal:** Produce computational models that maximize prediction accuracy, minimize BIC, and—critically—ensure robust experimental recovery of all parameter values. Interpretability and mathematical identifiability must both be maximized.
+
+**Stepwise Modeling Process (complete rigorously before formalization):**
+
+1. **Map psychological mechanisms** underlying responder choice (self-interest, fairness, thresholding, satisficing, random lapses, etc). Explicitly consider abrupt (discontinuous) as well as graded (continuous) behavioral responses.
+
+2. **Construct at least three distinctly structured candidate models:**
+    - One using a *hard step* or *indicator* function (abrupt cutoff at a learned threshold).
+    - One using a *single* fairness penalty or deviation (absolute difference or quadratic) from a reference point (e.g., equality or merit), without threshold.
+    - One “non-standard” form—e.g., "max/min", switch/floor, or piecewise, or even mixed discrete-continuous (e.g., acceptance only if both threshold and fairness proximity are met).
+    - At least one model should use only a *single* learnable parameter (e.g., the location of the threshold), to test for best recovery; multi-parameter models should only admit extra parameters with clear justification.
+
+3. **For multi-parameter models,** for *each parameter*, explicitly specify:
+    - The exact data feature or behavioral difference it uniquely governs, and how you would distinguish its effect from other parameters.
+    - How parameter values will be recoverable in the presence of random lapses or non-standard responding.
+
+4. **For every model:**
+    - Argue why this functional form is appropriate for the observed (or simulated) behavioral data (e.g., abrupt transitions, smooth gradients, symmetric vs. asymmetric tendencies).
+    - Test for catastrophic collinearity; do any pairs of parameters try to explain the same variance or are otherwise substitutable?
+    - Limit the number of learnable parameters—prefer parsimonious, minimal models and justify any increase in complexity with simulation-based evidence.
+
+5. **Recommend at least one “reference-dependent” or “relative” model:** Utility based solely on deviations (absolute or signed) from a social or merit-based standard (e.g., U = -alpha × |splitperc_self – fairness_reference|, where only alpha is learned).
+
+6. **For all parameter bounds:** Base on theoretical or empirical limits. E.g., minimum acceptable percent in [0,100], penalty strengths ≥ 0. Avoid bounds that risk extremal-fitting or unbounded drift.
+
+7. **Modeling Lapses and Noise:** Consider omitting lapse parameters if not necessary, or use fixed plausible values—do not attach lapse/noise parameters only to absorb unexplained variance.
+
+8. **Argue for parameter recoverability, not just fit.** For every candidate, demonstrate via simulated logic which data patterns would yield high vs. low parameter estimates, and what tradeoffs exist.
+
+**When writing your mathematical model and variable specifications:**
+
+- Present only one final candidate (the most promising for recovery and accuracy), but include a short justification why this choice was made from your earlier theoretical exercise.
+- Use clean, unambiguous mathematical notation and variable names.
+- Ensure all variable and parameter descriptions are precise, bounded, and justified.
+
+**Encouragement:**
+- Challenge yourself to propose at least one model form that is entirely “outside the box”—e.g., using max/min, hard indicators, or a mixture of discontinuous and continuous functions, and justify its relevance to behavioral data.
+- Consider models that are deliberately minimalist—sometimes a 1-parameter cutoff matches the data as well as complex forms but is vastly more recoverable.
+- Model "winning" patterns—thresholds (“I accept if ≥ x%”), fairness only (“accept if close to fair”), or interaction (“it must be both fair and enough for me”). Demonstrate via logic or toy simulation which best suits data like this.
+
+After these rigorous steps and justifications, then present your one formal model specification, variable descriptions, and accompanying short summary as previously instructed.

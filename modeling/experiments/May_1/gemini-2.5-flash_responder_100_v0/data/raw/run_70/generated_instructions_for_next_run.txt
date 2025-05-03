@@ -1,0 +1,41 @@
+Okay, here are the improved instructions for the next run (Run 71), building on the analysis of previous attempts and maintaining the intense focus on achieving robust parameter identifiability for *both* learnable parameters.
+
+Instructions for Run 71 of 100:
+
+The **unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters**. This is the critical benchmark for model usability. While improved BIC (lower is better) and accuracy (higher is better) are valuable secondary goals, they must not come at the expense of robust parameter recovery.
+
+The previous run (Run 69) implemented an additive model structure with a ratio-based unfairness penalty term (`U_accept = beta_value * split_perc_self - beta_unfairness * (positive_deviation / safe_split_perc_self)`). Despite the theoretical rationale that the non-linear shape of the ratio penalty would help disentangle parameter influences, the results showed very poor parameter recovery (beta_value: r=0.223, beta_unfairness: r=0.098). This confirms that merely introducing non-linearity in the penalty term within an additive structure is not sufficient for identifiability if the shape of the penalty's influence remains too correlated with the influence of the value term across the data range.
+
+Crucially, previous explorations (like the ratio model tested in Run 68, `U = (beta_value * split_perc_self) / (1.0 + beta_unfairness * NonLinearPenaltyTerm)`) showed that using a **squared positive difference** penalty (`max(0.0, fair_perc_self_calc - split_perc_self)^2`) resulted in a significantly better BIC (44.58) compared to Run 69's BIC (479.64). This suggests that the squared deviation penalty term might better capture the underlying structure of participant behavior related to unfairness, even though its identifiability was poor when placed in the denominator of a ratio model.
+
+For Run 71, let's leverage the potential descriptive power of the squared deviation penalty term, but combine it with the simpler **additive utility structure**. The hypothesis is that using an additive structure (`U = ValueTerm - PenaltyTerm`) with a **linearly scaled value term** (`beta_value * split_perc_self`) and a **non-linearly scaled penalty term** based on the squared deviation from fairness (`beta_unfairness * (squared positive deviation)`) will create sufficiently distinct mathematical influences for `beta_value` and `beta_unfairness` across the range of possible offers, leading to robust parameter identifiability.
+
+Proposed Model Structure: An additive model where utility is the value of the offer minus a penalty proportional to the *squared* deviation from fairness.
+`U_accept = beta_value * split_perc_self - beta_unfairness * SquaredPositiveDeviation`
+
+Here, `SquaredPositiveDeviation` is calculated as the square of the positive difference between the fair share percentage and the proposed share percentage. Specifically:
+Calculate `fair_perc_self_calc` handling the `sum_tokens == 0` case (defaulting to 50.0).
+Calculate `deviation = fair_perc_self_calc - split_perc_self`.
+Define `positive_deviation = max(0.0, deviation)`. This ensures the penalty is only applied for offers below the fair share.
+Define the `SquaredPositiveDeviation = positive_deviation^2`.
+Finally, `U_accept = beta_value * split_perc_self - beta_unfairness * SquaredPositiveDeviation`.
+
+The theoretical rationale for this specific combination is to create a clear mathematical contrast: `beta_value` scales a term that changes linearly with the offer (`split_perc_self`), while `beta_unfairness` scales a term that changes quadratically with the *deviation* from fairness (for offers below fair). This difference in how the two terms scale with the input variables (`split_perc_self` and `fair_perc_self_calc`) is intended to make their individual contributions to the overall utility function more distinguishable than in previous attempts, thereby improving the reliability of their estimated values during parameter recovery.
+
+Design the model using the additive structure `U_accept = beta_value * split_perc_self - beta_unfairness * squared_positive_deviation`, where `squared_positive_deviation` is calculated as specified above.
+
+Focus on clearly defining the `squared_positive_deviation` term and articulating in the summary how its specific functional form (the square of the positive deviation from fair share) combined with the additive structure and the linear value term is intended to help disentangle the influences of `beta_value` (scaling the linear value) and `beta_unfairness` (scaling this non-linear, squared penalty), thereby significantly improving robust parameter identifiability for *both* learnable parameters. Explain why this specific combination is being tested based on the learnings from Run 69's additive structure failure and Run 68's better BIC with the squared penalty.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc` (handling `sum_tokens == 0`), `deviation`, `positive_deviation`, `squared_positive_deviation`, and `U_accept`. Include any other necessary intermediate variables.
+*   **Model Formula:** Define `U_accept` using the additive structure: `U_accept = beta_value * split_perc_self - beta_unfairness * squared_positive_deviation`. Include calculation steps for derived variables *before* the formula for `U_accept`. Use clear mathematical notation within the <MODEL> tags (only the formula).
+*   **Learnable Parameters:** Exactly **2 learnable parameters**: `beta_value` and `beta_unfairness`. Choose descriptive, Python-safe names. Define clear, generous, finite numerical bounds. Non-negative bounds (e.g., `[0.0, 100.0]` for both) are theoretically appropriate and may aid recovery. Stick with `[0.0, 100.0]` for both.
+*   **Calculated Variables:** Include descriptions for *all* calculated variables used in the model (including `U_accept`, `sum_tokens`, `fair_perc_self_calc`, `deviation`, `positive_deviation`, and `squared_positive_deviation`) with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables in the <MODEL> formula. Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Remember variable names must exactly match the model.
+*   **Target Variable:** Specify "accept" using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea (additive structure, linear value term, squared positive deviation penalty term). Crucially, explain *how the squared form of the penalty term* within the additive structure is specifically intended to improve robust parameter identifiability for *both* learnable parameters by creating a mathematically distinct, non-linear influence profile for `beta_unfairness` compared to the linear influence of `beta_value`. Explain how this new combination is a targeted attempt to overcome the identifiability failures of previous additive and ratio models, building on prior observations about the BIC performance of the squared penalty.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters (>= 0.7 recovery for both) is the absolute priority. Your goal is to find a structure where both parameters' influences are clearly distinguishable across the range of possible offers, leading to reliable estimates. Be creative in how you define and utilize the different functional forms and structures to maximize this distinction while remaining theoretically plausible. Find a model structure that truly shines in parameter recovery.

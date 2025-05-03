@@ -1,0 +1,42 @@
+Okay, here are the improved instructions for the next run (Run 73), based on the results of previous attempts, with the absolute focus remaining on achieving robust parameter identifiability.
+
+Instructions for Run 73 of 100:
+
+The **unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters**. This is the critical benchmark for model usability. While improved BIC (lower is better) and accuracy (higher is better) are valuable secondary goals, they must not come at the expense of robust parameter recovery.
+
+The previous run (Run 72) implemented a reference-dependent additive model (`U_accept = beta_value * gain_above_fair - beta_unfairness * loss_below_fair`). Despite the theoretical rationale that separating parameters into gain and loss domains relative to a fair share reference would create distinct influences, the results showed *extremely poor* parameter recovery for both parameters (beta_value: r=0.131, beta_unfairness: r=0.015). Furthermore, this model exhibited very poor overall fit (BIC: 600.81, Accuracy: 0.533), significantly worse than many earlier attempts. This indicates that this specific reference-dependent structure, while conceptually distinct, did not capture the underlying behavior well, leading to unidentifiable parameters. Poor model fit often directly results in poor parameter recovery.
+
+Previous attempts using simple additive structures or ratio structures with linear, squared, or ratio-based penalty terms have also consistently failed to achieve robust parameter identifiability, suggesting these common forms may inherently lead to confounding when a 'value' and 'unfairness' parameter both influence utility.
+
+For Run 73, we need to continue exploring structures that can both provide a reasonable fit to the data *and* create mathematically distinct influences for the 'value' and 'unfairness' parameters. The failure of the Run 72 model suggests that just changing the conceptual framework (additive vs. reference-dependent) isn't enough; the specific *functional forms* by which the parameters scale variables must ensure separability.
+
+Let's revisit an additive structure but incorporate a strongly non-linear penalty term in a novel way. The goal is to ensure that the influence of the 'unfairness' parameter grows much more rapidly or in a fundamentally different shape than the linear influence of the 'value' parameter across the range of possible offers.
+
+Proposed Model Structure: An additive utility model with a linear value term and an **exponential penalty** term based on deviation below the fair share.
+`U_accept = beta_value * split_perc_self - beta_unfairness * exp(loss_below_fair)`
+
+Here:
+Calculate `fair_perc_self_calc` handling the `sum_tokens == 0` case (defaulting to 50.0).
+Calculate `loss_below_fair = max(0.0, fair_perc_self_calc - split_perc_self)`. This term is non-zero only for offers below or equal to the fair share.
+Finally, `U_accept = beta_value * split_perc_self - beta_unfairness * exp(loss_below_fair)`. Note the subtraction for the penalty.
+
+In this structure, `beta_value` linearly scales the value derived from the offered percentage (`split_perc_self`). `beta_unfairness` scales a penalty that increases exponentially with the magnitude of the 'loss' or deviation below the fair share (`loss_below_fair`). The key hypothesis for improved identifiability is that this **exponential form** of the penalty creates a functional relationship between `loss_below_fair` and disutility that is dramatically non-linear and distinct from the linear relationship between `split_perc_self` and utility driven by `beta_value`. This aims to make the influence of `beta_value` and `beta_unfairness` on the overall utility profile easily separable during fitting and recovery tests, overcoming the limitations seen with linear or squared penalty terms.
+
+Design the model using this additive structure with an exponential penalty: `U_accept = beta_value * split_perc_self - beta_unfairness * exp(loss_below_fair)`, where `loss_below_fair` is calculated as specified above using `fair_perc_self_calc` as the reference.
+
+Focus on clearly defining the `loss_below_fair` term and articulating in the summary how this specific structure, by combining a linear value term with an *exponential* unfairness penalty term, is intended to achieve robust parameter identifiability by creating mathematically distinct influence profiles for `beta_value` and `beta_unfairness` across different offers. Explain why this specific non-linear form is being tested as a potential way to overcome the identifiability failures seen in previous structures.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc` (handling `sum_tokens == 0`), `loss_below_fair`, and `U_accept`. Include any other necessary intermediate variables.
+*   **Model Formula:** Define `U_accept` using the additive structure with exponential penalty: `U_accept = beta_value * split_perc_self - beta_unfairness * exp(loss_below_fair)`. Include calculation steps for derived variables *before* the formula for `U_accept`. Use clear mathematical notation within the <MODEL> tags (only the formula).
+*   **Learnable Parameters:** Exactly **2 learnable parameters**: `beta_value` (value sensitivity) and `beta_unfairness` (unfairness sensitivity). Choose descriptive, Python-safe names. Define clear, generous, finite numerical bounds. Non-negative bounds (e.g., `[0.0, 100.0]` for both) are theoretically appropriate and may aid recovery. Stick with `[0.0, 100.0]` for both.
+*   **Calculated Variables:** Include descriptions for *all* calculated variables used in the model (including `U_accept`, `sum_tokens`, `fair_perc_self_calc`, and `loss_below_fair`) with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables in the <MODEL> formula. Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Remember variable names must exactly match the model.
+*   **Target Variable:** Specify "accept" using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea (additive structure, linear value term, exponential unfairness penalty based on deviation from fair share). Crucially, explain *how* this structure, by using the exponential function for the penalty term, is specifically intended to improve robust parameter identifiability by creating a mathematically distinct influence profile for `beta_unfairness` compared to the linear influence of `beta_value`, addressing the limitations of previous simple additive/ratio structures and the failed reference-dependent model.
+*   **Think Outside the Box:** Recognize that previous attempts with standard functional forms (linear, squared, ratio) have failed parameter recovery. The exponential function is a deliberate choice to introduce a different kind of non-linearity, explicitly attempting to create functional separability between parameters. Continue to consider non-obvious ways parameters might interact or influence decisions beyond simple linear combinations, as finding a structure that truly shines in parameter recovery often requires exploring less standard forms.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters (>= 0.7 recovery for both) is the absolute priority. Your goal is to find a structure where both parameters' influences are clearly distinguishable across the range of possible offers, leading to reliable estimates and hopefully improved fit metrics (BIC and accuracy) as a result of capturing the underlying process more accurately.

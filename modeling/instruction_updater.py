@@ -48,7 +48,7 @@ async def update_instructions(
         # Construct the prompt for the LLM
         instruction_update_prompt = f"""You are an assistant helping refine instructions for a computational modeling LLM task. The LLM you are helping is stateless, i.e. it will not have access to it's previous interactions, so any information aside from the intial task and technical model descriptions will need to be provided in the your instructions.
 
-        Based on the results of the previous run and the instructions used for that run, generate improved instructions for the *next* run. Aim to guide the main modeling LLM towards better performance (e.g., lower BIC, better parameter recovery, and higher accuracy). You will first be given the total context for the previous run, then reminded specifically of the instructions used for that run that you should update.
+        Based on the results of the previous run and the instructions used for that run, generate improved instructions for the *next* run. Aim to guide the main modeling LLM towards better performance (e.g., lower BIC, better parameter recovery, and higher accuracy). Please keep in mind that if any of the learnable parameters have a parameter recovery value of less than ~0.7, then the model is unusable. You will first be given the total context for the previous run, then reminded specifically of the instructions used for that run that you should update.
 
 Here are a list of some recent previous models and their results for context:
 <previous_runs>
@@ -80,20 +80,15 @@ Parameter Recovery Summary:
 
 Generate *only* the text for the new instructions below for run {run_number + 1} of {n_runs}. Do any thinking between <think> and </think> tags. Remember to update the instructions to increase the accuracy, BIC, and paramater recovery. Be as specific or as vague as you would like. The model retrieving results are not able to use the previous interaction, so you should not include any information about the previous interaction in your response. You will also not be able to iterate on this response, so give your best advice each time. You should encourage out of the box thinking, since your counterpart likes to get stuck only with the most obvious models.
 """
-        # print(instruction_update_prompt)
         # Instantiate the LLM
         update_model = get_model(llm_name)
 
         # Make the LLM call
         output: ModelOutput = await update_model.generate(instruction_update_prompt)
 
-        if "deepseek432432432432432432" in llm_name:
-            # regex that disregards the response between the <think> and </think> tags
-            new_instructions = re.sub(
-                r"<think>.*?</think>", "", output.completion.strip(), flags=re.DOTALL
-            )
-        else:
-            new_instructions = output.completion.strip()
+        new_instructions = re.sub(
+            r"<think>.*?</think>", "", output.completion.strip(), flags=re.DOTALL
+        )
 
         if not new_instructions:  # Handle empty response
             logging.error("Instruction generation resulted in empty response.")

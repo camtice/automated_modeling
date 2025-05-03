@@ -1,0 +1,36 @@
+Based on the results of Run 11, where only the `alpha` parameter (base sensitivity to the offer) achieved sufficient recovery (r=0.798), while the parameters scaling deviations below (`beta`, r=0.399) and above (`gamma`, r=0.063) the fair share failed significantly, it's clear that disentangling the influence of these continuous deviation terms from the base sensitivity is proving very difficult for parameter recovery in this dataset. The piecewise linear structure attempted in Run 11, while conceptually sound, did not resolve the identifiability issues for the deviation parameters.
+
+The most critical objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. A model is unusable otherwise. We must continue to prioritize model structures that make parameters influence the utility function in maximally separable ways.
+
+For Run 12, let's pivot to a model where fairness acts as a more discrete, threshold-based influence rather than a continuous penalty or bonus based on the exact difference. This might help make the fairness parameter's effect more distinct and thus better identifiable.
+
+Consider a model with a base sensitivity to the offered percentage, and a *fixed penalty* that is applied *only* when the offer falls below the proportional fair share (`fair_perc_self`). This treats "being below fair" as a distinct state that triggers a specific cost, rather than a continuous penalty proportional to the magnitude of unfairness. This structure aims to cleanly separate the effect of the offer's value from the effect of crossing the fairness threshold.
+
+**Proposed Model Structure Idea:**
+
+The utility of accepting an offer is determined by:
+1.  A base utility proportional to the offered percentage (`split_perc_self`), scaled by a parameter `alpha`.
+2.  An additional fixed penalty, scaled by a parameter `beta_step`, which is applied *only* if `split_perc_self` is less than `fair_perc_self`. If `split_perc_self` is equal to or greater than `fair_perc_self`, this penalty is zero.
+
+This model has two learnable parameters: `alpha` representing the base value sensitivity, and `beta_step` representing the magnitude of the fixed penalty for unfair offers. Both parameters should be constrained to be non-negative, as a higher offer should generally increase utility (`alpha`), and offers below fair should incur a penalty (`beta_step`).
+
+**Guidance for the Next Model (Run 12):**
+
+Design a computational model implementing the "step penalty" concept described above. This model structure simplifies the influence of fairness on utility by making it a binary switch (on/off) based on the `fair_perc_self` threshold, rather than a continuous function of the deviation magnitude. This structural change is intended to improve the separability and identifiability of the `beta_step` parameter from `alpha`.
+
+*   **Prioritize Parameter Recovery:** Design the model structure to ensure `alpha` and `beta_step` have maximally distinguishable effects on the utility function given the data.
+*   **Parameter Constraints:** Define clear, generous, finite, non-negative bounds for both `alpha` and `beta_step`. Suggest `alpha` bounds [0, 10] and `beta_step` bounds [0, 100].
+*   **Model Specification:** Provide the mathematical formula between <MODEL> tags using standard mathematical notation. Ensure the formula reflects the fixed penalty applied only when `split_perc_self < fair_perc_self`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags, including the specified bounds and learnable status for `alpha` and `beta_step`.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags.
+
+Think creatively about how to implement the "fixed penalty below fair" logic concisely within the single expression required for the <MODEL> tag using available mathematical functions (`max`, `sign`, etc.) to represent the conditional nature of the penalty. The core logic is: Utility = (Sensitivity to Offer) * Offer - (Penalty Magnitude) * (Indicator: IsOfferBelowFair).
+
+Focus intently on this distinct structural approach – separating base value sensitivity from a discrete fairness cost – as a strategy to finally achieve the necessary parameter identifiability.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+Remember `fair_perc_self` can be calculated as `(token_self / (token_self + token_opp)) * 100`. Use variables available for responder trials (`trial_role == 1`).
+
+For run 12 of 100, please think through this step by step, focusing intently on designing a model structure that maximizes parameter identifiability given the data and the history of failed recovery attempts, specifically implementing the described step penalty model. Then provide your model specification, variable descriptions, target variable, and summary.

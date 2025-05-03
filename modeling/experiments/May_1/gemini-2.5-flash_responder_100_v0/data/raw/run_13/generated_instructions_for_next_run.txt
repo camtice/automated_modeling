@@ -1,0 +1,38 @@
+Based on the results of the previous run (Run 13) and the history of models, we continue the critical task of developing a computational model for the responder decision in the ultimatum game that achieves parameter recovery of >= 0.7 for *all* learnable parameters. The previous attempts, including continuous deviation penalties, fixed step penalties, and the most recent piecewise slope *reduction* model (Run 13), have consistently failed to meet this parameter identifiability threshold, despite some achieving reasonable BIC and accuracy scores.
+
+The piecewise slope reduction model (Run 13), defined as `U = (alpha - beta_step * max(0, -sign(split_perc_self - fair_perc_self))) * split_perc_self`, resulted in recovery values of r = 0.366 for `alpha` and r = 0.535 for `beta_step`. While conceptually promising, this specific formulation, where `beta_step` represents a *reduction* from a base slope `alpha`, did not sufficiently separate the influence of the two parameters for successful recovery. It appears that disentangling a base sensitivity (`alpha`) from a reduction (`beta_step`) applied in only one condition (`split_perc_self < fair_perc_self`) remains challenging.
+
+For this run (Run 14), let's evolve the piecewise slope concept to potentially improve parameter identifiability. Instead of modeling a base slope and a reduction, let's model the two slopes *independently*. This means defining a distinct slope for offers at or above the fair share (`fair_perc_self`) and an entirely separate slope for offers strictly below the fair share.
+
+Consider a model where the utility of accepting an offer (`U`) is a piecewise linear function of the offered percentage (`split_perc_self`) with a pivot point at the calculated proportional fair share (`fair_perc_self`). The model should have two learnable parameters representing these two independent slopes:
+1.  A parameter `alpha_fair` representing the sensitivity (slope) to the offered percentage (`split_perc_self`) when the offer is at or above the proportional fair share (`split_perc_self >= fair_perc_self`).
+2.  A parameter `alpha_unfair` representing the sensitivity (slope) to the offered percentage (`split_perc_self`) when the offer is strictly below the proportional fair share (`split_perc_self < fair_perc_self`).
+
+The hypothesis is that by assigning separate parameters to control the slope in these two mutually exclusive conditions (offers >= fair vs. offers < fair), their individual contributions to utility will become more separable and thus more identifiable by the fitting process. Both `alpha_fair` and `alpha_unfair` should be constrained to be non-negative, reflecting the assumption that utility does not decrease as the offered percentage increases within either range, but their magnitude relative to each other captures the aversion to unfairness.
+
+**Proposed Model Structure Idea (Run 14):**
+
+The utility `U` is calculated such that the relationship with `split_perc_self` is:
+-   Linear with slope `alpha_fair` when `split_perc_self >= fair_perc_self`.
+-   Linear with slope `alpha_unfair` when `split_perc_self < fair_perc_self`.
+
+This structure creates a piecewise linear function of `split_perc_self` with independent slopes.
+
+**Guidance for the Next Model (Run 14):**
+
+Design a computational model implementing the "independent piecewise slopes" concept described above. This model structure is a direct evolution of the previous attempt, aiming specifically to enhance parameter identifiability by having parameters influence the utility function in distinct regions defined by the `fair_perc_self` threshold.
+
+*   **Prioritize Parameter Recovery:** Design the model structure to ensure `alpha_fair` and `alpha_unfair` have maximally distinguishable effects on the utility function given the data.
+*   **Parameter Constraints:** Define clear, generous, finite, non-negative bounds for both `alpha_fair` and `alpha_unfair`. Suggest bounds [0, 10] for both.
+*   **Model Specification:** Provide the mathematical formula between <MODEL> tags using standard mathematical notation. Ensure the formula reflects the change in slope above/at vs. below `fair_perc_self`. You can implement the piecewise slope logic using indicator functions. Let `I_unfair` be an indicator function that is 1 if `split_perc_self < fair_perc_self` and 0 otherwise. A mathematical way to write this indicator is `max(0, -sign(split_perc_self - fair_perc_self))`. Let `I_fair` be the opposite indicator, 1 if `split_perc_self >= fair_perc_self` and 0 otherwise, which can be written as `(1 - I_unfair)`. The structure should be `U = alpha_fair * split_perc_self * I_fair + alpha_unfair * split_perc_self * I_unfair`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags, including the specified bounds and learnable status for `alpha_fair` and `alpha_unfair`. Remember that `fair_perc_self` is a calculated variable derived from `token_self` and `token_opp`.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags.
+
+Focus intently on implementing this distinct structural approach – modeling two independent slopes based on the fairness threshold – as the next strategy to achieve the necessary parameter identifiability. Think creatively about the precise mathematical formulation within the single expression for the <MODEL> tag.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+Remember `fair_perc_self` can be calculated as `(token_self / (token_self + token_opp)) * 100`. Use variables relevant for responder trials (`trial_role == 1`).
+
+For run 14 of 100, please think through this step by step, focusing intently on designing a model structure that maximizes parameter identifiability given the data and the history of failed recovery attempts, specifically implementing the described independent piecewise slope model. Then provide your model specification, variable descriptions, target variable, and summary.

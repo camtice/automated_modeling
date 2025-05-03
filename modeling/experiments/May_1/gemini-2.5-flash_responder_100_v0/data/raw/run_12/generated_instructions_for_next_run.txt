@@ -1,0 +1,40 @@
+Based on the history of model performance, particularly the challenge of achieving parameter recovery >= 0.7 for *all* learnable parameters, it is evident that the way fairness influences utility needs careful structural consideration. Models using continuous penalties or bonuses based on the magnitude of deviation from fair share, as well as a recent attempt using a fixed penalty step, have struggled to make their parameters sufficiently identifiable despite sometimes achieving good overall fit (BIC) and accuracy.
+
+The primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. A model is unusable otherwise. We must continue to prioritize model structures that allow parameters to influence the utility function in maximally separable and identifiable ways given the dataset characteristics.
+
+For this run (Run 13), let's explore a model structure where fairness acts as a threshold that changes the *rate* at which utility accumulates with the offered percentage, rather than adding a fixed penalty or a penalty proportional to the deviation magnitude. This means the *slope* of the utility function with respect to `split_perc_self` will differ depending on whether the offer is below or above the calculated proportional fair share (`fair_perc_self`).
+
+Consider a model where the utility of accepting an offer has:
+1.  A base sensitivity (slope) to the offered percentage (`split_perc_self`), scaled by a parameter `alpha`. This slope applies when the offer is at or above the proportional fair share (`fair_perc_self`).
+2.  A *reduced* sensitivity (slope) when the offer falls strictly below the proportional fair share. The reduction in slope is scaled by a parameter `beta_step`.
+
+This structure posits that participants value offers less *per percentage point* when the offer is considered unfair based on token contributions. This model has two learnable parameters: `alpha` representing the primary slope (sensitivity to fair/generous offers) and `beta_step` representing the magnitude of the slope reduction for unfair offers. Both parameters should be constrained to be non-negative.
+
+**Proposed Model Structure Idea:**
+
+The utility `U` is calculated such that the relationship with `split_perc_self` is:
+-   Linear with slope `alpha` when `split_perc_self >= fair_perc_self`.
+-   Linear with slope `alpha - beta_step` when `split_perc_self < fair_perc_self`.
+
+This creates a piecewise linear function of `split_perc_self` with a pivot point at `fair_perc_self`.
+
+**Guidance for the Next Model (Run 13):**
+
+Design a computational model implementing the "piecewise slope" concept described above. This model structure simplifies the influence of fairness by making it change the responsiveness to the offer based on the `fair_perc_self` threshold, aiming to improve the separability and identifiability of the parameters compared to previous continuous or fixed-step penalty approaches.
+
+*   **Prioritize Parameter Recovery:** Design the model structure to ensure `alpha` and `beta_step` have maximally distinguishable effects on the utility function given the data.
+*   **Parameter Constraints:** Define clear, generous, finite, non-negative bounds for both `alpha` and `beta_step`. Suggest `alpha` bounds [0, 10] and `beta_step` bounds [0, 10].
+*   **Model Specification:** Provide the mathematical formula between <MODEL> tags using standard mathematical notation. Ensure the formula reflects the change in slope below `fair_perc_self`. You can implement the piecewise slope logic using an indicator function `I` that is 1 if `split_perc_self < fair_perc_self` and 0 otherwise. A mathematical way to write this indicator is `max(0, -sign(split_perc_self - fair_perc_self))`. The structure should be `U = (alpha - beta_step * I) * split_perc_self`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags, including the specified bounds and learnable status for `alpha` and `beta_step`. Remember that `fair_perc_self` is a calculated variable derived from `token_self` and `token_opp`.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags.
+
+Think creatively about how to implement the "slope changes below fair" logic concisely within the single expression required for the <MODEL> tag using available mathematical functions (`max`, `sign`, etc.) to represent the conditional nature of the slope. The core logic is: Utility = (Effective Sensitivity) * Offer, where Effective Sensitivity depends on whether Offer < FairShare.
+
+Focus intently on this distinct structural approach – separating base slope from a fairness-dependent slope reduction – as a strategy to finally achieve the necessary parameter identifiability.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+Remember `fair_perc_self` can be calculated as `(token_self / (token_self + token_opp)) * 100`. Use variables relevant for responder trials (`trial_role == 1`).
+
+For run 13 of 100, please think through this step by step, focusing intently on designing a model structure that maximizes parameter identifiability given the data and the history of failed recovery attempts, specifically implementing the described piecewise slope model. Then provide your model specification, variable descriptions, target variable, and summary.

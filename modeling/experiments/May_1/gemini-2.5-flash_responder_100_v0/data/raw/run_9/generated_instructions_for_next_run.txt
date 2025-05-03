@@ -1,0 +1,43 @@
+Design a computational model for the described ultimatum game responder task. Your model must meet the following criteria:
+1.  **Predict only responder behavior** (target variable: "accept").
+2.  **Achieve excellent parameter recovery (>= 0.7 correlation) for ALL learnable parameters.** This remains the *single most important* objective. Previous attempts have consistently failed here. A model is unusable if any learnable parameter cannot be reliably recovered, regardless of other metrics (like BIC or accuracy). Prioritize model structures that inherently enhance parameter identifiability from the data.
+3.  **Be applicable to the dataset:** Use only the provided data structure and variables available during responder trials (trial_role == 1).
+4.  **Predict utility:** Utility values will be converted to acceptance probabilities using a logistic function (with temperature 1). A utility > 0 implies > 50% probability of acceptance.
+
+**Analysis of Previous Attempt (Run 9):** The most recent model (`beta * split_perc_self - gamma_prop * max(0, fair_perc_self - split_perc_self)**delta_prop - gamma_50 * max(0, 50 - split_perc_self)**delta_50`) attempted to improve parameter identifiability by introducing exponents on the penalty terms. However, this model **failed parameter recovery catastrophically** (all parameters had r < 0.4, some near zero or negative), and also resulted in **significantly worse BIC (825.09)** and **lower accuracy (0.513)** compared to most previous models. This indicates that adding exponents and more parameters in this additive penalty structure did not help and likely made the parameters less identifiable while also providing a poor fit to the data's underlying structure. The failure to recover parameters renders the model unusable, regardless of the poor BIC and accuracy.
+
+**Guidance for the Next Model (Radically Prioritizing Parameter Recovery - Continued):** We *must* abandon model structures that have repeatedly failed parameter recovery. Simple additive components scaled by learnable parameters, even with piecewise activation or non-linear exponents, have proven to be non-identifiable in this task context, likely due to high correlation or substitutability among parameter effects.
+
+The focus for Run 10 *must* be on defining learnable parameters that influence the utility function in ways that are *fundamentally and qualitatively distinct* from each other, making their effects separable from the data. This requires moving beyond simple additive terms.
+
+Consider:
+*   **Parsimony:** Can parameter recovery be achieved with *fewer* learnable parameters? Models with fewer parameters often have better identifiability. Run 3, with only two parameters, achieved the highest recovery seen so far (though still below 0.7).
+*   **Multiplicative Interactions:** Could parameters control the *rate* at which the value of an offer is discounted based on its unfairness? For example, `Utility = split_perc_self * (beta - gamma * max(0, fair_perc_self - split_perc_self))`. Here, `beta` sets the base sensitivity to the split (especially when fair), while `gamma` controls how much that sensitivity is *reduced* when the offer is below the proportional fair share. Their effects might be more separable than simple additive penalties.
+*   **Piecewise Functions with Distinct Slopes:** Design a model where parameters define the *slope* or sensitivity to `split_perc_self` in different regions relative to the norms (50%, proportional). For instance, one parameter defines the slope when the offer is above the proportional share, and another defines the slope when it's below. This is different from scaling additive penalties; parameters control the function's rate of change directly.
+
+For Run 10, let's specifically explore a model structure based on a **multiplicative interaction** between the offer value and proportional unfairness, building on the insights from Run 3's relative success with the proportional norm and aiming for a more identifiable structure.
+
+Propose a model where utility is proportional to the offer percentage (`split_perc_self`), but the proportionality constant (sensitivity) is reduced by a term dependent on the degree of proportional unfairness.
+`U = split_perc_self * (beta_value - gamma_proportional_aversion * max(0, fair_perc_self - split_perc_self))`
+
+In this structure:
+*   `beta_value` represents the base sensitivity to the proposed share. It's the sole driver of utility when the offer is equal to or above the proportional fair share (`max(...)` term is zero).
+*   `gamma_proportional_aversion` controls how much the sensitivity to `split_perc_self` is decreased when the offer is *below* the proportional fair share. This parameter influences the utility function's slope *only* in the unfair region, and its effect is weighted by `split_perc_self`.
+
+Define clear, generous finite bounds for `beta_value` and `gamma_proportional_aversion`. Both should likely be constrained to be non-negative, as increasing the offer should generally increase utility, and increasing proportional unfairness should decrease it.
+
+Continue to build the model using percentage-based values (`split_perc_self`, `fair_perc_self`).
+
+For any learnable parameters, you must specify generous, finite numerical bounds. The utility variable may be unbounded (-inf to inf).
+
+Provide your formal mathematical model between <MODEL> tags. Ensure *only* the mathematical formula is within these tags.
+Provide variable descriptions in JSON format between <VARIABLES> tags. Ensure learnable parameter names are clear and suitable for coding. Spell out Greek variables.
+Specify the target variable using <target_variable> tags.
+Provide a concise, descriptive summary of the model between <SUMMARY> tags.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+Remember to only model responder trials (where trial_role == 1) and use variables available in that context. The `fair_perc_self` variable (calculated as `(token_self / (token_self + token_opp)) * 100`) is useful for fairness calculations.
+
+For run 10 of 100, please think through this step by step, focusing intently on how the *specific multiplicative structure* proposed here guarantees parameter identifiability and distinguishes the influence of each parameter, minimizing covariance based on the *specific* data characteristics. How do `beta_value` and `gamma_proportional_aversion` affect the utility function shape in unique ways that make them separable? Then provide your model specification, variable descriptions, target variable, and summary.
+</think>

@@ -1,0 +1,51 @@
+Okay, here are the improved instructions for the next run (Run 43), building on the results of Run 42.
+
+Instructions for Run 43 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery.
+
+The previous run (Run 42) explored a model based on the ratio of the proposed share to the fair share (`U = beta_ratio_sens * R + beta_baseline`). This structure achieved the lowest BIC (31.19) and highest accuracy (0.798) so far, indicating a promising fit to the data. However, parameter recovery was mixed: `beta_baseline` recovered well (r = 0.916), but `beta_ratio_sens` failed significantly (r = 0.393). This suggests that while the ratio concept captures important variance, the *linear* relationship assumed by the model likely couples the influence of the sensitivity parameter (`beta_ratio_sens`) with the baseline utility (`beta_baseline`) in a way that prevents reliable, independent estimation from the available data.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** that ensures both parameters have distinct, identifiable influences on responder decisions (`trial_role == 1`). Linear combinations, piecewise deviations, and simple linear relationships with derived ratios have shown issues with simultaneous parameter recovery for *both* parameters.
+
+For this run, let's retain the use of the participant's proposed share (`split_perc_self`) and the calculated fair share (`fair_perc_self`), but explore a completely different mathematical form for utility that is *non-linear* with respect to these inputs and structured to potentially decouple the parameters' effects.
+
+Design a computational model that predicts the utility of accepting an offer based on a **logarithmic relationship** with the proposed percentage share and the fair percentage share. This departs significantly from linear or ratio-linear models and might offer the necessary structural separation for improved parameter identifiability.
+
+*   **Promising Structural Direction (Logarithmic):** Consider modeling utility (`U`) as a weighted sum of the logarithms of the proposed share and the fair share. This allows for diminishing sensitivity to percentage changes as values increase and treats the influence of the offer and the fair share somewhat independently.
+    *   Calculate the necessary intermediate variables:
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)` (Note: This calculation handles the case where `sum_tokens` is 0, setting `fair_perc_self` to 50.0. `fair_perc_self` will always be >= 0).
+    *   Structure the utility (`U`) based on the logarithms of `split_perc_self` and `fair_perc_self` and your two learnable parameters. A promising form is:
+        `U = beta_split_sens * log(split_perc_self + epsilon) + beta_fair_sens * log(fair_perc_self + epsilon)`
+        *   You will need to define a small constant `epsilon` (e.g., 1e-6) to handle cases where `split_perc_self` or `fair_perc_self` might be zero, as `log(0)` is undefined. Although `fair_perc_self` is handled to be 50 when `sum_tokens=0`, `split_perc_self` can be 0.
+    *   This structure models utility based on independent sensitivities to the *logarithm* of the offered share and the *logarithm* of the fair share, scaled by `beta_split_sens` and `beta_fair_sens` respectively. This attempts to identify the influence of the offer magnitude separate from the influence of what is perceived as fair, using a non-linear transformation that could aid recovery.
+
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self`, `token_self`, `token_opp` as data variables.
+    *   Calculate `sum_tokens` and `fair_perc_self` as described above.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+    *   Define `epsilon` as a constant within your model or variables description.
+
+*   **Model Formula:** Define the utility (`U`) based on the logarithms of `split_perc_self` and `fair_perc_self`, your 2 learnable parameters, and the `epsilon` constant. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**.
+    *   `beta_split_sens`: Sensitivity to the logarithm of the proposed percentage share. Suggest generous bounds like [-10.0, 10.0].
+    *   `beta_fair_sens`: Sensitivity to the logarithm of the fair percentage share. Suggest generous bounds like [-10.0, 10.0].
+    Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds for both.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self`, `U`, and `epsilon` if treated as such) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`, etc.).
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables (like `sum_tokens`, `fair_perc_self`, `epsilon`) before the final formula for `U`. Use clear mathematical notation. Use `log()` for the natural logarithm.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by the *logarithms* of the proposed share and the fair share, and how this non-linear, separated structure aims to improve parameter identifiability compared to previous linear or linear-ratio based models.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability *within* the constraints of **exactly 2 learnable parameters** is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This logarithmic approach is another significant departure from previous attempts and might offer the necessary structural separation. If this structure also fails parameter recovery, be prepared to think even further outside the box for the next iteration – perhaps fairness acts as a threshold, a reference point in a non-ratio/non-difference way, or maybe completely different inputs or variable transformations are needed.
+</previous_instructions>

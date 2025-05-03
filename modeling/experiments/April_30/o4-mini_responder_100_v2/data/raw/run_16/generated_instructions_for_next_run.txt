@@ -1,0 +1,52 @@
+
+
+New Instructions for Run 17:
+
+1. Candidate Families (≤3 Learnable Parameters)  
+   a. Quadratic‐Orthonormal:  
+      U = α + β₁·dev_std + β₂·dev_sq_orth  
+      • dev_std = standardized |z_share–0.5|  
+      • dev_sq = dev_std², then dev_sq_orth = dev_sq – proj(dev_sq, dev_std)  
+   b. Power‐Transform (3 params):  
+      U = α + β·dev_std^κ, κ∈[0.5,3] learnable  
+   c. Exponential‐Power Hybrid (3 params):  
+      U = α + β·dev_std^κ · (1–exp(–λ·dev_std)), κ∈[0.5,3], λ∈[0.5,5]  
+   d. Mixture of Transforms (3 params):  
+      U = α + w·dev_std^κ + (1–w)·dev_sq_orth, w∈[0,1], κ∈[0.5,3]  
+
+2. Feature Pipeline Enhancements  
+   • z_share = split_self/combined_earning, center at 0.5  
+   • dev = |z_share–0.5|  
+   • Standardize dev → dev_std (zero mean, unit SD)  
+   • Compute dev_sq = dev_std²; orthonormalize to dev_std via Gram–Schmidt  
+   • Compute dev_std^κ or exponential forms as needed  
+
+3. Choice Link  
+   • Logistic with learnable temperature τ:  
+     P(accept) = 1 / (1 + exp(–U / τ)), τ∈[0.5,2]  
+
+4. Priors & Parameter Bounds  
+   • α, β, β₁, β₂ ∼ Normal(0,0.02) truncated to [–0.1,0.1]  
+   • κ ∼ Uniform(0.5,3)  
+   • λ ∼ Uniform(0.5,5)  
+   • w ∼ Beta(5,5) mapped [0,1]  
+   • τ ∼ Normal(1,0.1) truncated to [0.5,2]  
+
+5. Two-Stage Recovery & Identification  
+   Stage 1: Simulate 5,000 datasets from priors → MAP fits → require all Pearson r≥0.90  
+   Stage 2: If any r<0.90, (a) orthogonalize collinear features (if not already), (b) fix one curvature (κ or λ) at prior mean, retest; if still fails, drop the family  
+
+6. Model Selection & Validation  
+   • Nested 10-fold CV → report out-of-sample accuracy, BIC, WAIC, LOO-CV  
+   • Posterior predictive check: empirical vs. model P(accept) in ≥8 quantile bins (max dev)  
+   • Final pick: smallest BIC (ΔBIC≥6 vs. runner-up), highest recovery, ≥15% relative accuracy gain vs. 2-param baseline  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: chosen utility formula only  
+   • <VARIABLES>…</VARIABLES>: all features & parameters with exact ranges, priors, learnable flags  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • Name the family, describe each term’s role (e.g., GS‐orthonormal quadratic, power curvature, hybrid exponential), shrinkage settings, τ learnability, recovery threshold (r≥0.90), and any fixed parameters or pruned families during recovery  
+
+Encouragement: Explore bespoke transforms (e.g., dev·log(1+dev), thresholded polynomials, tanh‐scaled dev) or lightweight mixtures as long as you respect the ≤3-parameter cap, apply orthonormalization for identifiability, and meet stringent recovery & selection criteria.

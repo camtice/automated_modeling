@@ -1,0 +1,36 @@
+```text
+Instructions:
+<think>
+The previous model, while simpler, still yielded poor parameter recovery. The accuracy was okay, but not good enough to justify the BIC. The core issue seems to be the way fairness, amount, and trial type are combined. The additive approach might be too simple, and the direct effect of `trial_type_effect` on utility didn't sufficiently capture the nuances of how trial type influences decisions. The linear loss aversion also may not be correct. The model may be too simplistic.
+
+Here's what I will suggest for the next iteration:
+
+1.  **Re-think Trial Type:** Ditch the direct `trial_type_effect` term. It doesn't work. Instead, consider trial type as modulating the *fairness calculation itself*. Maybe people have different reference points for what's fair depending on the trial type.
+
+2.  **Fairness Definition:** Revisit the definition of fairness. `split_self / combined_earning` might be too simplistic. Consider how the token contributions (`token_self`, `token_opp`) influence the perception of a fair split. A ratio of `token_self` to the total tokens could be a better baseline.
+
+3.  **Consider a non-linear utility for amount offered:** The last utility function was too linear. The value of money decays for each subject so consider a term such as `log(split_self+1)` instead of `split_self` directly.
+
+4.  **Explore Multiplicative Interactions:** Instead of a purely additive model, try a model where fairness *multiplies* the impact of the amount offered. This would imply that fairness acts as a "discount" or "boost" to the utility of the money received.
+
+5.  **Simpler Loss Aversion:** Keep the simple linear loss aversion for now (lambda * expected_loss if expected_loss < 0, 0 otherwise).
+
+6.  **Parameter Bounds:** Keep parameter bounds relatively tight to aid identifiability.
+
+7. **Number of Parameters:** Keep the number of parameters at 4 or below.
+
+</think>
+
+Be EXTREMELY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a strong bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models, hopefully lower.
+
+When developing your model, reason step by step about:
+
+*   The *most essential* psychological mechanisms involved: fairness, loss aversion, and amount sensitivity. How are these mechanisms *fundamentally* calculated and perceived, especially with regards to trial type? What are the *minimal* number of parameters needed to capture these, with emphasis on fairness?
+*   How these mechanisms *fundamentally* interact. Are the interactions multiplicative, additive, or something else? Justify your choice based on theory or intuition. Pay special attention to how fairness and amount sensitivity influence each other.
+*   What *simple* mathematical form could capture these interactions. Focus on ratios and logarithmic functions.
+*   What parameters are *absolutely necessary* to calibrate the model, focusing ruthlessly on potential parameter covariance and identifiability issues. What are the ranges of these parameters?
+*   How the *core* model variables map to observable behavior.
+
+Incorporate *strong* prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. Given the failure of previous attempts to model trial_type as a direct utility effect, consider alternative approaches that modulate the fairness calculation.
+
+```

@@ -1,0 +1,49 @@
+
+
+New Instructions for Run 16:
+
+1. Candidate Families (≤3 Learnable Parameters)  
+   a. Curved Absolute‐Inequity (2 params):  
+      U = α + β·dev^1.5  
+   b. Power‐Transform (3 params):  
+      U = α + β·dev^κ, κ∈[0.5,5] learnable  
+   c. Exponential Deviance (3 params):  
+      U = α + β·(1 – exp(–κ·dev)), κ∈[0.5,10] learnable  
+   d. Mixed Power‐Quadratic (3 params):  
+      U = α + w·dev^κ + (1–w)·dev^2, w∈[0,1], κ∈[0.5,3] learnable  
+
+2. Feature Pipeline  
+   • z_share = split_self/combined_earning, center at 0.5  
+   • dev = |z_share–0.5|  
+   • For piecewise: pos_dev = max(z_share–0.5,0), neg_dev analogously  
+   • Standardize dev (and pos_dev/neg_dev) to zero mean/unit SD  
+   • Compute dev^κ or exp(–κ·dev) as needed  
+
+3. Choice Link  
+   • Logistic link with τ=1 → P(accept)=1/(1+exp(–U))  
+
+4. Priors & Parameter Bounds  
+   • α, β ∼ Normal(0,0.03) truncated to [–0.15,0.15]  
+   • κ ∼ Uniform(0.5,5) (or [0.5,10] for exponential)  
+   • w ∼ Beta(2,2) mapped to [0,1]  
+   • Total learnable parameters ≤3  
+
+5. Two‐Stage Parameter Recovery  
+   Stage 1: Simulate 2,000 datasets from priors → MAP estimates → Pearson r  
+   Stage 2: Require all r≥0.88. If one parameter fails, fix it at prior mean and retest; if >1 fails, drop that family  
+
+6. Validation & Model Selection  
+   • Nested 10‐fold CV: report out‐of‐sample accuracy, BIC, WAIC, LOO‐CV  
+   • Require BIC drop ≥12 points *and* ≥12% relative accuracy gain versus the 2‐param baseline  
+   • Posterior predictive checks: match empirical P(accept) in ≥7 quantile bins  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: final chosen U formula only  
+   • <VARIABLES>…</VARIABLES>: all features & parameters with ranges, priors, learnable flags  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • State family name, role of each term (e.g., power vs. exponential curvature), shrinkage (σ=0.03), and recovery threshold (r≥0.88)  
+   • Note any parameters fixed or families pruned during recovery  
+
+Encouragement: You are welcome to propose novel single‐feature transforms (e.g., dev·log(1+dev), thresholded shapes) or lightweight mixtures, but abide by the ≤3‐parameter cap and stringent recovery criterion. Keep models interpretable and empirically identifiable.

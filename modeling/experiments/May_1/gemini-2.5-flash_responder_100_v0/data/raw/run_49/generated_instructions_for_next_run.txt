@@ -1,0 +1,50 @@
+Okay, here are the improved instructions for the next run (Run 50), building on the results of the previous runs.
+
+Instructions for Run 50 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The last run (Run 49) attempted a simple additive linear model (`U = beta_proposed_share * split_perc_self + beta_fair_share * fair_perc_self_calc`) and unfortunately failed the primary objective of achieving parameter recovery >= 0.7 for *all* learnable parameters, specifically for `beta_proposed_share` (r = 0.378). It also resulted in a very high BIC (371.03), indicating poor model fit despite reasonable accuracy (0.730). This suggests the simple additive structure based on `split_perc_self` and `fair_perc_self_calc` did not yield sufficiently separable parameter influences or capture the data structure well.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** that ensures both parameters have distinct, identifiable influences on responder decisions (`trial_role == 1`) while also improving model fit (lower BIC, higher accuracy). We seek a model that achieves full recovery and improves upon the current best recoverable model (BIC 40.45, accuracy 0.662, recovery >= 0.795).
+
+Given the failure of the simple additive structure in Run 49 to achieve necessary identifiability, let's explore an alternative linear approach that might better disentangle the influences of the offer's value and its fairness. Design a model where utility is a linear combination of the *proposed percentage share itself* and the *deviation of the proposed share from the calculated fair percentage share*. This is a linear model, but with components structured differently than in Run 49.
+
+*   **Structural Direction (Linear with Value and Deviation Components):** Model utility (`U`) as a weighted sum of the proposed share and the difference between the proposed share and the fair share.
+    *   Calculate the necessary intermediate variables to get `fair_perc_self_calc`:
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self_calc = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)` (Ensures `fair_perc_self_calc` is >= 0).
+    *   Calculate the deviation from fairness:
+        *   `fairness_deviation = split_perc_self - fair_perc_self_calc`
+    *   Structure the utility (`U`) using a linear combination of the proposed share and this deviation:
+        *   `U = beta_value * split_perc_self + beta_fairness_deviation * fairness_deviation`
+    *   This structure uses two distinct learnable parameters (`beta_value` and `beta_fairness_deviation`) that separately weight the influence of the proposed percentage itself and the degree to which it deviates from fairness. The hope is that using `split_perc_self` and `fairness_deviation` (which is a transformation involving both `split_perc_self` and `fair_perc_self_calc`) as the components will provide more separable influences on utility compared to the simple additive model in Run 49.
+
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self`, `token_self`, `token_opp` as data variables.
+    *   Calculate `sum_tokens`, `fair_perc_self_calc`, `fairness_deviation`, and `U`.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+
+*   **Model Formula:** Define the utility (`U`) using the linear combination. Include the calculation steps for necessary derived variables (`sum_tokens`, `fair_perc_self_calc`, `fairness_deviation`) before the final formula for `U`. Use clear mathematical notation.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**.
+    *   `beta_value`: Sensitivity parameter scaling the proposed percentage share (`split_perc_self`). Suggest generous bounds like [-10.0, 10.0].
+    *   `beta_fairness_deviation`: Sensitivity parameter scaling the deviation from the fair percentage share (`fairness_deviation`). Suggest generous bounds like [-10.0, 10.0].
+    Choose descriptive names suitable for Python code that reflect the variable they scale. Define clear, generous, finite numerical bounds for both.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self_calc`, `fairness_deviation`, `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`).
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea that utility is determined by a linear combination of the proposed percentage (`split_perc_self`) and its deviation from the calculated fair percentage (`fairness_deviation`). Explain how `beta_value` weights the influence of the proposed amount itself, and `beta_fairness_deviation` weights the influence of how far that offer is from the fairness point, noting that this structure attempts to improve parameter identifiability by separating these two influences on utility.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability *within* the constraints of **exactly 2 learnable parameters** is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This linear approach with components representing value and fairness deviation is a new structural attempt after the previous additive model failed. If this structure also fails to meet the recovery criterion for both parameters, continue to be prepared to think outside the box for subsequent iterations – consider alternative ways fairness might modulate sensitivity, or other combinations/transformations of variables that might create more separable parameter influences within the 2-parameter constraint. The key is finding a structure where the two parameters’ contributions to utility are as independent as possible across the dataset.
+
+Please think through this step by step, then provide your model specification and variable descriptions.

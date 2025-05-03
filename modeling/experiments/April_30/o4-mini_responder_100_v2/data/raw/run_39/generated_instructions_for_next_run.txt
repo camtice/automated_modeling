@@ -1,0 +1,49 @@
+
+
+Run 40 Instructions:
+
+1. Candidate Families (≤2 non–intercept θ’s; τ=1 fixed)  
+   • Propose **exactly three** monotonic transforms U(dev_std)=α+f(dev_std;θ). Draw from at least two distinct families or your own novel 2-parameter forms provided they meet identifiability:  
+     – Power-Law: f(dev_std)=β·dev_std^p  [β∈[–0.12,0.12], p∈[0.5,3]]  
+     – Exponential-Decay: f(dev_std)=–β·exp(–k·dev_std)  [β∈[–0.12,0.12], k∈[0.5,3]]  
+     – Hybrid-Logistic: f(dev_std)=β·tanh(γ·dev_std)  [β∈[–0.12,0.12], γ∈[0.5,5]]  
+     – Rational-Decay: f(dev_std)=β·(dev_std/(γ+dev_std))  [β∈[–0.12,0.12], γ∈[0.5,5]]  
+     – Root-Power: f(dev_std)=β·dev_std^(1/p)  [β∈[–0.12,0.12], p∈[0.5,3]]  
+     – (Optional) Novel: clearly define your functional form with ≤2 θ’s and identical bounds.
+
+2. Feature Pipeline  
+   a. Remove combined_earning=0 trials.  
+   b. Compute z_share=split_self/combined_earning; winsorize to [0.01,0.99].  
+   c. dev=|z_share–0.5|. Scale dev via robust standardization (subtract median, divide by MAD) across training, apply to all folds → dev_std.  
+
+3. Choice Rule with lapse  
+   P_accept = (1–λ)·σ(U) + λ/2,  where σ(U)=1/(1+exp(–U)) and λ∈[0,0.1] is a fixed small lapse (e.g. λ=0.02).  
+
+4. Priors & Bounds (stronger shrinkage)  
+   • α ∼ TruncatedNormal(0,0.02) in [–0.08,0.08]  
+   • β ∼ TruncatedNormal(0,0.02) in [–0.08,0.08]  
+   • Shape θ ∼ Uniform(lower=0.5, upper=5) (or log-uniform if >1 dynamic range needed)  
+
+5. Two-Stage Recovery & Identification (tighter)  
+   Stage A: Simulate 3,000 synthetics → MAP fit → require Pearson r ≥0.90 **and** |bias| ≤0.08 for every θ.  
+   Stage B: For survivors, simulate 7,000 → require r ≥0.98 **and** |bias| ≤0.03. Drop any family failing.
+
+6. Model Selection & Validation  
+   • 10×5-fold repeated CV → report mean±SD accuracy, AUC, BIC, WAIC, ΔBIC vs. runner-up, and Brier score.  
+   • Calibration: plot predicted P_accept vs. observed rates in six dev_std bins. Compute calibration slope/intercept.  
+   • Final winner must satisfy:  
+     – All θ’s pass Stage B recovery thresholds  
+     – ΔBIC ≥10 versus 2nd best  
+     – Accuracy gain ≥15% over linear baseline U=α+β·dev_std  
+     – AUC ≥0.82  
+     – Brier score < linear baseline Brier  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact U(dev_std) formulas for each family (no prose).  
+   • <VARIABLES>…</VARIABLES>: JSON with full list of features, α, λ (if treated as parameter), β and θ with bounds, distributions, learnable flags, and source.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   Provide a concise table listing: each family, its θ’s, priors, recovery pass/fail, CV metrics (accuracy, AUC, BIC/WAIC/ΔBIC, Brier), calibration stats, and final winner.  
+
+Encouragement: You may craft a novel 2-parameter f(dev_std) (e.g. generalized-gamma or combined rational-power) if it can improve recovery and BIC. Strive for functions with sufficient curvature around dev_std≈0 to capture “fairness sensitivity” while maintaining identifiability.

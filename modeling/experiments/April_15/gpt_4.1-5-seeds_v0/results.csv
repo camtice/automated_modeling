@@ -1,0 +1,256 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,alpha_self_recovery,alpha_fair_recovery,bias_recovery,intercept_recovery,alpha_disadvantageous_recovery,alpha_advantageous_recovery,min_acceptable_perc_recovery,sigmoid_steepness_recovery,fairness_penalty_strength_recovery,lapse_rate_recovery,tau_recovery
+1,35.05705606106661,26.88315551468927,42.379508633862976,0.8116605616605617,utility = alpha_self * split_self + alpha_fair * (split_self - (combined_earning * token_self / (token_self + token_opp))) + bias,"A linear utility model for responder decisions that combines two psychological motives: self-interest (monetary gain) and aversion to deviation from contribution-based fairness. A bias parameter captures baseline acceptance tendency. The model’s three learnable parameters (alpha_self, alpha_fair, bias) are generously but finitely bounded, minimizing parameter redundancy. Utility is mapped to acceptance probability via a logistic function, fitting to binary accept/reject responses.",v0,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.6804088535157281,0.8548235424282945,0.6866794970543559,,,,,,,,
+3,62.674758394036076,60.03153700559288,65.04264422118311,0.5286935286935287,"utility = sigmoid_steepness / (1 + exp(-sigmoid_steepness × (splitperc_self - min_acceptable_perc))) × exp(-fairness_penalty_strength × abs(splitperc_self - fairness_reference))
+accept_prob_raw = (1 - lapse_rate) × logistic(utility) + lapse_rate × 0.5","A hybrid threshold-plus-fairness model: The responder’s utility combines a soft minimum-acceptable-offer threshold with a continuous penalty for deviation from their merit-based fair share. The threshold is implemented by a sigmoid on self-offer percentage, whose location and steepness are both learnable. An additional smooth penalty for deviation from merit-based fairness is applied multiplicatively. A lapse rate parameter models noisy or random responses. This structure supports interpretable, well-separated, and robustly recoverable parameters while capturing both satisficing and fairness-sensitive responding.",v0,"<think>
+The previous instructions encouraged moving away from linear combinations of self-interest and fairness—especially to avoid collinearity—and explored Fehr-Schmidt–style models, piecewise penalties, and threshold mechanisms using percent-based deviations. However, model performance (accuracy, BIC, parameter recovery) was still suboptimal, especially in parameter recovery (notably negative or weak recovery for some parameters).
+
+To improve, new instructions should:
+
+- Push the modeler to test *distinct* non-linear or non-continuous features:
+    - For example, explicit “acceptance thresholds” (stepwise/indicator functions), or using quantiles/ranks rather than continuous differences, to model strong rejections below a certain fairness standard.
+    - Explore non-monotonic utility shapes (e.g., U- or S-shaped fairness sensitivity).
+    - Use softmax/soft-threshold approaches to balance interpretable steep effects and gradient-based fitting.
+    - Consider stochasticity or lapse rates if noise or unmodeled variability could explain parameter recovery issues.
+- Suggest hybrid models:
+    - For example, combine a threshold/floor effect (utility very low below a threshold percent) with a smooth penalty for additional unfairness, or multiply fairness and self-interest in a non-linear way (instead of adding).
+    - Use multiplicative interactions between fairness and self-interest.
+    - Try “minimum acceptable offer” as a learnable parameter (with or without additional fairness weighting).
+    - Trial-specific “anchoring” (e.g., reward difference to a social standard), or “reference-dependent” models where the response is based on distance to the closest categorical standard (e.g., equality vs. contribution-based fairness).
+- Explicitly ask the modeler to consider parameter recoverability during the design phase:
+    - Propose/contrast 1-parameter (threshold or step) vs. multi-parameter (penalty gradient) models.
+    - Emphasize transparent orthogonality among model terms: parameters should ideally respond to distinguishable behavioral patterns, not the same source of variance.
+- Push for the use of all relevant variables, or at least investigator justification when simplifying.
+- Remind to bound parameters meaningfully (e.g., min threshold within possible percent ranges, fairness weights strictly non-negative unless theory demands otherwise).
+
+Explicitly encourage proposals that are:
+- Non-additive (multiplicative or max/min schemes).
+- Based on indicator or “hurdle” mechanics, not solely continuous penalties.
+- Actively evaluated for the ease of parameter separation by simulated recovery checks.
+
+Invite the modeler to sketch several plausible variants before formalizing, including at least one unconventional utility formulation.
+
+</think>
+
+**Updated Instructions for Run 3:**
+
+Continue to prioritize both psychological interpretability and mathematical identifiability of your models. Model proposals should critically address parameter recovery and avoid hidden redundancy.
+
+**Before formalizing a model, complete this stepwise reasoning:**
+1. Describe the likely distinct psychological processes driving responder behavior (e.g., self-interest, aversion to unfairness, satisficing, thresholding, “minimum acceptable offer”, lapse/noise).
+2. Assess whether these motives are best captured with linear, non-linear, piecewise, threshold/indicator, or multiplicative/interaction effects—and what behavioral patterns each form is hypothesized to generate (e.g., abrupt rejection below fairness standard, smooth gradients, insensitivity above threshold).
+3. For each candidate model, explain how its parameters are expected to relate to *unique* behavioral patterns in the data (i.e., that parameter recovery will be robust and low in inter-parameter correlation).
+4. Explicitly consider models with the following features:
+    - Step or “hurdle” effects (e.g., utility drops sharply when split_self falls below a learnable threshold).
+    - Non-additive or multiplicative terms (e.g., interaction between fairness and self-interest, or fairness penalty scaled by self-interest).
+    - Minimum acceptable offer as a direct, learnable parameter.
+    - Non-monotonic or “reference-dependent” models (e.g., utility highest at either equality or earned share, and falls with distance in either direction).
+    - Explicitly modeled lapse or stochastic noise (additive random term, or probability lapse).
+5. Use all relevant variables (splitperc_self, token_self, token_opp, combined_earning, etc.) and justify the selection.
+6. Set meaningful, theory-consistent bounds for all parameters (e.g., thresholds within the [0,100] percent range, fairness aversion ≥0, bias/intercept as needed).
+
+**When developing your model:**
+- Compare at least two structurally distinct approaches—at least one should use a threshold, indicator, or piecewise function, and at least one should use an interaction (multiplicative or otherwise non-additive).
+- Comment on the expected ease of parameter recovery for each.
+- Avoid direct linear-additive combinations unless you can argue their parameters are reliably separable.
+- Prioritize models likely to yield robust, high-accuracy predictions *and* strong parameter recovery even in the presence of noisy data.
+- Present your final mathematical model and variable specifications as clearly structured.
+
+**Encouragement:**
+Do not hesitate to propose unconventional or hybrid models (e.g., max/min, softmax thresholding, indicator-triggered penalties, or combinations of self-interest and fairness in multiplicative or non-standard ways). Short-list and then select/justify the most promising based on the above reasoning—don’t default to the expected solution.
+
+After this rigorous reasoning, provide your single formal model specification and variable descriptions as instructed.",,,,,,,0.07594341246957691,0.061488881887158384,-0.07585849955148546,-0.04663212289125878,
+4,99.5672343228414,55.470911784231134,139.07018993034643,0.8186813186813187,U = splitperc_self - tau,"A strictly minimal, interpretable model where the responder’s choice is governed by a single parameter: the minimum acceptable percentage share (tau). The utility of accepting is simply the difference between the offered percentage share (splitperc_self) and tau. Acceptance probability rises sharply from 0 to 1 at this threshold, ensuring robust parameter recovery and interpretability by capturing abrupt behavioral cutoffs observed in responder data.",v0,"<think>
+The previous model, although hybrid and flexible, produced extremely poor parameter recovery (correlations near zero or negative), low accuracy (53%), and moderate BIC, signaling severe identifiability and specification issues. This suggests the following problems:
+
+1. **Parameter Redundancy and Entanglement:** The hybrid model sought to capture both threshold and fairness aversion via a soft sigmoid threshold and a fairness penalty. However, both control the slope and midpoint, leading to collinearity or mutual compensation, which destroys interpretability and recovery.
+2. **Over-parameterization:** Four learnable parameters (threshold location, steepness, fairness weight, lapse rate) is aggressive, especially if their influence is not orthogonalized.
+3. **Form of Nonlinearity:** The model’s use of multiplicative elements (sigmoid × fairness penalty) is interpretable, but may be too smooth or too subtle to separate out real behavioral discontinuities (e.g., hard rejections below threshold).
+4. **Lapse Parameter:** Lapse rates typically recover well only if there is clear evidence of pure randomness. If confounded with poor model fit on systematic behavior, this parameter can become noise-catching and confound others.
+5. **Lack of Strong “Discontinuity”/Categoriality:** Human data often shows abrupt drop-offs below minimum acceptable shares; modeling this as a very soft sigmoid can mask sharp realities.
+
+Given these, new instructions should:
+- Enforce a much more *parsimonious* parameterization per model (e.g., at least one proposal with only one genuinely learnable parameter, such as an exact threshold).
+- Explicitly *separate* functional forms: try models with only a step/indicator function (hard or very steep), and others with only fairness penalty, not both at once unless identifiability is proven (e.g., by simulated recovery checks).
+- Make the modeler formally check identifiability logic: for each parameter, “What distinct behavioral curve, pattern, or feature uniquely identifies this parameter, even if all others are known or set to default? Would I recover it if fitting to realistic (non-ideal) data?”
+- Encourage the modeler to:
+    - Propose at least one ""hard"" (piecewise, discontinuous) function and justify when such abrupt changes are appropriate.
+    - Try at least one ""winner-take-all"" or ""max/min""-style model; e.g., utility = min(self-interest, fairness discrepancy effect), or utility switches as soon as a threshold or criterion is met.
+    - Consider drastically reducing the number of learnable parameters to maximize recovery and avoid co-linearity.
+- Emphasize that *linear additive* models with clear separation of terms and bounds often outperform complex hybrids on recovery, despite being ""simpler.""
+- Suggest modeling the *step location* (minimum acceptable percent) as the *sole* parameter in a minimalist model—see if a step function alone can outperform cumbersome hybrids.
+- Insist on thorough, argument-based *parameter separability*: for any multi-parameter proposal, include a sketch of how each parameter would be estimated from data features, or what would force model degeneracy.
+- Make the modeler explicitly model and discuss “catastrophic collinearity” and set minimal model as baseline, justifying any additional parameter as showing incremental, not overlapping, value.
+- Encourage at least one “reference-dependent” or “relative loss aversion” model that penalizes either direction of deviation from a fairness standard—consider non-monotonic or symmetric penalty (e.g., quadratic or absolute deviation), and avoid making both threshold and penalty strengths “free” unless data can distinguish.
+- Suggest testing their models on *simulated data* for extreme test cases: strong threshold-only responder, fairness-only responder, noiseless/random responder; ensure the model recovers parameters when data is drawn from such known patterns.
+
+Encourage truly creative, not just “incrementally different” models.
+</think>
+
+**Updated Instructions for Run 4:**
+
+**Goal:** Produce computational models that maximize prediction accuracy, minimize BIC, and—critically—ensure robust experimental recovery of all parameter values. Interpretability and mathematical identifiability must both be maximized.
+
+**Stepwise Modeling Process (complete rigorously before formalization):**
+
+1. **Map psychological mechanisms** underlying responder choice (self-interest, fairness, thresholding, satisficing, random lapses, etc). Explicitly consider abrupt (discontinuous) as well as graded (continuous) behavioral responses.
+
+2. **Construct at least three distinctly structured candidate models:**
+    - One using a *hard step* or *indicator* function (abrupt cutoff at a learned threshold).
+    - One using a *single* fairness penalty or deviation (absolute difference or quadratic) from a reference point (e.g., equality or merit), without threshold.
+    - One “non-standard” form—e.g., ""max/min"", switch/floor, or piecewise, or even mixed discrete-continuous (e.g., acceptance only if both threshold and fairness proximity are met).
+    - At least one model should use only a *single* learnable parameter (e.g., the location of the threshold), to test for best recovery; multi-parameter models should only admit extra parameters with clear justification.
+
+3. **For multi-parameter models,** for *each parameter*, explicitly specify:
+    - The exact data feature or behavioral difference it uniquely governs, and how you would distinguish its effect from other parameters.
+    - How parameter values will be recoverable in the presence of random lapses or non-standard responding.
+
+4. **For every model:**
+    - Argue why this functional form is appropriate for the observed (or simulated) behavioral data (e.g., abrupt transitions, smooth gradients, symmetric vs. asymmetric tendencies).
+    - Test for catastrophic collinearity; do any pairs of parameters try to explain the same variance or are otherwise substitutable?
+    - Limit the number of learnable parameters—prefer parsimonious, minimal models and justify any increase in complexity with simulation-based evidence.
+
+5. **Recommend at least one “reference-dependent” or “relative” model:** Utility based solely on deviations (absolute or signed) from a social or merit-based standard (e.g., U = -alpha × |splitperc_self – fairness_reference|, where only alpha is learned).
+
+6. **For all parameter bounds:** Base on theoretical or empirical limits. E.g., minimum acceptable percent in [0,100], penalty strengths ≥ 0. Avoid bounds that risk extremal-fitting or unbounded drift.
+
+7. **Modeling Lapses and Noise:** Consider omitting lapse parameters if not necessary, or use fixed plausible values—do not attach lapse/noise parameters only to absorb unexplained variance.
+
+8. **Argue for parameter recoverability, not just fit.** For every candidate, demonstrate via simulated logic which data patterns would yield high vs. low parameter estimates, and what tradeoffs exist.
+
+**When writing your mathematical model and variable specifications:**
+
+- Present only one final candidate (the most promising for recovery and accuracy), but include a short justification why this choice was made from your earlier theoretical exercise.
+- Use clean, unambiguous mathematical notation and variable names.
+- Ensure all variable and parameter descriptions are precise, bounded, and justified.
+
+**Encouragement:**
+- Challenge yourself to propose at least one model form that is entirely “outside the box”—e.g., using max/min, hard indicators, or a mixture of discontinuous and continuous functions, and justify its relevance to behavioral data.
+- Consider models that are deliberately minimalist—sometimes a 1-parameter cutoff matches the data as well as complex forms but is vastly more recoverable.
+- Model ""winning"" patterns—thresholds (“I accept if ≥ x%”), fairness only (“accept if close to fair”), or interaction (“it must be both fair and enough for me”). Demonstrate via logic or toy simulation which best suits data like this.
+
+After these rigorous steps and justifications, then present your one formal model specification, variable descriptions, and accompanying short summary as previously instructed.",,,,,,,,,,,0.915993565511346
+2,108.19860711736384,117.54566752126479,99.82519883886924,0.7576312576312576,"d = splitperc_self - (100 * token_self / (token_self + token_opp))
+U = intercept - alpha_disadvantageous * max(-d, 0) - alpha_advantageous * max(d, 0)","A non-linear inequity aversion model (Fehr-Schmidt type) for responder decisions. Utility depends on the deviation between the proposed share (percent) and the participant's “earned share” (percent from pretask), penalized by separate weights for disadvantageous (receiving less than earned) and advantageous (receiving more than earned) inequity. No explicit self-interest parameter is used, eliminating collinearity and improving parameter recovery. Acceptance probability is the logistic transform of utility.",v0,"<think>
+- The previous instructions (and likely subsequent models) emphasize balancing parameter parsimony and psychological realism, but parameter recovery for ""alpha_self"" and ""bias"" is notably weaker than for ""alpha_fair"".
+- Multicollinearity between self-interest and fairness parameters probably impairs recovery; the two terms as constructed both depend on split_self, possibly causing redundancy.
+- There are additional sources of “fairness” signals in the dataset (e.g., splitperc_self, splitperc_opp) that might clarify fairness deviations, or a non-linear treatment of fairness deviations might reduce redundancy.
+- The model is not explicitly utilizing opponent-centric fairness (“disadvantageous” vs. “advantageous” inequality), nor does it model possible threshold or ""rejection zone"" effects. Alternative forms (e.g., using absolute deviations, or piecewise penalties) might yield better identifiability.
+- There is room for improving parameter recovery by:
+    - Encouraging the isolation of collinear terms (e.g., use deviation score only, or construct terms orthogonally).
+    - Suggesting non-linear transforms (e.g., using |split_self − fair_share| or indicator functions for “unfair” offers).
+    - Considering alternative measures of fairness, possibly capturing aversion to both being under-offered and over-offered, as in Fehr-Schmidt–style models.
+    - Suggesting or allowing constraint for some parameters (e.g., weighting fairness aversion parameter to be ≥0).
+    - Pointing out that high bias for lower parameter count should not overshadow testability or psychological theorizing.
+
+- Modelers should be encouraged to:
+    - Explore models that go beyond linear combinations of monetary/fairness motives, especially non-linear effects or piecewise penalties.
+    - Think about including or manipulating ""inequality aversion"" to distinguish between different fairness violations, not just deviations from fair share.
+    - Reflect on including ""rejection thresholds"" (i.e., utility becomes sharply negative under certain conditions).
+    - Consider utilizing all available data (possibly testing constructs such as percent splits) where they might uniquely identify a psychological mechanism.
+</think>
+
+**Updated Instructions for Run 2:**
+
+Be strategically critical of parameter redundancy and high covariance, aiming for strong parameter recovery as well as interpretability and fit. 
+
+First, before formalizing a model, reason step by step about:
+* What distinct psychological processes (self-interest, fairness aversion, social reference, etc.) may drive responder behavior in this context.
+* Whether these motives interact linearly or non-linearly, and whether threshold, piecewise, or asymmetric (e.g., disadvantageous vs. advantageous inequality) effects may be present.
+* How to mathematically structure the model to minimize redundancy: for example, can fairness/inequity be represented via a single orthogonal term rather than overlapping with monetary terms? Should you use deviation, percent difference, or an indicator function?
+* Whether non-linear penalties for unfairness (e.g., absolute value, squared difference, step/indicator, or asymmetric treatment of unfair splits) could disentangle parameters and improve recovery.
+* How best to set parameter constraints (e.g., non-negativity for aversion parameters) to further decrease redundancy and ensure interpretable roles.
+
+When developing your model:
+- Explicitly address the risk of collinearity between parameters. If using fairness and self-interest, justify how their effects can be uniquely identified, or merge them into a single interpretable metric.
+- Consider employing alternative fairness constructs (e.g., Fehr-Schmidt: punish only disadvantageous/advantageous inequality, or piecewise loss-function for unfair offers).
+- Allow for out-of-the-box modeling approaches including non-linear, piecewise, or “threshold”/stepwise mechanisms, especially if these could differentiate between hypotheses or improve parameter recovery.
+- Think about whether utilizing percentage-based splits or other available variables could introduce new, orthogonal information to the model.
+- Prioritize models that can be robustly recovered from data with minimal mutual dependence between learnable parameters, even if this results in changes from strictly linear models.
+
+Once you have reasoned about these steps, then and only then provide your model specification and variable descriptions.",,,,0.46809525259043383,0.38194616349779736,-0.13088200077090512,,,,,
+5,,,,,"Tag
+
+<MODEL>
+U = split_perc_self - threshold + bias","<SUMMARY>
+A two-parameter responder model in which acceptance utility is determined by the difference between the offer percentage to self and a personalized threshold, plus a global acceptance bias (in log-odds). The threshold parameter captures at what offer percentage the responder's acceptance probability crosses 50%, while the bias accounts for overall accept/reject tendencies independent of the specific offer. Both parameters are bounded for recoverability and can be uniquely estimated from offer-response data, ensuring robust empirical identifiability and maximum parsimony.",v0,"<think>
+The current best model is a 1-parameter threshold (minimum acceptable percent), which yields strong parameter recovery (r ≈ 0.92) and excellent fit (accuracy ≈ 0.82, low BIC). However, further improvements might be possible if a slightly more expressive model can match (or improve) fit and BIC while retaining identifiability—WITHOUT sacrificing recovery. Past multi-parameter models failed due to collinearity or lack of clear parameter-functional separation.
+
+In this run, the LLM should be motivated to pursue models that:
+
+1. **Add the absolute minimal theoretical complexity above the winning threshold model**—ideally, at most one extra parameter, and only if its ""recoverable behavioral role"" is utterly clear and non-overlapping. E.g., a constant *acceptance bias* (captures personality or random response tendency) or a *clear, interpretable asymmetry* (advantage/disadvantage aversion) that doesn't mix with thresholding.
+2. **Consider the weaknesses of the threshold model**: Some participants show smoother/graded acceptance curves, accepting slightly below threshold, possibly due to stochasticity or fairness motivations. If possible, model this without introducing entanglement between threshold and slope (e.g., use a *steepness* parameter but fix the threshold, or vice versa—never make both free at once).
+3. **Explicitly rule out any model proposal with redundant, substitutable, or overlapping parameter effects unless it can be proven (by logic) to recover on simulated ""mixed"" response types.**
+4. **Try at least one non-linear or piecewise functional form that is still interpretable—e.g., using an asymmetric penalty, or a min/max composite, or an ""AND"" gate between threshold and fairness.** (This targets responders who require both “enough” and “fairness.”)
+5. **Test ""reference-dependent"" forms**, e.g., a single-parameter fairness penalty (absolute or squared deviation from the merit share) vs. threshold—compare their error patterns and consider combining only if each explains genuinely unique error, not just similar variance with different labels.
+6. **If proposing a two-parameter model, construct a *synthetic dataset (in your reasoning, not code)* that would allow each parameter to be uniquely estimated, and describe exactly which features of the data pin down each.** If this can’t be argued, stick with single-parameter models.
+7. **Whenever possible, favor a step (indicator or Heaviside), piecewise-linear, or max/min functional form for clarity of parameter meaning and recovery.**
+8. **Strongly caution against lapses or error/noise parameters that just absorb left-over variance**—only admit them if strong theoretical justification, and bound them tightly.
+9. **Define all parameter bounds strictly (unless theoretically impossible), and avoid any unbounded learnable parameter.**
+
+Encourage the modeler: Even if the 1-parameter threshold model remains best, challenge yourself for ""minimal +1"" variations that may capture non-threshold aspects (sharpness/asymmetry/bias/fairness) without introducing collinearity.
+
+Finally, always ensure recovery logic is explicit: for every parameter, state how an experimenter or statistician would uniquely estimate this parameter in the presence of noise and mixed response patterns.
+
+</think>
+
+**Instructions for Run 5:**
+
+---
+
+**Objective:**  
+Develop a computational model of responder choice that (a) maximizes prediction accuracy, (b) minimizes BIC, and (c) achieves strong, demonstrable parameter recovery for all learnable parameters. The model should be interpretable, mathematically identifiable, and justified from behavioral theory and practical data analysis experience.
+
+**Rigorous Modeling Workflow:**
+
+1. **Theory Mapping:**  
+   Clearly map which psychological mechanisms your model represents: thresholding, self-interest, fairness aversion, bias, noise, etc. Consider abrupt (discontinuous), smooth, and hybrid response patterns.
+
+2. **Model Construction:**  
+   - Build at least two plausible, *fundamentally distinct* models:
+     - (a) An improved “minimal threshold” model (e.g., a step function or threshold with a single parameter).
+     - (b) A “minimal +1” variant: add at most one parameter—for instance, a fairness penalty (deviation from merit), acceptance bias, or graded slope/steepness—**but only if** its recoverability and unique role can be explicitly justified and *empirically separated* in simulated logic.
+   - Consider at least one “nonlinear” model: e.g., piecewise, max/min, or ""AND""/""OR""-type gating, where utility is determined by the most limiting factor (e.g., min(selfishness, fairness)).
+   - Propose one “reference-dependent” model: acceptance probability falls with deviation from a fairness/merit point (try single-parameter absolute or quadratic deviation forms).
+
+3. **Parameter Separability Evidence:**  
+   - For **every parameter**, briefly explain which feature of the data or decision pattern uniquely identifies its value (e.g., sharp drop-off for threshold, baseline shift for bias, asymmetric rejections for advantage vs. disadvantage aversion).
+   - For **multi-parameter models**, construct a hypothetical data scenario (in your reasoning) where each parameter would be independently and robustly estimable. If this fails for any parameter, remove it.
+
+4. **Collinearity and Identifiability:**  
+   - Formally argue whether any two parameters in your model could compensate for each other or be mutually confounded in practice.
+   - Prefer models where all parameters have non-overlapping, orthogonal influence on predicted probabilities.
+
+5. **Functional Form Clarity:**  
+   - Strongly prefer indicator, max/min, or piecewise forms for interpretability and identifiability, unless continuous forms (e.g., high-slope sigmoids) are clearly justified.
+   - Avoid “hybrid” models unless every term explains unique, theoretically founded behavior that a threshold alone can’t capture.
+
+6. **Parameter Bounds:**  
+   - Specify **strict, plausible bounds** for every learnable parameter (e.g.: thresholds in [0,100], penalty strengths ≥ 0, bias in a finite range).
+
+7. **Model Parsimony and Justification:**  
+   - Simpler is better—do not increase model complexity unless all added parameters are expected to yield both (a) real improvements in fit *and* (b) no loss of recovery or interpretability.
+
+8. **Noise/Lapse Parameters:**  
+   - Only include a noise/lapse parameter with strong behavioral evidence and a tight a priori bound. Otherwise, omit or fix them.
+
+9. **Final Output Requirements:**  
+   - Present only your best, *fully justified* model.
+   - Include model equation in <MODEL> tags, variable dictionary in <VARIABLES> (precise, with bounds, matching names as code variables), and a concise, non-generic explanatory summary in <SUMMARY> tags.
+   - Specify the <target_variable> exactly.
+   - Avoid extraneous description—each field should be self-contained and ready for direct code and parameter extraction.
+
+**Encouragement:**  
+- Think “minimal +1” rather than ""kitchen sink"": What *single* added (and recoverable) behavioral tendency beyond pure thresholding might meaningfully increase model performance?
+- Consider “outside the box”—experiment with max/min, logical-gate, or asymmetric forms.
+- Argue why your model captures *unique, observable variance* that a basic threshold cannot, and state how each parameter would be meaningfully and robustly estimated in noisy human data.
+
+---
+
+After following these steps and justifications, present your model specification and variable descriptions as detailed above.",,,,,,,,,,,

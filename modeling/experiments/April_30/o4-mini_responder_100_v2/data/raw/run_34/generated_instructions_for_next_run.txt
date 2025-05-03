@@ -1,0 +1,47 @@
+
+Run 35 Instructions:
+
+1. Candidate Families (≤2 non–intercept parameters + intercept, τ=1 fixed)  
+   • Propose **exactly three** monotonic transforms U(dev_std)=α+f(dev_std;θ) drawn from at least two of the following families (you may combine or innovate, but strictly ≤2 non–intercept θ’s):  
+     – Power-Law: f(dev_std)=β·dev_std^p   [β∈[–0.15,0.15], p∈[0.2,4]]  
+     – Exponential-Decay: f(dev_std)=–β·exp(–k·dev_std)   [β∈[–0.15,0.15], k∈[0.2,4]]  
+     – Hybrid-Logistic: f(dev_std)=β·tanh(γ·dev_std)   [β∈[–0.15,0.15], γ∈[0.2,4]]  
+     – Rational-Decay: f(dev_std)=β·(dev_std/(γ+dev_std))   [β∈[–0.15,0.15], γ∈[0.2,4]]  
+     – Root-Power: f(dev_std)=β·(dev_std^(1/p))   [β∈[–0.15,0.15], p∈[0.2,4]]  
+
+2. Feature Pipeline  
+   a. Drop trials with combined_earning=0.  
+   b. Compute z_share=split_self/combined_earning, winsorize it to [0.01,0.99] to avoid extremes.  
+   c. dev=|z_share–0.5|. Standardize dev across the entire training set (mean=0, sd=1) then apply to all folds → dev_std.  
+
+3. Choice Rule  
+   P_accept=σ(U)=1/(1+exp(–U)).  
+
+4. Priors & Bounds  
+   • α∼TruncatedNormal(0,0.03) in [–0.1,0.1]  
+   • Slopes β∼TruncatedNormal(0,0.03) in [–0.1,0.1]  
+   • Shape θ‐parameters ∼ Uniform(0.2,4)  
+   (These tighter priors shrink toward zero and avoid boundary pile‐up.)  
+
+5. Two-Stage Recovery & Identification  
+   Stage A: Simulate 3,000 datasets → MAP fit → require Pearson r ≥ 0.85 **and** absolute bias ≤0.1 for every θ.  
+   Stage B: For survivors, simulate 7,000 datasets → require Pearson r ≥ 0.95 **and** bias ≤0.05. Drop any family failing.  
+
+6. Model Selection & Validation  
+   • Perform 10×3-fold repeated CV → report mean out-of-sample accuracy, AUC, BIC, WAIC, and ΔBIC vs. runner-up.  
+   • Posterior predictive check: plot predicted P_accept vs. observed accept rate in six equal‐width dev_std bins.  
+   • Final selection demands:  
+     – All θ’s r ≥ 0.95 & bias ≤ 0.05 in Stage B  
+     – ΔBIC ≥ 10 vs. 2nd best  
+     – Accuracy gain ≥ 12% above linear baseline U=α+β·dev_std  
+     – AUC ≥ 0.80  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact formula for U for each family.  
+   • <VARIABLES>…</VARIABLES>: full JSON of features, α, β, and shape parameters with ranges, priors, learnable flags, and source.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   Concisely list the three proposed families with their transforms, priors, recovery/pass thresholds, CV metrics (accuracy, AUC, BIC/WAIC, ΔBIC), posterior checks, and final winner.  
+
+Encouragement: You may design a novel two-parameter monotonic family (e.g., rational or root-power) if it improves fit and recovery. Strive for sharp curvature near the “fair-share” point to capture risk sensitivity, but maintain identifiability under the recovery pipeline above.

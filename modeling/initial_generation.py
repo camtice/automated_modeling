@@ -592,7 +592,6 @@ print(json.dumps({{"results": results}}))
 def parameter_fitting_solver():
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         # Get necessary data from state
-        fitting_results = state.metadata.get("fitting_results", [])
         simulation_code = state.metadata.get("simulation_code")
         var_desc = state.metadata.get("variable_descriptions", {})
         target_variable = state.metadata.get("target_variable")

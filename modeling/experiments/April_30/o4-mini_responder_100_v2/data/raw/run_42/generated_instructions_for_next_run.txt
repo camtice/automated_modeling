@@ -1,0 +1,51 @@
+
+
+Run 43 Instructions:
+
+1. Candidate Families (exactly 3 transforms). Propose three monotonic U(dev_std)=α+f(dev_std;θ) with ≤2 non-intercept θ’s each. Include:
+   • At least one standard family (Power, Exponential, or Hybrid-Logistic).  
+   • At least one novel two-parameter form (e.g. combined rational-power f=β·dev_std^p/(γ+dev_std^p), or f=β·(1–exp(–γ·dev_std^p))).  
+   • One flexible form of your choice subject to identifiability.
+
+2. Parameter Bounds & Reparameterization  
+   • α ∈ [–0.06,0.06]  
+   • β ∈ [–0.08,0.08]  
+   • Shape parameters (p, k, γ) ∈ [0.5,2] or [0.5,3] (choose tighter range if needed).  
+   • Reparameterize shapes in log-space if it aids recovery.
+
+3. Priors (stronger shrinkage)  
+   • α ∼ TruncatedNormal(0, 0.015)[–0.06,0.06]  
+   • β ∼ Laplace(0, 0.02)[–0.08,0.08]  
+   • p, k, γ ∼ LogUniform(0.5, 3)  
+
+4. Feature Pipeline  
+   a. Drop trials with combined_earning=0.  
+   b. z_share=split_self/combined_earning; winsorize to [0.01,0.99].  
+   c. dev=|z_share–0.5|; winsorize dev to [0,2]; robust‐standardize (median/MAD) on training → dev_std.
+
+5. Choice Rule with Lapse  
+   P_accept = (1–λ)·σ(U) + λ/2, where σ(U)=1/(1+exp(–U)), λ=0.02 fixed.
+
+6. Two-Stage Recovery & Identification  
+   Stage A: 5 000 sims → MAP fit → require Pearson r ≥0.92 & |bias| ≤0.06 for all θ.  
+   Stage B: 10 000 sims → require r ≥0.98 & |bias| ≤0.03.  
+   Drop any family failing any threshold.
+
+7. Model Selection & Validation  
+   • 20×5-fold repeated CV → report mean±SD Accuracy, AUC, BIC, WAIC, ΔBIC vs. runner-up, Brier score.  
+   • Calibration: slope in [0.95,1.05], intercept ≤0.05 over six dev_std bins.  
+
+8. Final Winner Criteria  
+   • All θ’s pass Stage B recovery.  
+   • ΔBIC ≥12 vs. 2nd best.  
+   • Accuracy gain ≥18% over linear baseline U=α+β·dev_std.  
+   • AUC ≥0.84.  
+   • Brier score < baseline Brier.
+
+9. Deliverables  
+   • <MODEL>…</MODEL>: exact U(dev_std)=α+f(dev_std;θ) formulas (no prose).  
+   • <VARIABLES>…</VARIABLES>: JSON listing all features, α, β, shape θ’s with bounds, distributions, learnable flags, source.  
+   • <target_variable>accept</target_variable>  
+   • <SUMMARY>…</SUMMARY>: concise table of families, θ’s, priors, Stage A/B pass, CV metrics (Acc, AUC, BIC/WAIC/ΔBIC, Brier), calibration stats, final winner.
+
+Out-of-the-box thinking is encouraged—novel two-parameter transforms that improve curvature near dev_std≈0 and boost identifiability are welcome.

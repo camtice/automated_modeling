@@ -1,0 +1,214 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,intercept_recovery,unfairness_weight_recovery,disadvantage_penalty_recovery,beta_self_recovery,beta_unfair_recovery,thresh_unfair_recovery,scale_recovery,bias_recovery,self_interest_weight_recovery,disadvantage_inequity_weight_recovery,fairness_deviation_weight_recovery,alpha_recovery,beta_recovery,accept_bias_recovery,beta_disadv_recovery,beta_fairness_recovery
+1,33.46334721658972,28.448726292487788,37.95561179443103,0.7957875457875458,U = intercept + unfairness_weight * unfairness_perc + disadvantage_penalty * indicator_disadvantage,"This model predicts responder acceptance using a linear sum of three factors: a baseline response bias, the deviation from proportional fairness (in percent points), and a penalty applied for being offered less than the opponent. Each variable is carefully defined to minimize parameter covariance and maximize interpretability while respecting the data structure of the task.",v1,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.7076963398066795,0.7653321086596371,0.8641881045991242,,,,,,,,,,,,,
+3,34.94646026874839,31.398363101059058,38.12496398147008,0.8144078144078144,"utility = bias + self_interest_weight * split_self - disadvantage_inequity_weight * max(0, split_opp - split_self) - fairness_deviation_weight * abs(splitperc_self/100 - (token_self / (token_self + token_opp)))","This model predicts responder accept/reject decisions as a function of four psychological processes: a baseline bias, self-interest in own payoff, disadvantageous inequity aversion (penalizing cases where the responder receives less than the proposer), and sensitivity to deviations from proportional, contribution-based fairness. The model uses nonredundant, dissociable terms: ramped disadvantage aversion, payout proportionality penalty, and linear self-interest—each term corresponding to distinct psychological motivations. All parameters have finite, identifiable ranges, and the structure is designed to maximize both interpretability and recoverability.",v1,"
+
+---
+
+**Instructions for Computational Modeling Design (Run 3 of 5):**
+
+The objective is to create a computational model of responder behavior in the provided resource division dataset that achieves the best balance of fit (minimize BIC), predictive accuracy, and most importantly, highly dissociable and recoverable learnable parameters for every psychological factor included.
+
+Please complete all steps below, being explicit and deliberate at each stage. Do NOT simply default to linear or all-purpose nonlinear forms. Strive for thoughtful innovation, paired with critical evaluation of parameter identifiability and recoverability.
+
+1. **Stepwise Model Construction:**
+   - Clearly articulate the main psychological mechanisms in play (e.g., self-interest, fairness, disadvantage aversion, thresholds).
+   - For each mechanism, discuss likely nonlinearities, thresholds, or interaction effects. For example: does fairness aversion increase only when the responder receives less than the opponent? Does self-interest interact with perceived unfairness?
+   - For each candidate model term or parameter, briefly justify its psychological distinctness and whether it is likely to be statistically dissociable from other terms given the data structure.
+   - Have a bias toward *parsimony*: include only as many learnable parameters as are necessary for clear mapping to distinct psychological processes, unless otherwise justified.
+   - Reject additive or nonlinear/interactive terms that cannot be dissociated in recovery, and explicitly state why.
+
+2. **Model Structure & Parameter Justification:**
+   - Consider both linear and **at least one** out-of-the-box nonlinear or interaction term (e.g., a variable that activates only when a key threshold is crossed, a product of two variables, or an indicator function).
+   - If you reject a nonlinear or interactive form, provide a clear rationale grounded in identifiability or psychological theory.
+   - For every learnable parameter, specify its plausible range and prior (with finite, clearly stated bounds); no unbounded parameter estimates are allowed (except the utility variable itself).
+   - Explicitly discuss and address possible parameter covariance or redundancy—describe how each parameter will remain recoverable and distinct.
+
+3. **Parameter Recovery and Identifiability Focus:**
+   - Before finalizing your formula, provide a short reflection: what would make each parameter recoverable and what might threaten identifiability (e.g., high collinearity, overlapping predictor effects)?
+   - If necessary, consider rescaling variables, using percentiles, or introducing indicator/categorical splits (e.g., an “indicator_disadvantage” term) to improve orthogonality and parameter recovery.
+   - Avoid ""pile-on"" of complex or multiple nonlinear terms unless strongly justified by the dataset and required for fit/interpretability.
+
+4. **Variable Specification:**
+   - Provide a complete, clear mapping from each variable in the model to the dataset structure.
+   - All calculated variables and all learnable parameters must be included and carefully defined.
+   - Use clear and unambiguous naming for each parameter and variable—avoid any confusion or reserved words.
+
+5. **Deliverable Format:**
+   - Proceed through the reasoning and justification first, including a concise rationale for each modeling decision (including why any plausible variants were omitted).
+   - Then present:
+     - The mathematical model, strictly between <MODEL> and </MODEL> tags (math only, no extra words).
+     - The variable and parameter definitions in <VARIABLES>…</VARIABLES> tags (use the provided JSON format).
+     - The name of the predicted variable (with <target_variable>accept</target_variable>).
+     - A clear, one-paragraph summary in <SUMMARY>…</SUMMARY> tags.
+
+Aim for the **optimal balance** of predictive fit, psychological interpretability, and parameter recovery. Your model will be evaluated on all three criteria, so justify every addition—and omission—explicitly. Remember, including complex nonlinear or interaction terms is encouraged, but only where they substantially improve interpretability or predictive performance **and** support robust recovery of all parameters.
+
+Think carefully and innovatively, check parameter identifiability, and provide defensible, precise model specifications in the designated format.",,,,,,,,0.8365165672228254,0.4051799040259572,0.7454449592565476,-0.010703536444340286,,,,,
+2,35.84223058714065,31.184318182645747,40.014943782833996,0.8263125763125763,"Section
+
+<MODEL>
+deserved_share_perc = 100 * token_self / (token_self + token_opp)
+unfairness = deserved_share_perc - splitperc_self
+
+U = intercept 
+    + beta_self * (splitperc_self / 100)
+    - beta_unfair * sigmoid( (unfairness - thresh_unfair) / scale )
+
+where 
+sigmoid(x) = 1 / (1 + exp(-x))","This model predicts responder acceptance as a function of (a) self-interested reward, and (b) nonlinear aversion to being under-offered compared to one’s contribution. The model first computes the responder’s deserved share from relative token contributions and penalizes utility by a thresholded sigmoid function of unfairness (the percent difference between deserved and offered share). Five learnable parameters dissociate baseline tendency, self-interest weighting, unfairness sensitivity, the unfairness threshold for sharp rejection, and the width of that transition, allowing nuanced prediction and interpretation of responder choice in joint-contribution bargaining.",v1,"
+
+Updated instructions:
+
+Please carefully design your computational model with the following steps and considerations. The goal is to maximize model fit (minimize BIC), improve predictive accuracy, and achieve high, dissociable parameter recovery for every learnable parameter.
+
+1. **Reason step by step** through:
+   - The central psychological mechanisms active in the task.
+   - How these mechanisms are likely to interact or trade off, including any possible **nonlinearities**, **thresholds**, or **interaction effects** in the behavioral response (e.g., sharply increased rejection once unfairness passes a certain point, or disadvantage aversion mattering only beyond threshold).
+   - What mathematical form best captures these processes, justifying every proposed term and making sure that each learnable parameter addresses a psychologically distinct process.
+   - The minimum number of learnable parameters needed—**have a slight bias towards parsimony**, but if adding a parameter clearly improves interpretability, accuracy, or fit, justify and include it.
+
+2. **Model Structure**: 
+   - You are encouraged to consider not only simple linear additive terms but also **nonlinear, thresholded, or interaction terms** between key variables, as long as their inclusion is justifiable and their parameter values are likely to be statistically identifiable (i.e., not highly covariant with existing parameters).
+   - Explicitly discuss whether absolute self-interest (magnitude of own offer) should be separated from fairness/unfairness, and consider whether gain framing or loss framing makes sense.
+   - Ensure that every parameter uniquely maps to a hypothesized cognitive or motivational process.
+
+3. **Parameter Covariance and Recovery**:
+   - Proactively seek to avoid high covariance or redundancy between learnable parameters. Where two variables could overlap, discuss and choose the mathematically or conceptually clearest approach.
+   - Consider parameter rescaling (e.g., using percent deviation vs. absolute income) to make parameters as orthogonal and recoverable as possible.
+
+4. **Variable Mapping**:
+   - Clearly define all variables, giving careful attention to how each calculated or derived variable relates to raw data and psychological process.
+   - For *every* learnable parameter, provide a generous but finite range for estimation.
+
+5. **Encourage out-of-the-box thinking**:
+   - At least one candidate model should include an interaction, threshold, or nonlinear (e.g., tanh, sigmoid, step, or quadratic) term in addition to or instead of simple linear effects, provided this supports psychological interpretability.
+   - If you reject such a term, provide a brief rationale for its exclusion.
+
+**Deliverable**:  
+Proceed step by step, reasoning through these points as you build your model. Your model will be evaluated both for predictive performance and the dissociability of its parameters, so strive for both parsimony and innovation.
+
+Be meticulous and explicit at every stage, and do not simply default to the standard linear model. Show that you have considered and explored at least one *novel* or *creative* modeling possibility before selecting your final form.",0.8119424069712866,,,0.4981540642850663,0.5232920177882321,0.20666556950460754,0.08492738503362399,,,,,,,,,
+5,41.761423631202625,39.04416906747867,44.19563084453868,0.717948717948718,U = accept_bias + beta_disadv * is_disadvantaged + beta_fairness * proportional_deviation,"This model predicts responder acceptance decisions using three strictly orthogonal psychological mechanisms, each mapped to a non-overlapping input: (1) disadvantageous inequity aversion via a binary indicator (""is_disadvantaged""), (2) sensitivity to continuous proportional fairness deviations (""proportional_deviation"") only when not disadvantaged, and (3) a global acceptance bias/intercept. The mutually exclusive activation of ""is_disadvantaged"" and ""proportional_deviation"" guarantees full parameter recovery and clear interpretability, as on any trial only one (plus bias) is operative. Each parameter thus tracks dissociable psychological influences on binary acceptance, convertible via a logistic (sigmoidal) function.",v1,"
+
+---
+
+**Instructions for Computational Modeling Design (Run 5 of 5):**
+
+Your goal is to develop a computational model of responder behavior in the resource-sharing negotiation dataset that *maximizes parameter recovery and interpretability*, while also achieving strong model fit (minimized BIC) and predictive accuracy. 
+
+**Above all, every included learnable parameter must show robust, orthogonal recovery (i.e., each can be individually and reliably recovered regardless of the others).** 
+
+Prior modeling attempts illustrate that plausible psychological mechanisms—if encoded with overlapping or collinear variables—fail recovery tests and thus undermine interpretability and model utility. Therefore, **do not include any parameter whose recovery you cannot justify, and lean toward variable constructions that maximize strict dissociation.**
+
+Proceed step by step, following this process:
+
+---
+
+1. **Map Psychological Processes to Strict, Orthogonal Variable Encodings**
+   - List all plausible psychological mechanisms that could drive responder behavior (e.g., self-interest, proportional fairness, disadvantage aversion, acceptance bias, advantageous inequity aversion, threshold effects).
+   - For each, propose at least two distinct variable encodings using only provided dataset fields—for example:
+     - As a continuous variable (e.g., difference in share vs. fairness).
+     - As an indicator or threshold-triggered variable (e.g., is the participant disadvantaged?).
+     - As a normalized/percent variable or a centered (zero-mean) score.
+   - For each encoding, reflect on collinearity and statistical redundancy. Identify which combinations are mathematically or conceptually non-overlapping (e.g., mutually exclusive indicators, or strictly contrast-coded predictors).
+   - **Explicitly reject candidate variables/encodings that risk parameter dependence or redundancy.** If two variables cannot be orthogonal, choose only one or recode to enforce exclusivity.
+
+2. **Design for Maximal Recovery and Interpretability**
+   - Only include a learnable parameter if there is a strictly dissociable, one-to-one mapping from parameter to psychological process and to observable model variance.
+   - For fairness, consider using percent deviation from deserved share, ramp or indicator functions, or stepwise effects. 
+   - For disadvantage, strongly prefer indicator or exclusivity-based codings (e.g., “is_offer_disadvantage” = 1 if responder is offered less than the opponent) over broad linear terms.
+   - Wherever possible, encode model inputs so that only one parameter “acts” on each trial (except for the bias/intercept). This empirically supports robust recovery.
+   - Before finalizing your formula, **perform a ""mental simulation""**: for each parameter, specify which trial types it impacts, and check that its effect cannot be numerically mimicked by any combination of other parameters.
+   - If using a nonlinear, threshold, or step function, justify mathematically why it will not undermine recovery—otherwise, do not include it.
+
+3. **Compare Alternative Approaches Before Committing**
+   - For at least one psychological mechanism, propose and analyze *two* possible model encodings, assessing the likely impact on collinearity and recovery.
+   - Choose the alternative that most cleanly isolates the intended process.
+   - Explicitly discuss why you rejected the non-selected alternative(s).
+
+4. **Model Parsimony & Justification**
+   - Do not include unnecessary or overlapping parameters. A lean model with fully recoverable parameters is vastly preferable to a maximally-complex but non-interpretable one.
+
+5. **Formal Specification and Structured Output**
+   - Write the model as a strict mathematical formula between <MODEL>... </MODEL> tags (math only; no comments or explanation).
+   - Provide variable definitions, ranges, parameter bounds, and learnability in the required JSON format between <VARIABLES> tags.
+   - Specify the target variable within <target_variable> tags.
+   - In <SUMMARY> tags, succinctly describe the psychological processes modeled, the orthogonal mappings to parameters, and any indicator or contrast coding strategies used.
+
+---
+
+**Special Emphasis for This Final Run:**
+- *Creativity is required!* Consider variable splits (e.g., percent unfairness vs. disadvantage indicator), transformation to step or trigger functions, or combinations with maximum mutual exclusivity.
+- If in doubt, select the version that most cleanly partitions psychological processes in a way that a parameter recovery assessment could verify.
+- *Do not reuse any conventional “ramp” or “split deviation” forms shown to have poor recovery unless you have mathematically restructured them for strict orthogonality.*
+- If your mental simulation suggests any potential for parameter trade-off or cross-talk, revise the encoding until complete parameter independence is achieved.
+
+Be concise but rigorous in your reasoning and justifications. Only submit models with parameterizations you genuinely expect will yield *all* parameters highly recoverable, while remaining interpretable and predictive.
+
+---",,,,,,,,,,,,,,0.7497903461475761,0.8593220436274244,0.38185834820607184
+4,129.99331028889816,119.06887680756401,139.77978194925998,0.7735042735042734,"deserved_share = (token_self / (token_self + token_opp)) * combined_earning
+disadvantageous_deviation = max(0, deserved_share - split_self)
+advantageous_deviation = max(0, split_self - deserved_share)
+utility = bias - alpha * disadvantageous_deviation - beta * advantageous_deviation","A three-parameter, orthogonally coded linear utility responder model. Responders evaluate each offer relative to their deserved share (proportional to their tokens), penalizing offers below this proportional amount (`alpha`, disadvantageous deviation) and, separately, offers above (`beta`, advantageous deviation). An acceptance bias term captures baseline receptivity. The disadvantageous and advantageous deviations are implemented as exclusive non-negative differences, ensuring strict parameter recoverability and maximal dissociability between self-interest, fairness, and acceptance bias motives.",v1,"
+
+---
+
+**Instructions for Computational Modeling Design (Run 4 of 5):**
+
+Your objective is to develop an improved computational model of responder behavior in the provided resource division dataset, achieving the *optimal balance* of model fit (minimize BIC), predictive accuracy, and, above all, robust, dissociable (highly recoverable) parameters for every psychological process explicitly included. 
+
+**Rigorous focus on parameter recovery and dissociability is mandatory.** Prior results have shown that even plausible nonlinear or fairness penalty terms may not yield recoverable parameters when they overlap conceptually or statistically. Your model will be directly evaluated for each learnable parameter’s recovery, and solutions with unrecoverable parameters will be rejected—even if overall fit appears competitive.
+
+Please explicitly follow the steps below, carefully justifying all decisions:
+
+---
+
+1. **Psychological Mechanism Articulation & Variable Construction**
+   - List key psychological determinants: e.g., self-interest, fairness/unfairness, disadvantage aversion, acceptance bias.
+   - For each, consider the cleanest, least-collinear way to represent it using variables from the dataset.
+   - Articulate the difference between flawed (collinear, redundant, or overly broad/“fuzzy”) variable constructions and *orthogonal*, indicator-based, or contrast-coded predictors.
+   - For all fairness-related terms, explicitly consider using the difference between the proposed and deserved share (deserved_share = (token_self / [token_self + token_opp])); specify whether to use the raw difference, percent, or an indicator.
+   - Explore indicator (“is_disadvantage”) or threshold (e.g., unfairness only counts if negative for responder) variables to separate mechanisms and improve identifiability.
+   - Consider variable centering or normalization for predictors—explain tradeoffs.
+
+2. **Parsimony, Parameter Mapping and Explicit Nonlinearity Use**
+   - Include only as many learnable parameters as necessary for a one-to-one mapping to distinct motivational or cognitive processes, unless a justified exception applies.
+   - Include nonlinearity or interaction/threshold terms ONLY where they do not risk parameter recovery (e.g., avoid using both fairness deviation and self-interest, unless their recoverability can be justified by orthogonality).
+   - If you include any nonlinear or threshold/interaction term, pause to explicitly simulate mentally how it will affect parameter separability, and retain only if aids recovery and fit.
+   - You must propose at least one alternative modeling approach (e.g., indicator-based vs. ramp function; fairness-as-difference versus fairness deviation), explicitly compare their likely parameter recovery, and justify your final choice.
+   - If you reject a candidate mechanism/term on identifiability grounds, state this clearly.
+
+3. **Parameter Recovery & Orthogonality Reflection**
+   - Before committing to a final formula, briefly analyze (in writing) potential sources of parameter non-recovery (e.g., overlapping predictors, insufficient variation, cross-mapping).
+   - Suggest (and, if appropriate, implement) variable rescaling, centering, or splitting (e.g., indicator variables) to increase orthogonality and parameter independence.
+   - Prioritize exact coding for psychologically discrete mechanisms (e.g., disadvantage = 1 only when offered < opponent).
+   - Use as few, as mutually non-redundant, parameters as possible.
+
+4. **Formal Specifications**
+   - Provide an explicit, formulaic, *mathematical model* strictly between <MODEL> and </MODEL> tags. Your model must use only variables present or calculable from the provided dataset.
+   - Include all variable and parameter definitions in the specified JSON format.
+   - Specify the *target variable* as per the provided structure.
+   - Succinctly summarize the model’s structure, psychological motivation, and parameter mappings in <SUMMARY> tags.
+
+---
+
+**Deliverables Format:**
+- Thorough, stepwise reasoning and justification (as outlined above).
+- <MODEL>…</MODEL> (math only—no explainer text).
+- <VARIABLES>…</VARIABLES> in correct JSON format.
+- <target_variable>…</target_variable>
+- <SUMMARY>…</SUMMARY>
+
+**Special Encouragement:**  
+- Challenge yourself to consider out-of-the-box yet recoverable constructs (e.g., indicator functions, difference scores, threshold-triggered penalties, etc.), not just default linear/ramp approaches.
+- Explicitly state why each included or excluded feature supports both psychological interpretability and parameter identifiability.
+- *Prioritize parameter recovery and orthogonal encoding* over formulaic complexity.
+
+Think deliberately about variable construction and parameter separability, justify every decision, and provide clear, reproducible model specifications.",,,,,,,,0.8851994660643101,,,,0.5200543460783277,-0.03149559324563553,,,

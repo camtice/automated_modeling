@@ -1,0 +1,55 @@
+
+
+---
+
+**INSTRUCTIONS – RUN 17**
+
+Your task is to design a **three-region, three-parameter computational model** for predicting responder (accept/reject) decisions, focused on **maximizing parameter recovery** for **all** learnable parameters while retaining robust accuracy and full trial-type coverage.
+
+#### **1. Parameter Recovery & Non-Redundancy — ESSENTIAL**
+- Each learnable parameter must exert a **broad, monotonic, non-redundant** effect on the model’s output **across real data** (not just hypothetical extremes).
+- For **bonus AND penalty** regions, the learnable parameter(s) must modulate both amplitude and curve/shape of the utility; *single-parameter shapes like softplus or log are strongly discouraged unless justified with simulation*.
+    - INSTEAD, use a bonus function that allows **both** amplitude (bonus_amp) **and** curvature/shape (bonus_shape) parameters *unless you can show simulation-based coverage is otherwise excellent*.
+
+#### **2. Three-Region, Region-Exclusive Structure**
+- **Threshold parameter:** Flexible, learnable; allow for context dependence (e.g., weighted sum involving token ratios, pot amounts, or their combination for boundary).
+- **Penalty region:** For offers below threshold, utility governed strictly by *penalty* parameter(s); form must be curved, monotonic, and not mirror the bonus region.
+- **Bonus region:** For offers above threshold, utility governed strictly by *bonus* parameter(s); function must be highly impact-sensitive—combine surplus and context/pot and, where possible, token ratio or interaction terms. 
+    - Use forms such as: \( bonus\_amp \times (surplus \times f(token\_ratio))^{bonus\_shape} \times g(context) \)
+    - **No log/softplus only** unless simulation can prove strong recovery.
+    - Encourage nonlinear context scaling (e.g., non-integer exponents, log+power, etc).
+    - Both bonus_amp and bonus_shape should be *learnable*, unless a fixed value is justified.
+
+#### **3. Simulation Demonstration — MANDATORY**
+- Perform **explicit parameter sweeps** for *each* learnable parameter (across their numerical bounds), keeping others fixed, in at least TWO realistic trial setups (vary pot size, token ratio, offered split).
+- For **bonus region**, sweep both amplitude and shape together (2D grid/table).
+- For **each region, report the expected fraction (%) of data/trials that fall into that region** (empirical estimate or simulation-based), and show that each region's parameter impact is observable on real data, not just theoretical trials.
+- Instruct: **If a parameter's effect disappears/saturates for >10% of the region, you must redesign that component.**
+
+#### **4. Edge Case, Region Coverage & Dead Region Avoidance**
+- For each region, show utility flipping sign as expected when crossing region boundaries by adjusting threshold or offer.
+- **Explicitly demonstrate** that penalty and bonus region parameters are not redundant, do not "die out", and remain highly recoverable regardless of context or pot scale.
+- Avoid region assignments so sharp that one region contains <15% of realistic data; demonstrate sufficient region spread.
+
+#### **5. Formatting & Output**
+- **Begin** with parameter sweep/empirical justification **before** the <MODEL> tags (describe key findings, show tables for U values).
+- Between <MODEL> and </MODEL> tags: only mathematical specification.
+- Provide <VARIABLES> section in precisely described JSON, clearly marking learnable vs. fixed parameters.
+- Specify <target_variable> using the dataset variable being predicted.
+- Conclude with a <SUMMARY>: short, clear, technical language.
+
+#### **6. Creative Model Forms & Amplification Challenged**
+- *Strongly encourage*: 
+    - Nonlinear region boundaries (e.g., threshold adapts to token ratio, pot, or their polynomial/composite).
+    - Novel context-amplification in both regions (e.g., bonus power depends on both surplus and context; penalty curvature responds to proportionate disadvantage).
+    - Two-parameter (amplitude & shape) control for both bonus and penalty.
+
+#### **7. Prohibitions (Absolute)**
+- No parameter crossing region boundaries.
+- No log, log1p, or softplus-only bonus (unless proven in simulations to have strong, recoverable effect).
+- No mirrored region functions (e.g., penalty is negative of bonus).
+- No parameter with negligible or vanishing effect on >10% of trials.
+- No region covering <15% of realistic data/trials.
+- No identical functional form for both penalty and bonus (except for the indicator/region masks).
+
+**Remember:** The success of your model depends on EMPOWERING parameter separation and RECOVERABILITY for all three parameters. Be bold and inventive—prioritize empirical coverage, parameter identifiability, and out-of-the-box formulations!

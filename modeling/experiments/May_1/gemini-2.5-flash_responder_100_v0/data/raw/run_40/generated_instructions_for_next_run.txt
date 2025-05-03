@@ -1,0 +1,36 @@
+Instructions for Run 41 of 100:
+
+The primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is non-negotiable for a usable model. Improved BIC and accuracy are important secondary goals.
+
+The previous run (Run 40) utilized the structure `U = beta_linear_relative * deviation_from_fair - beta_extra_loss * loss_below_fair`. This model successfully achieved good parameter recovery for `beta_linear_relative` (r = 0.815) but failed significantly for `beta_extra_loss` (r = 0.218). Overall model performance (BIC: 340.56, Accuracy: 0.630) was also not the best seen so far. The core issue remains achieving reliable recovery for *all* parameters simultaneously.
+
+The poor recovery of `beta_extra_loss` in Run 40's structure suggests that its influence was not sufficiently distinct from `beta_linear_relative`, particularly in the region where offers were below the fair share. In that structure, utility below fair was `(beta_linear_relative + beta_extra_loss) * deviation_from_fair`, where the two parameters were linearly combined, making them difficult to estimate independently.
+
+For this run, design a computational model for responder decisions (`trial_role == 1`) that predicts the utility of accepting an offer. Your model should continue to utilize the proposed share percentage (`split_perc_self`) and a calculated fair percentage for the participant (`fair_perc_self`) based on token contributions as key inputs.
+
+*   **Parameter Identifiability is Paramount:** The central challenge remains designing a mathematical structure (formula for `U`) using these inputs and exactly **2 learnable parameters** such that these parameters have distinct and identifiable influences on utility, ensuring robust parameter recovery for *both*.
+*   **Promising Structural Direction (Piecewise based on Deviation from Fair):** To address the identifiability issue observed in Run 40, specifically the coupling of parameters below fair, consider a piecewise linear model centered around the fair share. This approach explicitly separates sensitivity to deviations *above* the fair share from sensitivity to deviations *below* the fair share.
+    Consider calculating the following intermediate variables:
+    *   `sum_tokens = token_self + token_opp`
+    *   `fair_perc_self = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)`
+    *   `gain_above_fair = MAX(0.0, split_perc_self - fair_perc_self)` (The magnitude of the gain if the offer is above fair, otherwise 0)
+    *   `loss_below_fair = MAX(0.0, fair_perc_self - fair_perc_self)` (The magnitude of the loss if the offer is below fair, otherwise 0)
+    Then, structure the utility (`U`) based on these terms and your two learnable parameters, aiming for a structure like:
+    `U = beta_gain * gain_above_fair - beta_loss * loss_below_fair`
+    This structure models utility as increasing with gains above fair (scaled by `beta_gain`) and decreasing with losses below fair (scaled by `beta_loss`). Since `gain_above_fair` is zero when there's a loss, and `loss_below_fair` is zero when there's a gain, the influences of `beta_gain` and `beta_loss` are structurally separated based on whether the offer is above or below fair. This separation should significantly improve parameter identifiability compared to the linearly coupled structure of Run 40.
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self`, `token_self`, `token_opp` as data variables.
+    *   Calculate `sum_tokens`, `fair_perc_self`, `gain_above_fair`, and `loss_below_fair` as described above.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+*   **Model Formula:** Define the utility (`U`) based on `gain_above_fair`, `loss_below_fair`, and your 2 learnable parameters. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**. Choose descriptive names suitable for Python code (e.g., `beta_gain`, `beta_loss`). Define clear, generous, finite numerical bounds. Given their interpretation as sensitivity to gains and losses, these parameters are typically expected to be positive. Suggest bounds like [0, 10] or [0, 20] for both.
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self`, `gain_above_fair`, `loss_below_fair`, etc.) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`, etc.).
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by deviations from the fair share, and specifically how the piecewise structure separates the influence of gains above fair from losses below fair to improve parameter identifiability compared to previous structures.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability *within* the constraints of **exactly 2 learnable parameters** is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This piecewise approach is a strong candidate for achieving that separation.

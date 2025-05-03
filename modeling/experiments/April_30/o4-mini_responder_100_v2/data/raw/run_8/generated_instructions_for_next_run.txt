@@ -1,0 +1,52 @@
+
+New Instructions for Run 9:
+
+1. Embrace Nonlinearity & Mixtures  
+   • In addition to pure logistic, consider alternative link functions (probit, clog-log) in parallel and compare.  
+   • Build a 2-component mixture-of-experts: one “self-interest” expert (uses z_share) and one “fairness” expert (uses one or more orthogonalized fairness features). Use a gating function g(z_share, z_mag)→[0,1] with 2 parameters to weight them.  
+
+2. Dynamic & Psychologically‐Grounded Features  
+   • Trial‐wise adaptation: include a learning or fatigue feature ΔU = U_{t−1} − U_{t−2}, or running average of past acceptance.  
+   • Represent inequity as both magnitude (|share−0.5|) and log‐ratio log(share/(1−share)), then orthogonalize.  
+   • Optionally include an interaction with trial_role or trial_type to capture role‐specific sensitivity.  
+
+3. Flexible Candidate Families  
+   Pick one of these ≤6-parameter families:  
+   A. Mixture of Experts (6 params):  
+      – Expert1: U1 = α1 + β1·z_share  
+      – Expert2: U2 = α2 + γ1·orth_fair1 + γ2·orth_fair2  
+      – Gating: π = sigmoid(δ1·z_share + δ2·z_mag)  
+      – Combined U = π·U1 + (1−π)·U2  
+   B. Hierarchical Quadratic (5 params):  
+      U = α + β1·z_share + β2·z_share² + γ·orth_fair + θ·(z_share·orth_fair)  
+   C. Nonlinear Transform (4 params):  
+      U = α + β·z_share + δ·(log_ratio)^φ  (φ∈[0.5,2] continuous, MAP‐estimated)  
+   D. Hybrid Probit-Logit (4 params):  
+      U_logit = α + β·z_share + γ·orth_fair;  
+      U_probit = α′ + β′·z_share + γ′·orth_fair;  
+      Choose best link per fold via Bayesian model averaging.  
+
+4. Strong Yet Adaptive Regularization  
+   • Use Student-t(3,0,1) priors on all weights for robustness.  
+   • Bounds: all linear weights ∈[−1,1], curvature φ∈[0.5,2].  
+   • L1+L2 elastic‐net penalty: tune mixing hyperparameter in recovery loop.  
+
+5. Automated Multi-Stage Recovery & Pruning  
+   • Stage 1: Simulate 2,000 datasets from priors; fit MAP or penalized MLE; compute Pearson r.  
+   • Stage 2: If any r<0.80 or identifiability issues:  
+     – Prune worst‐recovered parameter(s) or collapse experts (e.g. tie α1=α2).  
+     – Simplify gating or fix φ to nearest gridpoint.  
+     – Refit until each r≥0.80.  
+
+6. Comprehensive Validation  
+   • 10-fold nested CV with out-of-sample accuracy and log‐score averaging.  
+   • Compute BIC, WAIC, and LOO-CV; require ≥5‐point BIC improvement and ≥5% accuracy lift vs. baseline.  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: final selected formula (no prose).  
+   • <VARIABLES>…</VARIABLES>: each learnable param with description, bounds, prior, source=learnable; each feature with transformation and source=calculated.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • State the chosen family, psychological logic (e.g. mixture gating self vs fairness, dynamic adaptation), and how robust priors, elastic‐net, and multi‐stage recovery guarantee r>0.80, lower BIC, and higher accuracy.  
+   • Highlight creative elements (nonlinear transforms, mixture experts, adaptive pruning).

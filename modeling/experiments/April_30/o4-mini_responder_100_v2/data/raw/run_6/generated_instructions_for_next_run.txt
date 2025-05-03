@@ -1,0 +1,47 @@
+
+
+New Instructions for Run 7:
+
+Be boldly explorative—your goal is a compact (≤4 learnable parameters), psychologically grounded logistic‐utility model that (a) recovers every parameter with Pearson r > 0.80, (b) yields ≥5‐point BIC drop versus baseline (separately for control and treatment), and (c) improves accuracy by ≥5%.
+
+1.  Expanded Feature Engineering  
+    • Always compute share = split_self/combined_earning and z_share.  
+    • Generate two additional transformations: z_share² and a single symmetric fairness term raw_fair = z-score(|share – 0.5|).  
+    • Orthogonalize raw_fair and z_share via residualizing + z-scoring → res_fair_z.  
+    • After this, compute VIFs among {z_share, z_share², res_fair_z}; if any VIF > 4 or |corr| > 0.3 drop the squared term or fairness term.
+
+2.  Three Candidate Model Families  
+    A.  Asymmetric Linear:  
+       U = α + β·z_share + γ_envy·res_dis_z + γ_guilt·res_adv_z  
+    B.  Quadratic Curvature:  
+       U = α + β1·z_share + β2·z_share² + γ·res_fair_z  
+    C.  Power‐Transform Fairness:  
+       U = α + β·z_share + δ·(res_fair_z)^φ,  where φ ∈ [0.1,2] (one extra parameter).  
+    –  Choose one family in deployment; each has ≤4 learnable parameters.  
+
+3.  Parameter Constraints & Regularization  
+    • Impose tight bounds & sign‐constraints:  
+       – β, β1 ∈ [0,1]; β2 ∈ [–1,1]; γ_envy ∈ [–1,0]; γ_guilt ∈ [0,1]; γ, δ ∈ [–1,1]; φ ∈ [0.1,2].  
+    • Embed a weak L2 penalty (or equivalently, a Normal(0,1) prior) on all learnable weights.
+
+4.  Automated Bayesian/Simulation Recovery Loop  
+    • Simulate 2,000 synthetic datasets sampling true parameters from specified bounds.  
+    • Fit each candidate via maximum a posteriori (MAP) or penalized MLE.  
+    • Calculate Pearson r for each parameter. If any r < 0.80:  
+      – Switch to a different model family,  
+      – Drop or merge collinear features,  
+      – Tighten bounds to [–0.5,0.5] or strengthen priors,  
+      – Repeat simulation until all r > 0.80.  
+
+5.  Cross‐Validation & Model Evidence  
+    • On real data, run 10-fold cross-validation to estimate out-of-sample accuracy.  
+    • Compute both BIC and WAIC for each family and pick the best. Require ≥5-point BIC drop and ≥5% accuracy gain over baseline.
+
+6.  Variable Specification (<VARIABLES>…</VARIABLES>)  
+    • For each learnable parameter: describe, give numeric bounds, state uniform prior (or Normal(0,1) if using penalization), source=learnable.  
+    • For each engineered predictor: document source, transformation (z-scoring, squaring, residualizing).  
+    • Declare <target_variable>accept</target_variable>.
+
+7.  Summary (<SUMMARY>…</SUMMARY>)  
+    • Summarize the three model families, their psychological rationale (asymmetry vs curvature vs power fairness), and how L2 regularization plus an automated Bayesian/simulation loop guarantee high identifiability (r > 0.80), lower BIC, and strong predictive accuracy.  
+    • Emphasize your willingness to drop, merge, or transform features—think beyond straight linear weightings—to break free of the obvious.

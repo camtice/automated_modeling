@@ -1,0 +1,179 @@
+Okay, here are the improved instructions for the next run (Run 93 of 100).
+
+Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable "token_self". The other variable, "token_opp", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.
+
+Again, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.
+
+Note that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same "fairness".
+
+Below is the description of each variable in the dataset:
+
+trial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]
+trial_role = the role of the participant [1 = responder, 2 = proposer]
+token_opp = number of tokens found by the opponent
+token_self = number of tokens found by the participant
+combined_earning = amount of money earned in total (note that each token found is £3)
+split_opp = the proposed share of the opponent (in £)
+split_self = the proposed share for the participant (in £)
+splitperc_opp = same but in %
+split_perc_self = same but in %
+accept = whether the participant responded accept (1) or reject (0)
+accepted_amount = if accepted, what is the amount gain (in £)
+accepted_perc = same as above but in %
+proposed_perc = when participant is the proposer, what is the % proposed to the opponent
+proposed_amount = when participant is the proposer, what is the amount proposed to the opponent (in £)
+
+Desired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified).
+
+The model should:
+1. Predict only responder behavior (should target "accept = whether the participant responded accept (1) or reject (0)")
+2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.
+3. Be applicable to the dataset given within the task description (i.e. the model should be able to be run using only the provided dataset structure).
+4. Predict utility, where less than 0 is less than 50% likely.
+
+For any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).
+
+Then, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.
+For example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal.
+
+Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied.
+
+{
+  "variables": {
+    "variable_name": {
+      "description": "Clear description",
+      "range": {
+        "min": value,
+        "max": value,
+        "inclusive_min": boolean,
+        "inclusive_max": boolean
+      },
+      "distribution": {
+        "type": "distribution type",
+        "parameters": {}
+      },
+      "learnable": boolean,
+      "source": "learnable/data/calculated"
+    }
+  }
+}
+</VARIABLES>
+
+Example #1:
+<EXAMPLE>
+(Model of a Random Choice Task):
+Let me think through this step by step...
+[your reasoning here]
+
+<MODEL>
+U_i = beta + epsilon*E + eta*N
+</MODEL>
+
+<VARIABLES>
+{
+  "variables": {
+    "U_i": {
+      "description": "Utility of choosing action i",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "calculated"
+    },
+    "beta": {
+      "description": "Base tendency parameter (inherent preference)",
+      "range": {
+        "min": 0,
+        "max": 1
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "epsilon": {
+      "description": "Environmental sensitivity parameter",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "E": {
+      "description": "Environmental cue value",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "data"
+    },
+    "eta": {
+      "description": "Noise parameter",
+      "range": {
+        "min": 0,
+        "max": 1,
+        "exclusive_max": true
+      },
+      "learnable": false,
+      "source": "data"
+    },
+    "N": {
+      "description": "Random noise drawn from normal distribution N(0,1)",
+      "distribution": {
+        "type": "normal",
+        "mean": 0,
+        "std": 1
+      },
+      "learnable": false,
+      "source": "calculated"
+    }
+  }
+}
+</VARIABLES>
+<SUMMARY>
+A linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (β) constrained to [0,1] and an unconstrained environmental sensitivity parameter (ε). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.
+</SUMMARY>
+</EXAMPLE>
+
+Please be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.
+
+The variable names you choose in your <VARIABLES> section must be used exactly as specified in the <MODEL> formula. Please ensure these names can be used directly in Python code (e.g., avoid Python reserved words). Also, ensure consistency between the variable names in your JSON and the variable names in the provided data description where applicable (e.g., use `split_perc_self` exactly as provided).
+
+Model Type:
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.
+
+Instructions: Okay, here are the improved instructions for the next run (Run 93 of 100).
+
+The previous attempt using the additive structure with a log-transformed penalty (`U_accept = beta_value * split_perc_self - beta_penalty * log(1.0 + loss_below_fair)`) resulted in very poor parameter recovery (`beta_value`: 0.573, `beta_penalty`: 0.001). Neither parameter met the recovery threshold of 0.7. This indicates that the specific structural choice in the last run failed to create mathematically separable influences for both parameters, making them difficult to estimate reliably from the data. Robust parameter identifiability (recovery >= 0.7 for *all* learnable parameters simultaneously) remains the **unwavering primary objective**.
+
+Given the persistent challenges in parameter recovery, we need to explore a fundamentally different structural approach that ensures the influence of the two learnable parameters is distinct and strongly identifiable. The failure of previous models that scaled `split_perc_self` directly with one parameter suggests this might be problematic for identifiability when another parameter captures fairness.
+
+Let's explore a structure where the utility is directly tied to the *deviation* from the calculated fair share, rather than the absolute proposed share. We can then add an intercept term to capture a general bias or baseline utility. This structure uses two parameters with clearly separable mathematical roles: a slope parameter affecting the relationship between utility and fairness deviation, and an intercept parameter shifting the entire utility function.
+
+Here are the standard calculation steps for necessary intermediate variables. You *must* include these first before defining `U_accept`:
+1.  Calculate `sum_tokens = token_self + token_opp`.
+2.  Calculate `fair_perc_self_calc` handling the `sum_tokens == 0` case (defaulting to 50.0), using `token_self` and `token_opp` from the data. Use `IF` for the conditional calculation.
+
+Now, design a novel formula for `U_accept` using `split_perc_self`, `fair_perc_self_calc`, and exactly two learnable parameters. The formula for `U_accept` must implement the principle that utility is a linear function of the *deviation* from the fair share, plus a constant offset.
+
+A suggested specific structure to explore that follows this principle is:
+`U_accept = beta_sensitivity * (split_perc_self - fair_perc_self_calc) + beta_intercept`
+
+This structure represents utility as a linear sensitivity (`beta_sensitivity`) to the difference between the proposed share (`split_perc_self`) and the calculated fair share (`fair_perc_self_calc`), plus a baseline utility (`beta_intercept`). This creates two mathematically distinct influences: `beta_sensitivity` scales the deviation from fairness, affecting the *slope* of the utility function relative to this deviation, while `beta_intercept` acts as a constant *offset*, shifting the entire function up or down. This clear separation between a slope parameter and an intercept parameter based on deviation from fairness is intended to improve robust joint parameter identifiability compared to previous attempts by ensuring their effects on the utility are mathematically orthogonal (slope vs. intercept).
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc`, and `U_accept`. Include calculation steps for derived variables *before* the formula for `U_accept`.
+*   **Learnable Parameters:** Exactly **2 learnable parameters**. Choose descriptive, Python-safe names (e.g., `beta_sensitivity`, `beta_intercept`). Define clear, generous, finite numerical bounds.
+    *   Parameter 1 (e.g., `beta_sensitivity`): Should represent the linear sensitivity to the *deviation from fair share* (`split_perc_self - fair_perc_self_calc`). This could be positive (more than fair is good) or negative, so bounds should allow both positive and negative values, e.g., `[-10.0, 10.0]`.
+    *   Parameter 2 (e.g., `beta_intercept`): Should represent a baseline utility or general bias, independent of the specific offer/fairness deviation. Bounds should allow both positive and negative values and be generous, e.g., `[-100.0, 100.0]`.
+*   **Calculated Variables:** Include descriptions for *all* calculated variables used in the model (including `U_accept`, `sum_tokens`, `fair_perc_self_calc`, and the function `IF`) with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables in the <MODEL> formula. Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Remember variable names must exactly match the model formula and data descriptions.
+*   **Target Variable:** Specify "accept" using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea (utility is a linear function of the deviation from the fair share plus a baseline). **Crucially, explain *how* this specific structure with a slope parameter (`beta_sensitivity`) scaling the deviation (`split_perc_self - fair_perc_self_calc`) and an intercept parameter (`beta_intercept`) is designed to create mathematically distinct and separable influence profiles for the two learnable parameters.** Highlight that `beta_sensitivity` governs the rate at which utility changes as offers become more or less fair relative to the fairness point, while `beta_intercept` provides a constant offset to utility, and how this fundamental linear slope/intercept structure based on fairness deviation is intended to improve robust joint parameter identifiability compared to previous attempts.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters (>= 0.7 recovery for both) is the absolute priority. Your goal is to find a structure where both parameters' influences are clearly distinguishable and interact in a way that allows for reliable estimation for *both* parameters, ideally leading to improved fit metrics (BIC and accuracy) as a result of capturing the underlying process more accurately. Avoid structures that have failed recovery previously. Explore this specific additive structure centering around deviation from fairness as detailed above, focusing on how this structural separation creates distinct influence profiles for the two betas. Feel free to propose alternative mathematically distinct ways of combining influences if this exact formulation doesn't seem optimal, as long as the two parameters have demonstrably separable roles impacting utility (e.g., one scaling a deviation/ratio term, the other acting as an offset or scaling a different, non-collinear component).
+</previous_instructions>

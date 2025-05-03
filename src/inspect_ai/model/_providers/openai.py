@@ -276,7 +276,10 @@ class OpenAIAPI(ModelAPI):
 
         return params
 
-    # convert some well known bad request errors into ModelOutput
+    async def aclose(self) -> None:
+        """Close the underlying OpenAI client."""
+        await self.client.close()
+
     def handle_bad_request(self, e: BadRequestError) -> ModelOutput:
         if e.status_code == 400 and e.code == "context_length_exceeded":
             if isinstance(e.body, dict) and "message" in e.body.keys():

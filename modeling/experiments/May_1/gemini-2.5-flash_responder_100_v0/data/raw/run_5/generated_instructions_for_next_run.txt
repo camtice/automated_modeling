@@ -1,0 +1,37 @@
+<new_instructions>Design a computational model for the described ultimatum game responder task. Your model must meet the following criteria:
+1.  **Predict only responder behavior** (target variable: "accept").
+2.  **Achieve excellent parameter recovery (>= 0.7 correlation) for ALL learnable parameters.** This remains the *single most important* objective. Previous attempts have failed here. A model is unusable if any learnable parameter cannot be reliably recovered, regardless of other metrics. Prioritize model structures that inherently enhance parameter identifiability from the data.
+3.  **Be applicable to the dataset:** Use only the provided data structure and variables available during responder trials (trial_role == 1).
+4.  **Predict utility:** Utility values will be converted to acceptance probabilities using a logistic function (with temperature 1). A utility > 0 implies > 50% probability of acceptance.
+
+**Analysis of Previous Attempt (Run 5):** The last model achieved a very good BIC and decent accuracy. However, it critically failed the parameter recovery test for most of its learnable parameters (`beta_split`, `beta_unfairness`, `alpha` all < 0.5). This indicates that despite using percentage scaling and a non-linear (quadratic) penalty term based on a dynamic reference, the influences of the parameters were still too correlated or not sufficiently distinct given the data. The parameters controlling sensitivity to the split percentage, sensitivity to deviation below the reference, and the weighting of the reference point likely had overlapping or substitutable effects on the overall utility.
+
+**Guidance for the Next Model (Radically Prioritizing Parameter Recovery):** We need a fundamentally different approach to ensure parameters have separable and identifiable effects. Simple additive structures, even with non-linear terms on features, have not worked.
+
+*   **Push Beyond Simple Penalties:** Instead of just adding or subtracting penalties from a base utility, consider models where parameters scale different *qualities* of the offer or fairness in distinct ways.
+*   **Explore Different Non-linearities and Interactions:** If quadratic didn't work for the deviation, consider other functional forms (e.g., exponential decay of utility for low offers, piecewise functions with sharp transitions around norms like 50% or proportional share, multiplicative interactions between sensitivity parameters and fairness deviations). Think about how parameters could define the *shape* or *rate* of change of utility, not just the scale of an added/subtracted term.
+*   **Distinct Parameter Roles:** Design parameters so their influence on utility is as orthogonal as possible. Could one parameter control the steepness of the utility curve *only* for offers below a norm, while another controls it *only* for offers above? Could a parameter modulate the *impact* of the proportional share norm relative to the 50% norm, but in a way that is less directly tied to a simple weighted average reference point that the penalty then scales?
+*   **Focus on Percentages (Still Important):** Continue to use `split_perc_self` and `fair_perc_self` (derived from `token_self`, `token_opp`) for calculating utility components related to the offer and fairness to maintain consistent scaling. Mixing percentages and absolute values has proven problematic.
+*   **Simplicity is Key (But Not at the Cost of Identifiability):** Aim for the minimum number of learnable parameters required to capture the essential trade-offs (self-interest vs. fairness) *while guaranteeing parameter identifiability*. A complex model with poor recovery is useless. A simpler model with excellent recovery is valuable.
+
+For any learnable parameters, you must specify generous, finite numerical bounds. The utility variable may be unbounded (-inf to inf).
+
+Provide your formal mathematical model between <MODEL> tags. Ensure *only* the mathematical formula is within these tags.
+Provide variable descriptions in JSON format between <VARIABLES> tags. Ensure learnable parameter names are clear and suitable for coding. Spell out Greek variables.
+Specify the target variable using <target_variable> tags.
+Provide a concise, descriptive summary of the model between <SUMMARY> tags.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+Remember to only model responder trials (where trial_role == 1).
+
+First, reason step by step about:
+*   The key psychological mechanisms involved in responder decisions (self-interest, aversion to 50% split unfairness, aversion to proportional split unfairness).
+*   **Crucial Design Choice:** How to formulate the utility function using percentage-based values (`split_perc_self`, `fair_perc_self`) in a way that inherently makes the learnable parameters' influences *distinct* and *identifiable*, avoiding the collinearity seen in previous models.
+*   **Mandatory Non-linear Structure for Identifiability:** How to incorporate non-linear functional forms or parameter interactions that ensure parameters have separable effects. Think outside the box – can parameters define thresholds, exponents, or interaction terms that are clearly distinct from each other's roles?
+*   How the learnable parameters are defined to have maximally distinct and identifiable effects on utility, minimizing covariance based on the *specific* data characteristics (e.g., correlation between split_perc_self and fair_perc_self).
+*   What is the *minimum necessary* set of learnable parameters that can robustly capture the essential aspects of the behavior while prioritizing parameter identifiability (>= 0.7 recovery)?
+*   How the model variables map to observable behavior ("accept") via the logistic function.
+
+Please think through this step by step, focusing intently on how the *specific mathematical structure* of the model guarantees parameter identifiability and distinguishes the influence of each parameter, then provide your model specification, variable descriptions, target variable, and summary.
+</new_instructions>

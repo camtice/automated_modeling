@@ -1,0 +1,48 @@
+
+
+New Instructions for Run 21:
+
+1. Candidate Families (≤3 Learnable Parameters, fixed τ=1)
+   • You may propose up to three ≤3‐parameter transforms. Each transform must be orthonormalized against all others or explicitly piecewise to ensure identifiability.
+   • Feel free to invent:  
+     a. Tanh‐Scaled (2 params):  
+        U = α + β·tanh(κ·dev_std),  κ∈[0.5,5]  
+     b. Log‐Modulated (2 params):  
+        U = α + β·dev_std·log(1+δ·dev_std),  δ∈[0.5,5]  
+     c. Threshold‐Spline (3 params):  
+        U = α + β1·min(dev_std,θ) + β2·max(dev_std–θ,0),  θ∈[0.1,1]  
+   • You may also include one of the original families if modified by bounded nonlinearity or explicit piecewise orthonormalization.  
+
+2. Feature Pipeline
+   • z_share = split_self / combined_earning (drop combined_earning = 0)  
+   • dev = |z_share–0.5|; compute any piecewise splits (neg_dev, pos_dev) or thresholds.  
+   • Standardize each raw feature on training folds.  
+   • Build new bases (tanh, log·dev, splines), then orthonormalize all bases using Gram–Schmidt before fitting.  
+
+3. Choice Rule
+   P_accept = 1 / (1 + exp(–U))  
+
+4. Priors & Parameter Bounds (ultra‐strong shrinkage)
+   • α ∼ Normal(0,0.02) truncated to [–0.1,0.1]  
+   • All slope‐type parameters (β, β1, β2) ∼ Normal(0,0.02) truncated to [–0.1,0.1]  
+   • κ, θ, δ ∼ Uniform(0.5,5]  
+
+5. Three‐Stage Recovery & Adaptive Refinement
+   Stage 1: Simulate 3,000 datasets → MAP fit → require Pearson r ≥ 0.85 for every parameter.  
+   Stage 2: For any r < 0.85, shrink that parameter’s prior sd by 25% and retest.  
+   Stage 3: If still r < 0.85, replace that basis with a simpler alternative (e.g. linear or piecewise) and retest once. Only families that pass all three stages are retained for real data.  
+
+6. Model Selection & Validation
+   • 5‐fold CV → report out‐of‐sample accuracy, BIC, WAIC, LOO‐CV.  
+   • Posterior predictive check across six P_accept quantile bins.  
+   • Final pick: ΔBIC ≥ 6 vs. next best OR ΔWAIC ≥ 6, all parameters r ≥ 0.85, accuracy ≥ +15% over 2‐param baseline.  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact U formula, no commentary.  
+   • <VARIABLES>…</VARIABLES>: every input feature, transformed basis, and parameter (with bounds, priors, learnable flags, source).  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • Specify chosen family(ies), each transform term, shrinkage priors, τ=1, recovery threshold (r ≥ 0.85), any basis replaced or priors tightened.  
+
+Encouragement: Dare to use bounded nonlinearities (tanh, spline‐thresholds) or hybrid logs. Enforce strict orthonormalization or explicit piecewise definitions to minimize parameter covariance and hit the elevated r ≥ 0.85 target.

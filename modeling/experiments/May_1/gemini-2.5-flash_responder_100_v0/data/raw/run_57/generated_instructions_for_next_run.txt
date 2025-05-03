@@ -1,0 +1,45 @@
+Okay, here are the improved instructions for the next run (Run 58), building on the results of the previous runs.
+
+Instructions for Run 58 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC (lower is better) and accuracy (higher is better) are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The previous run (Run 57) explored a multiplicative interaction model (`U = beta_zero + beta_interaction * split_perc_self * fairness_deviation`), based on the analysis that simple additive or piecewise scaling of value and fairness terms was failing parameter recovery. Unfortunately, Run 57 also failed the primary objective, with both `beta_zero` (r = 0.635) and `beta_interaction` (r = 0.584) falling below the 0.7 threshold. Its overall performance (BIC 465.08, Acc 0.697) was moderate.
+
+Analysis of Run 57's failure and previous models: The core identifiability challenge persists. It seems that simply combining terms additively, piecewise, or even through a linear multiplicative interaction has not created sufficiently distinct influences for the two learnable parameters to be reliably estimated from this dataset. The influence of fairness/relative value is still somehow confounded with or overshadowed by the influence of the absolute proposed value, regardless of the exact mathematical form (linear, log, quadratic, interaction) or combination method (additive, piecewise) used previously.
+
+We need to find a mathematical structure for utility, still using exactly **2 learnable parameters**, where their influence on responder decisions (`trial_role == 1`) is fundamentally more separable. This requires moving beyond models where parameters primarily serve as simple scaling factors for additive components.
+
+Based on the persistent difficulty with previously explored structures (additive value + fairness, simple piecewise, linear + log, linear + interaction), focus your exploration for Run 58 on a model structure that combines features in a novel, potentially asymmetric, or piecewise manner designed specifically to isolate the influence of different components.
+
+Consider the following strategy to enhance identifiability by making the parameters' influences active in distinct ways:
+
+*   **Asymmetric Piecewise Additive Model:** Design a model where one parameter scales the *absolute proposed percentage share*, which influences utility on *all* trials. The second parameter, however, *only* influences utility on trials where the offer is *unfair* (below the calculated fair share), and it scales the *magnitude of that unfair deviation*.
+    *   *Example Idea:* Let one parameter (`beta_value`) scale `split_perc_self`. Let the second parameter (`beta_unfairness_effect`) scale the magnitude of the *negative* deviation from fairness (`fair_perc_self_calc - split_perc_self`), but only when this deviation is positive (i.e., when `split_perc_self` is less than `fair_perc_self_calc`).
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self_calc = IF(sum_tokens > 0.0, (token_self / sum_tokens) * 100.0, 50.0)` (Ensure this handles `sum_tokens=0`).
+        *   `unfair_deviation_magnitude = max(0, fair_perc_self_calc - split_perc_self)` (This term is 0 if the offer is fair or better, and positive if unfair, representing the degree of unfairness).
+        *   `U = beta_value * split_perc_self + beta_unfairness_effect * unfair_deviation_magnitude` (Combine linear value with a term representing the magnitude of unfairness, expecting `beta_unfairness_effect` to be negative to apply a penalty).
+    *   *Structural Principle:* This structure attempts identifiability by having `beta_value` exert influence across the entire range of `split_perc_self`, while `beta_unfairness_effect` *only* exerts influence in the specific regime of unfair offers, scaling a term (`unfair_deviation_magnitude`) that specifically captures the *size* of the unfairness, not the proposed value itself. This asymmetry and specific targeting of unfairness magnitude by one parameter, while the other scales overall value, is intended to create more separable effects than previous models.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc`, and the specific intermediate term `unfair_deviation_magnitude` as defined above. Ensure `fair_perc_self_calc` is handled correctly when `sum_tokens` is 0.
+
+*   **Model Formula:** Define the utility (`U`). Include calculation steps for necessary derived variables *before* the final formula for `U`. Use clear mathematical notation within the <MODEL> tags.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**. For the suggested model, use names like `beta_value` and `beta_unfairness_effect`. Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds (e.g., [-10.0, 10.0] or wider/narrower if appropriate for the scale of your terms, which are percentages). Consider the expected sign (e.g., `beta_unfairness_effect` should likely be negative), but keep bounds wide enough.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model formula (including `sum_tokens`, `fair_perc_self_calc`, `unfair_deviation_magnitude`, and `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`. Ensure the description for `fair_perc_self_calc` explicitly mentions the `sum_tokens > 0` condition and the default value. The description for `unfair_deviation_magnitude` should clarify what it represents and when it's non-zero.
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Only the formula should be inside these tags.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Use `split_perc_self` as the variable name for the participant's proposed percentage share percentage.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea and, crucially, explain *how its specific mathematical structure (e.g., the asymmetric piecewise influence, one parameter scaling overall value, the other scaling specific unfairness magnitude only in the loss domain) is designed to ensure parameter identifiability for *both* learnable parameters*, making their roles distinct from previously attempted additive or simple multiplicative models.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. Previous attempts combining linear value terms with linear or non-linear fairness/penalty terms (additively or piecewise) have struggled with the fairness parameter's recovery. Explore models with asymmetric piecewise structures like the one suggested, where parameters target different aspects (overall value vs. specific unfairness magnitude) and different regimes (all offers vs. only unfair offers), to create more separable influences. Be creative in designing the mathematical relationship between inputs, parameters, and utility to achieve this separation.

@@ -1,0 +1,496 @@
+{
+  "task_description": "In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.\n\nAgain, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent",
+  "output_description": "Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified). \n\nThe model should:\n1. Predict only responder behavior (should target \"accept = whether the participant responded accept (1) or reject (0)\")\n2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. Predict utility, where less than 0 is less than 50% likely.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.\nFor example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal. \n\nUse clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.",
+  "instructions": "Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior",
+  "dataset_info": "\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276",
+  "complete_model_interaction": [
+    {
+      "solver": "model_design_solver",
+      "input": "Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.\n\nAgain, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDesired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified). \n\nThe model should:\n1. Predict only responder behavior (should target \"accept = whether the participant responded accept (1) or reject (0)\")\n2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. Predict utility, where less than 0 is less than 50% likely.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.\nFor example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal. \n\nUse clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.\n\nModel Type: \nYour model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.\n\n\nInstructions: Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior\n\nPrevious Models:Not Provided\n\nPlease think through this step by step, then provide your model specification and variable descriptions.",
+      "output": "Okay, I'm ready to design the computational model for the responder in the ultimatum game experiment.\n\nHere is my step-by-step reasoning process:\n\n1.  **Identify the Target Behavior:** The task specifically asks to predict responder behavior, which is captured by the `accept` variable (1 for accept, 0 for reject) when the participant's `trial_role` is 1. My model must focus solely on these trials.\n\n2.  **Identify Key Influences on Responder Behavior:** Based on behavioral economics research in ultimatum games, responders' decisions are typically influenced by two main factors:\n    *   **Monetary Gain:** Responders want to maximize their earnings. Accepting a proposal yields `split_self` amount of money, while rejecting yields 0. Higher `split_self` should increase the propensity to accept.\n    *   **Fairness:** Responders care about the perceived fairness of the proposal. Offers perceived as unfair are often rejected, even if they offer a positive monetary amount. Fairness can be judged relative to various reference points, such as a 50/50 split or a split proportional to contributions. The dataset provides contribution information (`token_self`, `token_opp`) and categorized contribution type (`trial_type`), as well as percentages (`split_perc_self`, `splitperc_opp`). This strongly suggests that fairness judgments in this task will be influenced by contribution.\n\n3.  **Map Data Variables to Psychological Constructs:**\n    *   `split_self`: Directly represents monetary gain.\n    *   `token_self`, `token_opp`: Represent contributions, which can be used to derive a contribution-based fairness standard.\n    *   `split_perc_self`: Represents the *proposed* share in percentage, which is crucial for evaluating fairness relative to a percentage-based standard (like 50% or contribution-based percentage).\n    *   `combined_earning`: Scales the value of tokens and percentages into absolute amounts. It highlights why `split_self` and `split_perc_self` are not perfectly redundant across trials, making it possible to potentially disentangle their effects on utility.\n\n4.  **Choose a Utility Function Form:** A standard approach is to model the utility of accepting the offer (`U_accept`) and compare it to the utility of rejecting (`U_reject`). Since rejecting yields zero money and the primary cost is lost monetary gain, we can simplify by setting `U_reject = 0`. The decision then depends on `U_accept`. A positive `U_accept` favors acceptance, and a negative `U_accept` favors rejection. The model should predict utility, which is then converted to a probability using a logistic function, as required.\n\n5.  **Develop the Utility Equation:**\n    *   Include a baseline utility (`beta_intercept`) to capture inherent acceptance/rejection biases.\n    *   Include a term for monetary gain (`split_self`). A linear term weighted by a parameter (`beta_split_self`) is a common and simple approach. We expect `beta_split_self` to be positive.\n    *   Include a term for fairness. Fairness can be quantified as the deviation of the proposed split from a perceived fair split. Given the contribution data, a natural fairness reference is the split proportional to contributions. Let `fair_share_self_percentage = (token_self / (token_self + token_opp)) * 100`. The `fairness_deviation` is then `split_perc_self - fair_share_self_percentage`.\n    *   Human fairness responses are often asymmetric (loss aversion): receiving less than fair is typically penalized more heavily than receiving more than fair is rewarded. We can model this asymmetry using two separate parameters for positive and negative deviations from the fair share percentage.\n        *   Positive deviation (`max(0, fairness_deviation)`) weighted by `beta_fairness_positive_deviation`.\n        *   Negative deviation (`max(0, -fairness_deviation)`) weighted by `beta_fairness_negative_deviation`.\n    *   We expect `beta_fairness_negative_deviation` to be negative (penalty for getting less than fair) and `beta_fairness_positive_deviation` to be positive or slightly negative (bonus for getting more than fair, or mild aversion to taking 'too much').\n\n6.  **Combine Terms into Utility Function:**\n    `fair_share_self_percentage = (token_self / (token_self + token_opp)) * 100`\n    `fairness_deviation = split_perc_self - fair_share_self_percentage`\n    `U_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)`\n\n7.  **Identify Learnable Parameters and Set Bounds:** The learnable parameters are the weights in the utility function: `beta_intercept`, `beta_split_self`, `beta_fairness_positive_deviation`, and `beta_fairness_negative_deviation`. I need to set generous finite bounds for parameter recovery.\n    *   `beta_intercept`: Range [-50, 50] seems sufficient to cover a wide range of baseline biases.\n    *   `beta_split_self`: Sensitivity to money (\u00a3). A change of \u00a31 could change utility by a small amount. [ -5, 10 ] seems reasonable. Positive expected.\n    *   `beta_fairness_positive_deviation`: Sensitivity to percentage points *above* fair. [-5, 5]. Could be positive or slightly negative.\n    *   `beta_fairness_negative_deviation`: Sensitivity to percentage points *below* fair. [-10, 0]. Expected to be negative and potentially stronger than the positive deviation effect.\n\n8.  **Consider Parameter Recovery and Covariance:** The model has 4 learnable parameters. It separates the influence of absolute amount (`split_self`) from percentage-based fairness (`split_perc_self` relative to `fair_share_self_percentage`). The variation in `combined_earning` helps decorrelate `split_self` and `split_perc_self`. Modeling asymmetric fairness is psychologically motivated and helps distinguish the effects of advantageous vs. disadvantageous inequality, reducing the chance of a single symmetric fairness parameter trying to capture both effects poorly. The chosen parameters and structure offer a reasonable balance between capturing key psychological factors and minimizing potential covariance issues with a moderate number of parameters.\n\n9.  **Format the Output:** Prepare the model formula, variable descriptions, target variable, and summary in the specified XML/JSON format. Ensure all variables in the `<VARIABLES>` section are used in the `<MODEL>` section and vice-versa, and variable names are Python-friendly. Define intermediate calculated variables used in the model formula within the `<VARIABLES>` block as well. Adjust data variable ranges to be generously wide based on the description (e.g., total tokens could be up to 100+100=200, total earning \u00a3600, split \u00a30-600). Using [0, 400] for split_self and [0, 100] for tokens seems a safe, generous range assuming tokens are per participant and total is not excessively large, aligning with 'a number of tokens'. Let's stick with the slightly larger range considered in thinking: [0, 400] for `split_self` and [0, 100] for tokens, which supports `combined_earning` up to \u00a3300.\n\nThis thought process leads directly to the provided model structure, variable definitions, and parameter bounds.\n\n```xml\n<MODEL>\nfair_share_self_percentage = (token_self / (token_self + token_opp)) * 100\nfairness_deviation = split_perc_self - fair_share_self_percentage\nutility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"utility_accept\": {\n      \"description\": \"Utility of accepting the proposed split relative to rejecting (U_reject is implicitly 0). A higher value indicates a stronger preference for accepting.\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta_intercept\": {\n      \"description\": \"Baseline utility bias towards acceptance, independent of the offer details.\",\n      \"range\": {\n        \"min\": -50,\n        \"max\": 50\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_split_self\": {\n      \"description\": \"Sensitivity parameter for the absolute monetary amount offered to the participant. Represents how much utility is gained per pound offered.\",\n      \"range\": {\n        \"min\": -5,\n        \"max\": 10\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_fairness_positive_deviation\": {\n      \"description\": \"Sensitivity parameter for receiving a percentage share *higher* than the fair share based on contribution. Applies to positive 'fairness_deviation'.\",\n      \"range\": {\n        \"min\": -5,\n        \"max\": 5\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_fairness_negative_deviation\": {\n      \"description\": \"Sensitivity parameter for receiving a percentage share *lower* than the fair share based on contribution. Applies to negative 'fairness_deviation'. Represents the penalty per percentage point below fair.\",\n      \"range\": {\n        \"min\": -10,\n        \"max\": 0\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"The proposed share for the participant in \u00a3 for the current trial.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 400\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"split_perc_self\": {\n      \"description\": \"The proposed share for the participant in % of the combined earning for the current trial.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant before the ultimatum game rounds began.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent before the ultimatum game rounds began.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"fair_share_self_percentage\": {\n      \"description\": \"The participant's calculated fair share percentage based on their contribution (token_self) relative to the total tokens (token_self + token_opp).\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"fairness_deviation\": {\n      \"description\": \"The difference between the proposed percentage share for the participant (split_perc_self) and their calculated fair share percentage (fair_share_self_percentage).\",\n      \"range\": {\n        \"min\": -100,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n\n<target_variable>accept</target_variable>\n\n<SUMMARY>\nA utility-based model predicting responder acceptance decisions based on the monetary amount offered and the fairness of the offer relative to contribution. The utility of accepting is a function of a baseline bias, a parameter controlling sensitivity to the absolute amount received, and parameters controlling sensitivity to receiving more or less than the contribution-proportional fair percentage share. Utility is converted to acceptance probability using a logistic function. The model has four learnable parameters: beta_intercept, beta_split_self, beta_fairness_positive_deviation, and beta_fairness_negative_deviation.\n</SUMMARY>\n```"
+    },
+    {
+      "solver": "simulate_model_solver",
+      "input": "\n                Write Python code to simulate the following mathematical model using only Python standard library (no pandas or numpy).\n                The code should take a list of dictionaries as input (each dictionary representing a trial) and return a value for each trial.\n\n                IMPORTANT: Use these exact parameter names for learnable parameters: []\n\n                Please write a function called `simulate_model` that:\n                1. Takes a list of dictionaries as input (each dictionary contains trial data)\n                2. Has parameter names that matches the variable descriptions exactly\n                3. Implements the mathematical model above using only standard Python math operations\n                4. Returns a list of model_predictions for each trial (please use the exact name \"model_predictions\" as the return value)\n\n                Your code will be implemented within the following code block (please do not include any code outside of this code block, for instance, you should not include data_json = # imported from .json dumps, or data = json.loads(data_json)):\n\n                ```python\nimport json\nimport math\n\n[YOUR SIMULATE_MODEL FUNCTION HERE]\n\n# Data as list of dictionaries\ndata_json = # imported from .json dumps\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n\nBelow is an example for you to follow:\n<EXAMPLE>\nModel Specification:\nU_i = \u03b2 + \u03b5E + \u03b7N\n\nVariable Descriptions:\nU_i: Utility (probability) of choosing action i \u03b2: [learnable] Base tendency parameter (0-1) representing inherent preference \u03b5: [learnable] Environmental sensitivity parameter (0-1) E: Environmental cue value (-1 to 1) \u03b7: Noise parameter (0-1) N: Random noise drawn from normal distribution N(0,1)\n\nDataset Structure:\nVariables available:\n- trial_id (int64)\n- environmental_cue (float64)\n- beta (float64)\n- epsilon (float64)\n- eta (float64)\n- utility (float64)\n- choice_made (int64)\n- trial_number (int64)\n- participant_id (int64)\n\n\n<YOUR RESPONSE>\ndef simulate_model(trial_data, beta=1, epsilon=1, eta=1):\n    model_predictions = []\n    for trial in trial_data:\n        E = trial.get(\"environmental_cue\", 0)\n        u1, u2 = random.random(), random.random()\n        N = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)\n        model_predictions.append(beta + (epsilon * E) + (eta * N))\n    return model_predictions\n</YOUR RESPONSE>\n\nNow, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE MODEL PREDICTIONS.\n                Model Specification:\n                ` section and vice-versa, and variable names are Python-friendly. Define intermediate calculated variables used in the model formula within the `<VARIABLES>` block as well. Adjust data variable ranges to be generously wide based on the description (e.g., total tokens could be up to 100+100=200, total earning \u00a3600, split \u00a30-600). Using [0, 400] for split_self and [0, 100] for tokens seems a safe, generous range assuming tokens are per participant and total is not excessively large, aligning with 'a number of tokens'. Let's stick with the slightly larger range considered in thinking: [0, 400] for `split_self` and [0, 100] for tokens, which supports `combined_earning` up to \u00a3300.\n\nThis thought process leads directly to the provided model structure, variable definitions, and parameter bounds.\n\n```xml\n<MODEL>\nfair_share_self_percentage = (token_self / (token_self + token_opp)) * 100\nfairness_deviation = split_perc_self - fair_share_self_percentage\nutility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\n\n                Variable Descriptions:\n                {\n  \"variables\": {}\n}\n\nDataset Structure:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276\n\n                ",
+      "output": "\n\n```python\nimport json\nimport math\n\ndef simulate_model(trial_data, beta_intercept=0, beta_split_self=0, beta_fairness_positive_deviation=0, beta_fairness_negative_deviation=0):\n    model_predictions = []\n    for trial in trial_data:\n        # Extract data from the trial\n        token_self = trial.get(\"token_self\", 0)\n        token_opp = trial.get(\"token_opp\", 0)\n        split_self = trial.get(\"split_self\", 0)\n        split_perc_self = trial.get(\"splitperc_self\", 0)\n\n        # Calculate intermediate variables\n        total_tokens = token_self + token_opp\n        if total_tokens == 0:\n            fair_share_self_percentage = 50  # Avoid division by zero, assume equal split if no tokens\n        else:\n            fair_share_self_percentage = (token_self / total_tokens) * 100\n        fairness_deviation = split_perc_self - fair_share_self_percentage\n\n        # Calculate utility\n        utility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\n\n        model_predictions.append(utility_accept)\n    return model_predictions\n\n# Data as list of dictionaries\ndata_json = '[{\"ID\": 1, \"group\": \"Treatment1\", \"trial_number\": 1, \"trial_type\": 1, \"trial_role\": 1, \"token_opp\": 5, \"token_self\": 5, \"combined_earning\": 10, \"split_opp\": 5.0, \"split_self\": 5.0, \"splitperc_opp\": 50, \"splitperc_self\": 50, \"accept\": 1.0, \"accepted_amount\": 5.0, \"accepted_perc\": 50.0, \"proposed_perc\": 50.0, \"proposed_amount\": 5.0}, {\"ID\": 2, \"group\": \"Treatment1\", \"trial_number\": 2, \"trial_type\": 1, \"trial_role\": 1, \"token_opp\": 5, \"token_self\": 5, \"combined_earning\": 10, \"split_opp\": 8.0, \"split_self\": 2.0, \"splitperc_opp\": 80, \"splitperc_self\": 20, \"accept\": 0.0, \"accepted_amount\": 0.0, \"accepted_perc\": 0.0, \"proposed_perc\": 20.0, \"proposed_amount\": 2.0}, {\"ID\": 3, \"group\": \"Treatment1\", \"trial_number\": 3, \"trial_type\": 1, \"trial_role\": 1, \"token_opp\": 5, \"token_self\": 5, \"combined_earning\": 10, \"split_opp\": 6.0, \"split_self\": 4.0, \"splitperc_opp\": 60, \"splitperc_self\": 40, \"accept\": 1.0, \"accepted_amount\": 4.0, \"accepted_perc\": 40.0, \"proposed_perc\": 40.0, \"proposed_amount\": 4.0}]'\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n```",
+      "timestamp": 1746022672.326116
+    }
+  ],
+  "parsing_error": "Failed to parse variable descriptions JSON",
+  "model_specification": "` section and vice-versa, and variable names are Python-friendly. Define intermediate calculated variables used in the model formula within the `<VARIABLES>` block as well. Adjust data variable ranges to be generously wide based on the description (e.g., total tokens could be up to 100+100=200, total earning \u00a3600, split \u00a30-600). Using [0, 400] for split_self and [0, 100] for tokens seems a safe, generous range assuming tokens are per participant and total is not excessively large, aligning with 'a number of tokens'. Let's stick with the slightly larger range considered in thinking: [0, 400] for `split_self` and [0, 100] for tokens, which supports `combined_earning` up to \u00a3300.\n\nThis thought process leads directly to the provided model structure, variable definitions, and parameter bounds.\n\n```xml\n<MODEL>\nfair_share_self_percentage = (token_self / (token_self + token_opp)) * 100\nfairness_deviation = split_perc_self - fair_share_self_percentage\nutility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)",
+  "variable_descriptions": {},
+  "model_summary": "A utility-based model predicting responder acceptance decisions based on the monetary amount offered and the fairness of the offer relative to contribution. The utility of accepting is a function of a baseline bias, a parameter controlling sensitivity to the absolute amount received, and parameters controlling sensitivity to receiving more or less than the contribution-proportional fair percentage share. Utility is converted to acceptance probability using a logistic function. The model has four learnable parameters: beta_intercept, beta_split_self, beta_fairness_positive_deviation, and beta_fairness_negative_deviation.",
+  "target_variable": "accept",
+  "full_reasoning": "Okay, I'm ready to design the computational model for the responder in the ultimatum game experiment.\n\nHere is my step-by-step reasoning process:\n\n1.  **Identify the Target Behavior:** The task specifically asks to predict responder behavior, which is captured by the `accept` variable (1 for accept, 0 for reject) when the participant's `trial_role` is 1. My model must focus solely on these trials.\n\n2.  **Identify Key Influences on Responder Behavior:** Based on behavioral economics research in ultimatum games, responders' decisions are typically influenced by two main factors:\n    *   **Monetary Gain:** Responders want to maximize their earnings. Accepting a proposal yields `split_self` amount of money, while rejecting yields 0. Higher `split_self` should increase the propensity to accept.\n    *   **Fairness:** Responders care about the perceived fairness of the proposal. Offers perceived as unfair are often rejected, even if they offer a positive monetary amount. Fairness can be judged relative to various reference points, such as a 50/50 split or a split proportional to contributions. The dataset provides contribution information (`token_self`, `token_opp`) and categorized contribution type (`trial_type`), as well as percentages (`split_perc_self`, `splitperc_opp`). This strongly suggests that fairness judgments in this task will be influenced by contribution.\n\n3.  **Map Data Variables to Psychological Constructs:**\n    *   `split_self`: Directly represents monetary gain.\n    *   `token_self`, `token_opp`: Represent contributions, which can be used to derive a contribution-based fairness standard.\n    *   `split_perc_self`: Represents the *proposed* share in percentage, which is crucial for evaluating fairness relative to a percentage-based standard (like 50% or contribution-based percentage).\n    *   `combined_earning`: Scales the value of tokens and percentages into absolute amounts. It highlights why `split_self` and `split_perc_self` are not perfectly redundant across trials, making it possible to potentially disentangle their effects on utility.\n\n4.  **Choose a Utility Function Form:** A standard approach is to model the utility of accepting the offer (`U_accept`) and compare it to the utility of rejecting (`U_reject`). Since rejecting yields zero money and the primary cost is lost monetary gain, we can simplify by setting `U_reject = 0`. The decision then depends on `U_accept`. A positive `U_accept` favors acceptance, and a negative `U_accept` favors rejection. The model should predict utility, which is then converted to a probability using a logistic function, as required.\n\n5.  **Develop the Utility Equation:**\n    *   Include a baseline utility (`beta_intercept`) to capture inherent acceptance/rejection biases.\n    *   Include a term for monetary gain (`split_self`). A linear term weighted by a parameter (`beta_split_self`) is a common and simple approach. We expect `beta_split_self` to be positive.\n    *   Include a term for fairness. Fairness can be quantified as the deviation of the proposed split from a perceived fair split. Given the contribution data, a natural fairness reference is the split proportional to contributions. Let `fair_share_self_percentage = (token_self / (token_self + token_opp)) * 100`. The `fairness_deviation` is then `split_perc_self - fair_share_self_percentage`.\n    *   Human fairness responses are often asymmetric (loss aversion): receiving less than fair is typically penalized more heavily than receiving more than fair is rewarded. We can model this asymmetry using two separate parameters for positive and negative deviations from the fair share percentage.\n        *   Positive deviation (`max(0, fairness_deviation)`) weighted by `beta_fairness_positive_deviation`.\n        *   Negative deviation (`max(0, -fairness_deviation)`) weighted by `beta_fairness_negative_deviation`.\n    *   We expect `beta_fairness_negative_deviation` to be negative (penalty for getting less than fair) and `beta_fairness_positive_deviation` to be positive or slightly negative (bonus for getting more than fair, or mild aversion to taking 'too much').\n\n6.  **Combine Terms into Utility Function:**\n    `fair_share_self_percentage = (token_self / (token_self + token_opp)) * 100`\n    `fairness_deviation = split_perc_self - fair_share_self_percentage`\n    `U_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)`\n\n7.  **Identify Learnable Parameters and Set Bounds:** The learnable parameters are the weights in the utility function: `beta_intercept`, `beta_split_self`, `beta_fairness_positive_deviation`, and `beta_fairness_negative_deviation`. I need to set generous finite bounds for parameter recovery.\n    *   `beta_intercept`: Range [-50, 50] seems sufficient to cover a wide range of baseline biases.\n    *   `beta_split_self`: Sensitivity to money (\u00a3). A change of \u00a31 could change utility by a small amount. [ -5, 10 ] seems reasonable. Positive expected.\n    *   `beta_fairness_positive_deviation`: Sensitivity to percentage points *above* fair. [-5, 5]. Could be positive or slightly negative.\n    *   `beta_fairness_negative_deviation`: Sensitivity to percentage points *below* fair. [-10, 0]. Expected to be negative and potentially stronger than the positive deviation effect.\n\n8.  **Consider Parameter Recovery and Covariance:** The model has 4 learnable parameters. It separates the influence of absolute amount (`split_self`) from percentage-based fairness (`split_perc_self` relative to `fair_share_self_percentage`). The variation in `combined_earning` helps decorrelate `split_self` and `split_perc_self`. Modeling asymmetric fairness is psychologically motivated and helps distinguish the effects of advantageous vs. disadvantageous inequality, reducing the chance of a single symmetric fairness parameter trying to capture both effects poorly. The chosen parameters and structure offer a reasonable balance between capturing key psychological factors and minimizing potential covariance issues with a moderate number of parameters.\n\n9.  **Format the Output:** Prepare the model formula, variable descriptions, target variable, and summary in the specified XML/JSON format. Ensure all variables in the `<VARIABLES>` section are used in the `<MODEL>` section and vice-versa, and variable names are Python-friendly. Define intermediate calculated variables used in the model formula within the `<VARIABLES>` block as well. Adjust data variable ranges to be generously wide based on the description (e.g., total tokens could be up to 100+100=200, total earning \u00a3600, split \u00a30-600). Using [0, 400] for split_self and [0, 100] for tokens seems a safe, generous range assuming tokens are per participant and total is not excessively large, aligning with 'a number of tokens'. Let's stick with the slightly larger range considered in thinking: [0, 400] for `split_self` and [0, 100] for tokens, which supports `combined_earning` up to \u00a3300.\n\nThis thought process leads directly to the provided model structure, variable definitions, and parameter bounds.\n\n```xml\n<MODEL>\nfair_share_self_percentage = (token_self / (token_self + token_opp)) * 100\nfairness_deviation = split_perc_self - fair_share_self_percentage\nutility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"utility_accept\": {\n      \"description\": \"Utility of accepting the proposed split relative to rejecting (U_reject is implicitly 0). A higher value indicates a stronger preference for accepting.\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta_intercept\": {\n      \"description\": \"Baseline utility bias towards acceptance, independent of the offer details.\",\n      \"range\": {\n        \"min\": -50,\n        \"max\": 50\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_split_self\": {\n      \"description\": \"Sensitivity parameter for the absolute monetary amount offered to the participant. Represents how much utility is gained per pound offered.\",\n      \"range\": {\n        \"min\": -5,\n        \"max\": 10\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_fairness_positive_deviation\": {\n      \"description\": \"Sensitivity parameter for receiving a percentage share *higher* than the fair share based on contribution. Applies to positive 'fairness_deviation'.\",\n      \"range\": {\n        \"min\": -5,\n        \"max\": 5\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_fairness_negative_deviation\": {\n      \"description\": \"Sensitivity parameter for receiving a percentage share *lower* than the fair share based on contribution. Applies to negative 'fairness_deviation'. Represents the penalty per percentage point below fair.\",\n      \"range\": {\n        \"min\": -10,\n        \"max\": 0\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"split_self\": {\n      \"description\": \"The proposed share for the participant in \u00a3 for the current trial.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 400\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"split_perc_self\": {\n      \"description\": \"The proposed share for the participant in % of the combined earning for the current trial.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant before the ultimatum game rounds began.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent before the ultimatum game rounds began.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"fair_share_self_percentage\": {\n      \"description\": \"The participant's calculated fair share percentage based on their contribution (token_self) relative to the total tokens (token_self + token_opp).\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"fairness_deviation\": {\n      \"description\": \"The difference between the proposed percentage share for the participant (split_perc_self) and their calculated fair share percentage (fair_share_self_percentage).\",\n      \"range\": {\n        \"min\": -100,\n        \"max\": 100\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n\n<target_variable>accept</target_variable>\n\n<SUMMARY>\nA utility-based model predicting responder acceptance decisions based on the monetary amount offered and the fairness of the offer relative to contribution. The utility of accepting is a function of a baseline bias, a parameter controlling sensitivity to the absolute amount received, and parameters controlling sensitivity to receiving more or less than the contribution-proportional fair percentage share. Utility is converted to acceptance probability using a logistic function. The model has four learnable parameters: beta_intercept, beta_split_self, beta_fairness_positive_deviation, and beta_fairness_negative_deviation.\n</SUMMARY>\n```",
+  "prediction_type": "utility",
+  "current_model": "Specification: ` section and vice-versa, and variable names are Python-friendly. Define intermediate calculated variables used in the model formula within the `<VARIABLES>` block as well. Adjust data variable ranges to be generously wide based on the description (e.g., total tokens could be up to 100+100=200, total earning \u00a3600, split \u00a30-600). Using [0, 400] for split_self and [0, 100] for tokens seems a safe, generous range assuming tokens are per participant and total is not excessively large, aligning with 'a number of tokens'. Let's stick with the slightly larger range considered in thinking: [0, 400] for `split_self` and [0, 100] for tokens, which supports `combined_earning` up to \u00a3300.\n\nThis thought process leads directly to the provided model structure, variable definitions, and parameter bounds.\n\n```xml\n<MODEL>\nfair_share_self_percentage = (token_self / (token_self + token_opp)) * 100\nfairness_deviation = split_perc_self - fair_share_self_percentage\nutility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\nSummary: A utility-based model predicting responder acceptance decisions based on the monetary amount offered and the fairness of the offer relative to contribution. The utility of accepting is a function of a baseline bias, a parameter controlling sensitivity to the absolute amount received, and parameters controlling sensitivity to receiving more or less than the contribution-proportional fair percentage share. Utility is converted to acceptance probability using a logistic function. The model has four learnable parameters: beta_intercept, beta_split_self, beta_fairness_positive_deviation, and beta_fairness_negative_deviation.\nTarget Variable: accept\nPrediction Type: utility",
+  "simulation_errors": [],
+  "current_retry": 0,
+  "simulation_code": "def simulate_model(trial_data, beta_intercept=0, beta_split_self=0, beta_fairness_positive_deviation=0, beta_fairness_negative_deviation=0):\n    model_predictions = []\n    for trial in trial_data:\n        # Extract data from the trial\n        token_self = trial.get(\"token_self\", 0)\n        token_opp = trial.get(\"token_opp\", 0)\n        split_self = trial.get(\"split_self\", 0)\n        split_perc_self = trial.get(\"splitperc_self\", 0)\n\n        # Calculate intermediate variables\n        total_tokens = token_self + token_opp\n        if total_tokens == 0:\n            fair_share_self_percentage = 50  # Avoid division by zero, assume equal split if no tokens\n        else:\n            fair_share_self_percentage = (token_self / total_tokens) * 100\n        fairness_deviation = split_perc_self - fair_share_self_percentage\n\n        # Calculate utility\n        utility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\n\n        model_predictions.append(utility_accept)\n    return model_predictions",
+  "total_retries": 0,
+  "fitting_warnings": [
+    "Error fitting participant 1001: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1002: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1003: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1004: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1005: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1006: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1007: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1008: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1009: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1010: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1011: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1012: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1013: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1015: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1016: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1017: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1018: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1019: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1020: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1021: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1022: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1023: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1024: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1025: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1026: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1027: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1028: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1029: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1030: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1031: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1032: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1033: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1034: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1035: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1036: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1037: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1038: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1039: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1040: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1041: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1042: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1043: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1044: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2001: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2002: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2003: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2004: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2005: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2006: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2007: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2008: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2009: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2010: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2011: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2012: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2013: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2014: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2015: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2016: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2017: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2018: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2019: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2020: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2021: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2022: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2023: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2024: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2025: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2026: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2027: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2028: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2029: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2030: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2031: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2032: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2033: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2034: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2035: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2036: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2037: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2038: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2039: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2040: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2041: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2042: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2043: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2044: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2045: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2046: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2047: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2048: Error in parameter fitting: No valid parameter bounds found in learnable_params"
+  ],
+  "skipped_participants": [
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    }
+  ],
+  "num_skipped_participants": 91,
+  "fitting_error": "No successful parameter fits obtained",
+  "recovery_error": "No fitting results found",
+  "previous_models": [
+    "Specification: ` section and vice-versa, and variable names are Python-friendly. Define intermediate calculated variables used in the model formula within the `<VARIABLES>` block as well. Adjust data variable ranges to be generously wide based on the description (e.g., total tokens could be up to 100+100=200, total earning \u00a3600, split \u00a30-600). Using [0, 400] for split_self and [0, 100] for tokens seems a safe, generous range assuming tokens are per participant and total is not excessively large, aligning with 'a number of tokens'. Let's stick with the slightly larger range considered in thinking: [0, 400] for `split_self` and [0, 100] for tokens, which supports `combined_earning` up to \u00a3300.\n\nThis thought process leads directly to the provided model structure, variable definitions, and parameter bounds.\n\n```xml\n<MODEL>\nfair_share_self_percentage = (token_self / (token_self + token_opp)) * 100\nfairness_deviation = split_perc_self - fair_share_self_percentage\nutility_accept = beta_intercept + beta_split_self * split_self + beta_fairness_positive_deviation * max(0, fairness_deviation) + beta_fairness_negative_deviation * max(0, -fairness_deviation)\nSummary: A utility-based model predicting responder acceptance decisions based on the monetary amount offered and the fairness of the offer relative to contribution. The utility of accepting is a function of a baseline bias, a parameter controlling sensitivity to the absolute amount received, and parameters controlling sensitivity to receiving more or less than the contribution-proportional fair percentage share. Utility is converted to acceptance probability using a logistic function. The model has four learnable parameters: beta_intercept, beta_split_self, beta_fairness_positive_deviation, and beta_fairness_negative_deviation.\nTarget Variable: accept\nPrediction Type: utility"
+  ]
+}

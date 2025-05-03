@@ -1,0 +1,34 @@
+```text
+Instructions:
+<think>
+The previous model (run 9) had good beta recovery, but still poor alpha and lambda recovery. The BIC was mediocre, and accuracy was only okay. The multiplicative interaction between fairness and amount seems promising and should be kept. However, the fairness calculation needs refinement, and the loss aversion term may be too simplistic or interact poorly with the other terms. The issue is that `split_self / combined_earning` still may not be the best way to measure fairness. Also, it might be too similar to the way loss aversion is calculated, leading to collinearity between alpha and lambda.
+
+Here's what I'll suggest for the next iteration (run 10):
+
+1.  **Refine Fairness Calculation:** Instead of `split_self / combined_earning`, explore a different way to scale split_self. I suggest a modified "fairness" calculation that considers the ratio of one's own tokens to the total tokens and incorporates a *reference point* based on the combined earning. Make the "fair share" be the *amount* a participant should expect rather than just a ratio, such as `FairShare = (token_self / (token_self + token_opp)) * combined_earning`. Then, calculate how far the split is away from the FairShare rather than the ratio, as in `Fairness = FairShare - split_self`.
+
+2.  **Re-Evaluate Loss Aversion:** Given the issues with lambda_param's recovery, consider a non-linear loss aversion term. A power function such as `(Fairness < 0 ? lambda_param * abs(Fairness)**rho : 0)` may work better. This introduces a new parameter (rho) to control the curvature of the loss aversion.
+
+3.  **Amount Sensitivity:** Keep `log(split_self + 1)` as is.
+
+4.  **Multiplicative Interaction:** Retain the multiplicative interaction between fairness and amount.
+
+5.  **Trial Type:** Trial type is still implicitly considered, so no changes there.
+
+6.  **Parameter Bounds:** Keep parameter bounds relatively tight, but adjust as needed for the new rho parameter.
+
+7.  **Number of Parameters:** Aim for 4 parameters again.
+</think>
+
+Be EXTREMELY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a strong bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models, hopefully lower.
+
+When developing your model, reason step by step about:
+
+*   The *most essential* psychological mechanisms involved: fairness, loss aversion, and amount sensitivity. How are these mechanisms *fundamentally* calculated and perceived, especially with regards to trial type? What are the *minimal* number of parameters needed to capture these, with emphasis on fairness?
+*   How these mechanisms *fundamentally* interact. Are the interactions multiplicative, additive, or something else? Justify your choice based on theory or intuition. Pay special attention to how fairness and amount sensitivity influence each other.
+*   What *simple* mathematical form could capture these interactions. Focus on ratios and logarithmic functions.
+*   What parameters are *absolutely necessary* to calibrate the model, focusing ruthlessly on potential parameter covariance and identifiability issues. What are the ranges of these parameters?
+*   How the *core* model variables map to observable behavior.
+
+Incorporate *strong* prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. Given the failure of previous attempts to model trial_type as a direct utility effect, consider alternative approaches that modulate the fairness calculation. Pay special attention to potentially high correlation between the weighting of fairness (alpha), and the loss aversion term (lambda_param), and attempt to reduce this collinearity.
+```

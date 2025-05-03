@@ -1,0 +1,44 @@
+Okay, here are the updated instructions for the next run (Run 7):
+
+
+
+<instructions>
+The previous run (Run 6) tested a model incorporating diminishing marginal utility of gain via a logarithmic transformation: `Utility = bias + sensitivity * log(split_self + 1) - alpha_ineq * inequity`. While maintaining reasonably good BIC (~34.2) and accuracy (~0.817), this model unfortunately failed to achieve acceptable parameter recovery, with both `sensitivity` (r~0.67) and `alpha_ineq` (r~0.67) falling below the target threshold (r > 0.75).
+
+This follows a pattern where introducing non-linearity (log-inequity in Run 5, log-gain in Run 6) improved fit compared to a simple linear model (Run 1) but compromised parameter recovery. This suggests that the standard ways of incorporating non-linearity might be creating identifiability issues between the gain and inequity sensitivity parameters, possibly due to inherent correlations when using absolute monetary values.
+
+**Your Goal:** Develop a model that achieves **excellent parameter recovery (all r > 0.75)** while also reaching **good model fit (Target BIC < 34, Accuracy > 0.82)**. We need to break the trade-off observed between fit and recovery.
+
+**New Direction: Normalization / Proportional Values**
+
+Instead of focusing solely on different non-linear functions, let's explore a structural change: **normalization**. The hypothesis is that agents might evaluate offers not just based on absolute monetary amounts, but based on proportions relative to the total available amount (`combined_earning`). Using proportional gain and proportional inequity might decouple the parameters and improve identifiability.
+
+**Proposed Model Structure (Primary Focus):**
+
+Test a simple linear utility model, structurally similar to the first successful model (Run 1), but operating on *proportions* instead of absolute values:
+
+1.  Calculate the participant's deserved share as a proportion:
+    *   `total_tokens = token_self + token_opp`
+    *   `contribution_ratio = (token_self / total_tokens) if total_tokens > 0 else 0.5`
+    *   `deserved_perc = contribution_ratio`
+2.  Calculate the participant's received share as a proportion:
+    *   `split_perc = (split_self / combined_earning) if combined_earning > 0 else 0`
+3.  Calculate the disadvantageous inequity in proportional terms:
+    *   `inequity_perc = max(0, deserved_perc - split_perc)`
+4.  Calculate Utility linearly based on these proportions:
+    *   `Utility = bias + sensitivity_prop * split_perc - alpha_ineq_prop * inequity_perc`
+
+This model uses 3 learnable parameters:
+*   `bias`: Baseline acceptance tendency.
+*   `sensitivity_prop`: Sensitivity to the *proportion* of the total earnings offered.
+*   `alpha_ineq_prop`: Sensitivity (aversion) to the *proportional* difference between the deserved share and the received share.
+
+**Emphasis:**
+*   Implement the **proportional value model** described above.
+*   This approach aims to directly address the parameter recovery issues seen in Runs 5 and 6 by changing the scale/nature of the inputs (proportions vs. absolute values) while using a linear form that previously showed good recovery.
+*   Ensure your model uses exactly 3 learnable parameters (`bias`, `sensitivity_prop`, `alpha_ineq_prop`).
+*   Define appropriate, generous but finite numerical bounds for these parameters. Consider that sensitivity to proportions (0-1 range) might require different scaling than sensitivity to absolute amounts (£0-£X).
+*   Think creatively about alternative model structures if you strongly believe this normalization approach won't work, but prioritize testing this proportional model first, justifying any deviations clearly.
+
+Please provide your reasoning step-by-step, justify your chosen model structure by explaining how it addresses the limitations of the previous model and aims to meet all performance goals (BIC, Accuracy, Recovery), and detail the model specification in the required format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>).
+</instructions>

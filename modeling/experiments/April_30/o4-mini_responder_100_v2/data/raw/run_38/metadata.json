@@ -1,0 +1,496 @@
+{
+  "task_description": "In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.\n\nAgain, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent",
+  "output_description": "Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified). \n\nThe model should:\n1. Predict only responder behavior (should target \"accept = whether the participant responded accept (1) or reject (0)\")\n2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. Predict utility, where less than 0 is less than 50% likely.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.\nFor example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal. \n\nUse clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.",
+  "instructions": "\nRun 35 Instructions:\n\n1. Candidate Families (\u22642 non\u2013intercept parameters + intercept, \u03c4=1 fixed)  \n   \u2022 Propose **exactly three** monotonic transforms U(dev_std)=\u03b1+f(dev_std;\u03b8) drawn from at least two of the following families (you may combine or innovate, but strictly \u22642 non\u2013intercept \u03b8\u2019s):  \n     \u2013 Power-Law: f(dev_std)=\u03b2\u00b7dev_std^p   [\u03b2\u2208[\u20130.15,0.15], p\u2208[0.2,4]]  \n     \u2013 Exponential-Decay: f(dev_std)=\u2013\u03b2\u00b7exp(\u2013k\u00b7dev_std)   [\u03b2\u2208[\u20130.15,0.15], k\u2208[0.2,4]]  \n     \u2013 Hybrid-Logistic: f(dev_std)=\u03b2\u00b7tanh(\u03b3\u00b7dev_std)   [\u03b2\u2208[\u20130.15,0.15], \u03b3\u2208[0.2,4]]  \n     \u2013 Rational-Decay: f(dev_std)=\u03b2\u00b7(dev_std/(\u03b3+dev_std))   [\u03b2\u2208[\u20130.15,0.15], \u03b3\u2208[0.2,4]]  \n     \u2013 Root-Power: f(dev_std)=\u03b2\u00b7(dev_std^(1/p))   [\u03b2\u2208[\u20130.15,0.15], p\u2208[0.2,4]]  \n\n2. Feature Pipeline  \n   a. Drop trials with combined_earning=0.  \n   b. Compute z_share=split_self/combined_earning, winsorize it to [0.01,0.99] to avoid extremes.  \n   c. dev=|z_share\u20130.5|. Standardize dev across the entire training set (mean=0, sd=1) then apply to all folds \u2192 dev_std.  \n\n3. Choice Rule  \n   P_accept=\u03c3(U)=1/(1+exp(\u2013U)).  \n\n4. Priors & Bounds  \n   \u2022 \u03b1\u223cTruncatedNormal(0,0.03) in [\u20130.1,0.1]  \n   \u2022 Slopes \u03b2\u223cTruncatedNormal(0,0.03) in [\u20130.1,0.1]  \n   \u2022 Shape \u03b8\u2010parameters \u223c Uniform(0.2,4)  \n   (These tighter priors shrink toward zero and avoid boundary pile\u2010up.)  \n\n5. Two-Stage Recovery & Identification  \n   Stage A: Simulate 3,000 datasets \u2192 MAP fit \u2192 require Pearson r \u2265 0.85 **and** absolute bias \u22640.1 for every \u03b8.  \n   Stage B: For survivors, simulate 7,000 datasets \u2192 require Pearson r \u2265 0.95 **and** bias \u22640.05. Drop any family failing.  \n\n6. Model Selection & Validation  \n   \u2022 Perform 10\u00d73-fold repeated CV \u2192 report mean out-of-sample accuracy, AUC, BIC, WAIC, and \u0394BIC vs. runner-up.  \n   \u2022 Posterior predictive check: plot predicted P_accept vs. observed accept rate in six equal\u2010width dev_std bins.  \n   \u2022 Final selection demands:  \n     \u2013 All \u03b8\u2019s r \u2265 0.95 & bias \u2264 0.05 in Stage B  \n     \u2013 \u0394BIC \u2265 10 vs. 2nd best  \n     \u2013 Accuracy gain \u2265 12% above linear baseline U=\u03b1+\u03b2\u00b7dev_std  \n     \u2013 AUC \u2265 0.80  \n\n7. Deliverables  \n   \u2022 <MODEL>\u2026</MODEL>: exact formula for U for each family.  \n   \u2022 <VARIABLES>\u2026</VARIABLES>: full JSON of features, \u03b1, \u03b2, and shape parameters with ranges, priors, learnable flags, and source.  \n   \u2022 <target_variable>accept</target_variable>  \n\n8. Summary (<SUMMARY>\u2026</SUMMARY>)  \n   Concisely list the three proposed families with their transforms, priors, recovery/pass thresholds, CV metrics (accuracy, AUC, BIC/WAIC, \u0394BIC), posterior checks, and final winner.  \n\nEncouragement: You may design a novel two-parameter monotonic family (e.g., rational or root-power) if it improves fit and recovery. Strive for sharp curvature near the \u201cfair-share\u201d point to capture risk sensitivity, but maintain identifiability under the recovery pipeline above.",
+  "dataset_info": "\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276",
+  "complete_model_interaction": [
+    {
+      "solver": "model_design_solver",
+      "input": "Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.\n\nAgain, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDesired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified). \n\nThe model should:\n1. Predict only responder behavior (should target \"accept = whether the participant responded accept (1) or reject (0)\")\n2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. Predict utility, where less than 0 is less than 50% likely.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.\nFor example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal. \n\nUse clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.\n\nModel Type: \nYour model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.\n\n\nInstructions: \nRun 35 Instructions:\n\n1. Candidate Families (\u22642 non\u2013intercept parameters + intercept, \u03c4=1 fixed)  \n   \u2022 Propose **exactly three** monotonic transforms U(dev_std)=\u03b1+f(dev_std;\u03b8) drawn from at least two of the following families (you may combine or innovate, but strictly \u22642 non\u2013intercept \u03b8\u2019s):  \n     \u2013 Power-Law: f(dev_std)=\u03b2\u00b7dev_std^p   [\u03b2\u2208[\u20130.15,0.15], p\u2208[0.2,4]]  \n     \u2013 Exponential-Decay: f(dev_std)=\u2013\u03b2\u00b7exp(\u2013k\u00b7dev_std)   [\u03b2\u2208[\u20130.15,0.15], k\u2208[0.2,4]]  \n     \u2013 Hybrid-Logistic: f(dev_std)=\u03b2\u00b7tanh(\u03b3\u00b7dev_std)   [\u03b2\u2208[\u20130.15,0.15], \u03b3\u2208[0.2,4]]  \n     \u2013 Rational-Decay: f(dev_std)=\u03b2\u00b7(dev_std/(\u03b3+dev_std))   [\u03b2\u2208[\u20130.15,0.15], \u03b3\u2208[0.2,4]]  \n     \u2013 Root-Power: f(dev_std)=\u03b2\u00b7(dev_std^(1/p))   [\u03b2\u2208[\u20130.15,0.15], p\u2208[0.2,4]]  \n\n2. Feature Pipeline  \n   a. Drop trials with combined_earning=0.  \n   b. Compute z_share=split_self/combined_earning, winsorize it to [0.01,0.99] to avoid extremes.  \n   c. dev=|z_share\u20130.5|. Standardize dev across the entire training set (mean=0, sd=1) then apply to all folds \u2192 dev_std.  \n\n3. Choice Rule  \n   P_accept=\u03c3(U)=1/(1+exp(\u2013U)).  \n\n4. Priors & Bounds  \n   \u2022 \u03b1\u223cTruncatedNormal(0,0.03) in [\u20130.1,0.1]  \n   \u2022 Slopes \u03b2\u223cTruncatedNormal(0,0.03) in [\u20130.1,0.1]  \n   \u2022 Shape \u03b8\u2010parameters \u223c Uniform(0.2,4)  \n   (These tighter priors shrink toward zero and avoid boundary pile\u2010up.)  \n\n5. Two-Stage Recovery & Identification  \n   Stage A: Simulate 3,000 datasets \u2192 MAP fit \u2192 require Pearson r \u2265 0.85 **and** absolute bias \u22640.1 for every \u03b8.  \n   Stage B: For survivors, simulate 7,000 datasets \u2192 require Pearson r \u2265 0.95 **and** bias \u22640.05. Drop any family failing.  \n\n6. Model Selection & Validation  \n   \u2022 Perform 10\u00d73-fold repeated CV \u2192 report mean out-of-sample accuracy, AUC, BIC, WAIC, and \u0394BIC vs. runner-up.  \n   \u2022 Posterior predictive check: plot predicted P_accept vs. observed accept rate in six equal\u2010width dev_std bins.  \n   \u2022 Final selection demands:  \n     \u2013 All \u03b8\u2019s r \u2265 0.95 & bias \u2264 0.05 in Stage B  \n     \u2013 \u0394BIC \u2265 10 vs. 2nd best  \n     \u2013 Accuracy gain \u2265 12% above linear baseline U=\u03b1+\u03b2\u00b7dev_std  \n     \u2013 AUC \u2265 0.80  \n\n7. Deliverables  \n   \u2022 <MODEL>\u2026</MODEL>: exact formula for U for each family.  \n   \u2022 <VARIABLES>\u2026</VARIABLES>: full JSON of features, \u03b1, \u03b2, and shape parameters with ranges, priors, learnable flags, and source.  \n   \u2022 <target_variable>accept</target_variable>  \n\n8. Summary (<SUMMARY>\u2026</SUMMARY>)  \n   Concisely list the three proposed families with their transforms, priors, recovery/pass thresholds, CV metrics (accuracy, AUC, BIC/WAIC, \u0394BIC), posterior checks, and final winner.  \n\nEncouragement: You may design a novel two-parameter monotonic family (e.g., rational or root-power) if it improves fit and recovery. Strive for sharp curvature near the \u201cfair-share\u201d point to capture risk sensitivity, but maintain identifiability under the recovery pipeline above.\n\nPrevious Models:Not Provided\n\nPlease think through this step by step, then provide your model specification and variable descriptions.",
+      "output": "<MODEL>\nU_power(dev_std) = alpha_p + beta_p \u00b7 dev_std^p  \nU_exp(dev_std)   = alpha_e - beta_e \u00b7 exp(-k \u00b7 dev_std)  \nU_log(dev_std)   = alpha_h + beta_h \u00b7 tanh(gamma \u00b7 dev_std)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"dev_std\": {\n      \"description\": \"Standardized absolute deviation of the proposer\u2019s share from 50%\",\n      \"range\": {\n        \"min\": -inf,\n        \"max\": inf,\n        \"inclusive_min\": false,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"alpha_p\": {\n      \"description\": \"Intercept for the power\u2010law model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_p\": {\n      \"description\": \"Slope for the power\u2010law model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"p\": {\n      \"description\": \"Exponent parameter for the power\u2010law model\",\n      \"range\": {\n        \"min\": 0.2,\n        \"max\": 4,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"min\": 0.2,\n          \"max\": 4\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha_e\": {\n      \"description\": \"Intercept for the exponential\u2010decay model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_e\": {\n      \"description\": \"Amplitude parameter for the exponential\u2010decay model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"k\": {\n      \"description\": \"Decay rate for the exponential\u2010decay model\",\n      \"range\": {\n        \"min\": 0.2,\n        \"max\": 4,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"min\": 0.2,\n          \"max\": 4\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha_h\": {\n      \"description\": \"Intercept for the hybrid\u2010logistic model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_h\": {\n      \"description\": \"Slope for the hybrid\u2010logistic model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"gamma\": {\n      \"description\": \"Scale parameter for the hybrid\u2010logistic model\",\n      \"range\": {\n        \"min\": 0.2,\n        \"max\": 4,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"min\": 0.2,\n          \"max\": 4\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    }\n  }\n}\n</VARIABLES>\n\n<target_variable>accept</target_variable>\n\n<SUMMARY>\nThree candidate utility transforms on standardized deviation (dev_std):  \n\u2022 Power\u2010Law: U = \u03b1_p + \u03b2_p\u00b7dev_std^p  \n\u2022 Exponential\u2010Decay: U = \u03b1_e \u2013 \u03b2_e\u00b7exp(\u2013k\u00b7dev_std)  \n\u2022 Hybrid\u2010Logistic: U = \u03b1_h + \u03b2_h\u00b7tanh(\u03b3\u00b7dev_std)  \n\nPriors: intercepts and slopes \u223c TruncatedNormal(0,0.03)[\u20130.1,0.1]; shape parameters \u223c Uniform(0.2,4).  \nTwo\u2010stage recovery: Stage A (3k sims) require r\u22650.85 & |bias|\u22640.10; Stage B (7k sims) require r\u22650.95 & |bias|\u22640.05.  \nValidation: 10\u00d73-fold CV reporting out\u2010of\u2010sample accuracy, AUC, BIC, WAIC, \u0394BIC; posterior predictive checks in six dev_std bins.  \nFinal model selected if it passes recovery, yields \u0394BIC\u226510 vs. runner\u2010up, \u226512% accuracy gain over linear baseline, and AUC\u22650.80.\n</SUMMARY>"
+    },
+    {
+      "solver": "simulate_model_solver",
+      "input": "\n                Write Python code to simulate the following mathematical model using only Python standard library (no pandas or numpy).\n                The code should take a list of dictionaries as input (each dictionary representing a trial) and return a value for each trial.\n\n                IMPORTANT: Use these exact parameter names for learnable parameters: []\n\n                Please write a function called `simulate_model` that:\n                1. Takes a list of dictionaries as input (each dictionary contains trial data)\n                2. Has parameter names that matches the variable descriptions exactly\n                3. Implements the mathematical model above using only standard Python math operations\n                4. Returns a list of model_predictions for each trial (please use the exact name \"model_predictions\" as the return value)\n\n                Your code will be implemented within the following code block (please do not include any code outside of this code block, for instance, you should not include data_json = # imported from .json dumps, or data = json.loads(data_json)):\n\n                ```python\nimport json\nimport math\n\n[YOUR SIMULATE_MODEL FUNCTION HERE]\n\n# Data as list of dictionaries\ndata_json = # imported from .json dumps\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n\nBelow is an example for you to follow:\n<EXAMPLE>\nModel Specification:\nU_i = \u03b2 + \u03b5E + \u03b7N\n\nVariable Descriptions:\nU_i: Utility (probability) of choosing action i \u03b2: [learnable] Base tendency parameter (0-1) representing inherent preference \u03b5: [learnable] Environmental sensitivity parameter (0-1) E: Environmental cue value (-1 to 1) \u03b7: Noise parameter (0-1) N: Random noise drawn from normal distribution N(0,1)\n\nDataset Structure:\nVariables available:\n- trial_id (int64)\n- environmental_cue (float64)\n- beta (float64)\n- epsilon (float64)\n- eta (float64)\n- utility (float64)\n- choice_made (int64)\n- trial_number (int64)\n- participant_id (int64)\n\n\n<YOUR RESPONSE>\ndef simulate_model(trial_data, beta=1, epsilon=1, eta=1):\n    model_predictions = []\n    for trial in trial_data:\n        E = trial.get(\"environmental_cue\", 0)\n        u1, u2 = random.random(), random.random()\n        N = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)\n        model_predictions.append(beta + (epsilon * E) + (eta * N))\n    return model_predictions\n</YOUR RESPONSE>\n\nNow, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE MODEL PREDICTIONS.\n                Model Specification:\n                U_power(dev_std) = alpha_p + beta_p \u00b7 dev_std^p  \nU_exp(dev_std)   = alpha_e - beta_e \u00b7 exp(-k \u00b7 dev_std)  \nU_log(dev_std)   = alpha_h + beta_h \u00b7 tanh(gamma \u00b7 dev_std)\n\n                Variable Descriptions:\n                {\n  \"variables\": {}\n}\n\nDataset Structure:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 3276\n\n                ",
+      "output": "\n\n```python\nimport json\nimport math\n\ndef simulate_model(trial_data, alpha_p=0, beta_p=0, p=1, alpha_e=0, beta_e=0, k=1, alpha_h=0, beta_h=0, gamma=1):\n    model_predictions = []\n    for trial in trial_data:\n        dev_std = 0 # Default value if dev_std is not available\n        if \"split_opp\" in trial and \"split_self\" in trial:\n            # Calculate dev_std as absolute deviation of proposer's share (split_self) from 50%\n            proposer_share = trial[\"split_self\"] * 100  # Convert to percentage\n            dev_std = abs(proposer_share - 50) / 100 # Standardize to be between 0 and 1\n        \n        # Power-law utility\n        u_power = alpha_p + beta_p * (dev_std**p)\n\n        # Exponential-decay utility\n        u_exp = alpha_e - beta_e * math.exp(-k * dev_std)\n\n        # Hybrid-logistic utility\n        u_log = alpha_h + beta_h * math.tanh(gamma * dev_std)\n        \n        model_predictions.append({\"u_power\": u_power, \"u_exp\": u_exp, \"u_log\": u_log}) # returning the utility for each model\n    return model_predictions\n\n# Data as list of dictionaries\ndata_json = '[]' # imported from .json dumps\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n",
+      "timestamp": 1746088315.975273
+    }
+  ],
+  "parsing_error": "Failed to parse variable descriptions JSON",
+  "model_specification": "U_power(dev_std) = alpha_p + beta_p \u00b7 dev_std^p  \nU_exp(dev_std)   = alpha_e - beta_e \u00b7 exp(-k \u00b7 dev_std)  \nU_log(dev_std)   = alpha_h + beta_h \u00b7 tanh(gamma \u00b7 dev_std)",
+  "variable_descriptions": {},
+  "model_summary": "Three candidate utility transforms on standardized deviation (dev_std):  \n\u2022 Power\u2010Law: U = \u03b1_p + \u03b2_p\u00b7dev_std^p  \n\u2022 Exponential\u2010Decay: U = \u03b1_e \u2013 \u03b2_e\u00b7exp(\u2013k\u00b7dev_std)  \n\u2022 Hybrid\u2010Logistic: U = \u03b1_h + \u03b2_h\u00b7tanh(\u03b3\u00b7dev_std)  \n\nPriors: intercepts and slopes \u223c TruncatedNormal(0,0.03)[\u20130.1,0.1]; shape parameters \u223c Uniform(0.2,4).  \nTwo\u2010stage recovery: Stage A (3k sims) require r\u22650.85 & |bias|\u22640.10; Stage B (7k sims) require r\u22650.95 & |bias|\u22640.05.  \nValidation: 10\u00d73-fold CV reporting out\u2010of\u2010sample accuracy, AUC, BIC, WAIC, \u0394BIC; posterior predictive checks in six dev_std bins.  \nFinal model selected if it passes recovery, yields \u0394BIC\u226510 vs. runner\u2010up, \u226512% accuracy gain over linear baseline, and AUC\u22650.80.",
+  "target_variable": "accept",
+  "full_reasoning": "<MODEL>\nU_power(dev_std) = alpha_p + beta_p \u00b7 dev_std^p  \nU_exp(dev_std)   = alpha_e - beta_e \u00b7 exp(-k \u00b7 dev_std)  \nU_log(dev_std)   = alpha_h + beta_h \u00b7 tanh(gamma \u00b7 dev_std)\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"dev_std\": {\n      \"description\": \"Standardized absolute deviation of the proposer\u2019s share from 50%\",\n      \"range\": {\n        \"min\": -inf,\n        \"max\": inf,\n        \"inclusive_min\": false,\n        \"inclusive_max\": false\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"alpha_p\": {\n      \"description\": \"Intercept for the power\u2010law model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_p\": {\n      \"description\": \"Slope for the power\u2010law model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"p\": {\n      \"description\": \"Exponent parameter for the power\u2010law model\",\n      \"range\": {\n        \"min\": 0.2,\n        \"max\": 4,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"min\": 0.2,\n          \"max\": 4\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha_e\": {\n      \"description\": \"Intercept for the exponential\u2010decay model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_e\": {\n      \"description\": \"Amplitude parameter for the exponential\u2010decay model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"k\": {\n      \"description\": \"Decay rate for the exponential\u2010decay model\",\n      \"range\": {\n        \"min\": 0.2,\n        \"max\": 4,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"min\": 0.2,\n          \"max\": 4\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"alpha_h\": {\n      \"description\": \"Intercept for the hybrid\u2010logistic model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"beta_h\": {\n      \"description\": \"Slope for the hybrid\u2010logistic model\",\n      \"range\": {\n        \"min\": -0.1,\n        \"max\": 0.1,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"truncated_normal\",\n        \"parameters\": {\n          \"mean\": 0,\n          \"sd\": 0.03\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"gamma\": {\n      \"description\": \"Scale parameter for the hybrid\u2010logistic model\",\n      \"range\": {\n        \"min\": 0.2,\n        \"max\": 4,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"min\": 0.2,\n          \"max\": 4\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    }\n  }\n}\n</VARIABLES>\n\n<target_variable>accept</target_variable>\n\n<SUMMARY>\nThree candidate utility transforms on standardized deviation (dev_std):  \n\u2022 Power\u2010Law: U = \u03b1_p + \u03b2_p\u00b7dev_std^p  \n\u2022 Exponential\u2010Decay: U = \u03b1_e \u2013 \u03b2_e\u00b7exp(\u2013k\u00b7dev_std)  \n\u2022 Hybrid\u2010Logistic: U = \u03b1_h + \u03b2_h\u00b7tanh(\u03b3\u00b7dev_std)  \n\nPriors: intercepts and slopes \u223c TruncatedNormal(0,0.03)[\u20130.1,0.1]; shape parameters \u223c Uniform(0.2,4).  \nTwo\u2010stage recovery: Stage A (3k sims) require r\u22650.85 & |bias|\u22640.10; Stage B (7k sims) require r\u22650.95 & |bias|\u22640.05.  \nValidation: 10\u00d73-fold CV reporting out\u2010of\u2010sample accuracy, AUC, BIC, WAIC, \u0394BIC; posterior predictive checks in six dev_std bins.  \nFinal model selected if it passes recovery, yields \u0394BIC\u226510 vs. runner\u2010up, \u226512% accuracy gain over linear baseline, and AUC\u22650.80.\n</SUMMARY>",
+  "prediction_type": "utility",
+  "current_model": "Specification: U_power(dev_std) = alpha_p + beta_p \u00b7 dev_std^p  \nU_exp(dev_std)   = alpha_e - beta_e \u00b7 exp(-k \u00b7 dev_std)  \nU_log(dev_std)   = alpha_h + beta_h \u00b7 tanh(gamma \u00b7 dev_std)\nSummary: Three candidate utility transforms on standardized deviation (dev_std):  \n\u2022 Power\u2010Law: U = \u03b1_p + \u03b2_p\u00b7dev_std^p  \n\u2022 Exponential\u2010Decay: U = \u03b1_e \u2013 \u03b2_e\u00b7exp(\u2013k\u00b7dev_std)  \n\u2022 Hybrid\u2010Logistic: U = \u03b1_h + \u03b2_h\u00b7tanh(\u03b3\u00b7dev_std)  \n\nPriors: intercepts and slopes \u223c TruncatedNormal(0,0.03)[\u20130.1,0.1]; shape parameters \u223c Uniform(0.2,4).  \nTwo\u2010stage recovery: Stage A (3k sims) require r\u22650.85 & |bias|\u22640.10; Stage B (7k sims) require r\u22650.95 & |bias|\u22640.05.  \nValidation: 10\u00d73-fold CV reporting out\u2010of\u2010sample accuracy, AUC, BIC, WAIC, \u0394BIC; posterior predictive checks in six dev_std bins.  \nFinal model selected if it passes recovery, yields \u0394BIC\u226510 vs. runner\u2010up, \u226512% accuracy gain over linear baseline, and AUC\u22650.80.\nTarget Variable: accept\nPrediction Type: utility",
+  "simulation_errors": [],
+  "current_retry": 0,
+  "simulation_code": "def simulate_model(trial_data, alpha_p=0, beta_p=0, p=1, alpha_e=0, beta_e=0, k=1, alpha_h=0, beta_h=0, gamma=1):\n    model_predictions = []\n    for trial in trial_data:\n        dev_std = 0 # Default value if dev_std is not available\n        if \"split_opp\" in trial and \"split_self\" in trial:\n            # Calculate dev_std as absolute deviation of proposer's share (split_self) from 50%\n            proposer_share = trial[\"split_self\"] * 100  # Convert to percentage\n            dev_std = abs(proposer_share - 50) / 100 # Standardize to be between 0 and 1\n        \n        # Power-law utility\n        u_power = alpha_p + beta_p * (dev_std**p)\n\n        # Exponential-decay utility\n        u_exp = alpha_e - beta_e * math.exp(-k * dev_std)\n\n        # Hybrid-logistic utility\n        u_log = alpha_h + beta_h * math.tanh(gamma * dev_std)\n        \n        model_predictions.append({\"u_power\": u_power, \"u_exp\": u_exp, \"u_log\": u_log}) # returning the utility for each model\n    return model_predictions",
+  "total_retries": 0,
+  "fitting_warnings": [
+    "Error fitting participant 1001: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1002: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1003: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1004: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1005: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1006: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1007: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1008: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1009: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1010: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1011: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1012: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1013: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1015: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1016: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1017: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1018: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1019: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1020: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1021: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1022: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1023: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1024: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1025: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1026: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1027: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1028: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1029: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1030: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1031: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1032: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1033: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1034: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1035: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1036: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1037: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1038: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1039: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1040: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1041: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1042: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1043: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 1044: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2001: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2002: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2003: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2004: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2005: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2006: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2007: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2008: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2009: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2010: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2011: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2012: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2013: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2014: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2015: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2016: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2017: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2018: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2019: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2020: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2021: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2022: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2023: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2024: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2025: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2026: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2027: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2028: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2029: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2030: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2031: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2032: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2033: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2034: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2035: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2036: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2037: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2038: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2039: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2040: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2041: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2042: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2043: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2044: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2045: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2046: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2047: Error in parameter fitting: No valid parameter bounds found in learnable_params",
+    "Error fitting participant 2048: Error in parameter fitting: No valid parameter bounds found in learnable_params"
+  ],
+  "skipped_participants": [
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    },
+    {
+      "participant_id": null,
+      "error": "Error in parameter fitting: No valid parameter bounds found in learnable_params"
+    }
+  ],
+  "num_skipped_participants": 91,
+  "fitting_error": "No successful parameter fits obtained",
+  "recovery_error": "No fitting results found",
+  "previous_models": [
+    "Specification: U_power(dev_std) = alpha_p + beta_p \u00b7 dev_std^p  \nU_exp(dev_std)   = alpha_e - beta_e \u00b7 exp(-k \u00b7 dev_std)  \nU_log(dev_std)   = alpha_h + beta_h \u00b7 tanh(gamma \u00b7 dev_std)\nSummary: Three candidate utility transforms on standardized deviation (dev_std):  \n\u2022 Power\u2010Law: U = \u03b1_p + \u03b2_p\u00b7dev_std^p  \n\u2022 Exponential\u2010Decay: U = \u03b1_e \u2013 \u03b2_e\u00b7exp(\u2013k\u00b7dev_std)  \n\u2022 Hybrid\u2010Logistic: U = \u03b1_h + \u03b2_h\u00b7tanh(\u03b3\u00b7dev_std)  \n\nPriors: intercepts and slopes \u223c TruncatedNormal(0,0.03)[\u20130.1,0.1]; shape parameters \u223c Uniform(0.2,4).  \nTwo\u2010stage recovery: Stage A (3k sims) require r\u22650.85 & |bias|\u22640.10; Stage B (7k sims) require r\u22650.95 & |bias|\u22640.05.  \nValidation: 10\u00d73-fold CV reporting out\u2010of\u2010sample accuracy, AUC, BIC, WAIC, \u0394BIC; posterior predictive checks in six dev_std bins.  \nFinal model selected if it passes recovery, yields \u0394BIC\u226510 vs. runner\u2010up, \u226512% accuracy gain over linear baseline, and AUC\u22650.80.\nTarget Variable: accept\nPrediction Type: utility"
+  ]
+}

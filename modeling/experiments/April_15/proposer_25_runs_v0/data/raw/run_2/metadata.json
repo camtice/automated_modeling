@@ -1,0 +1,1174 @@
+{
+  "task_description": "In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.\n\nAgain, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent",
+  "output_description": "Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified). \n\nThe model should:\n1. Predict only Proposer behavior (specifically, your model should predict the value from 0 to 100 of proposed_perc when trial_role == 2)\n2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. Predict utility, where less than 0 is less than 50% likely.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.\nFor example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal. \n\nUse clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.",
+  "instructions": "Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior",
+  "dataset_info": "\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641",
+  "complete_model_interaction": [
+    {
+      "solver": "model_design_solver",
+      "input": "Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable \"token_self\". The other variable, \"token_opp\", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.\n\nAgain, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.\n\nNote that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same \"fairness\".\n\nBelow is the description of each variable in the dataset, which will be followed by information about the data type of the variable:\n\ntrial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]\ntrial_role = the role of the participant [1 = responder, 2 = proposer]\ntoken_opp = number of tokens found by the opponent\ntoken_self = number of tokens found by the participant\ncombined_earning = amount of money earned in total (note that each token found is \u00a33)\nsplit_opp = the proposed share of the opponent (in \u00a3)\nsplit_self = the proposed share for the participant (in \u00a3)\nsplitperc_opp = same but in %\nsplit_perc_self = same but in %\naccept = whether the participant responded accept (1) or reject (0)\naccepted_amount = if accepted, what is the amount gain (in \u00a3)\naccepted_perc = same as above but in %\nproposed_perc = when participant is the proposer, what is the % proposed to the opponent\n\nDesired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified). \n\nThe model should:\n1. Predict only Proposer behavior (specifically, your model should predict the value from 0 to 100 of proposed_perc when trial_role == 2)\n2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.\n3. Be applicable to the dataset given within the task description (i.e. the model should be able\nto be run using only the provided dataset structure).\n4. Predict utility, where less than 0 is less than 50% likely.\n\nFor any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).\n\nThen, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.\nFor example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal. \n\nUse clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied. \n\n{\n  \"variables\": {\n    \"variable_name\": {\n      \"description\": \"Clear description\",\n      \"range\": {\n        \"min\": value,\n        \"max\": value,\n        \"inclusive_min\": boolean,\n        \"inclusive_max\": boolean\n      },\n      \"distribution\": {\n        \"type\": \"distribution type\",\n        \"parameters\": {}\n      },\n      \"learnable\": boolean,\n      \"source\": \"learnable/data/calculated\"\n    }\n  }\n}\n</VARIABLES>\n\nExample #1: \n<EXAMPLE>\n(Model of a Random Choice Task):\nLet me think through this step by step...\n[your reasoning here]\n\n<MODEL>\nU_i = \u03b2 + \u03b5E + \u03b7N\n</MODEL>\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"U_i\": {\n      \"description\": \"Utility of choosing action i\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"beta\": {\n      \"description\": \"Base tendency parameter (inherent preference)\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"epsilon\": {\n      \"description\": \"Environmental sensitivity parameter\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"E\": {\n      \"description\": \"Environmental cue value\",\n      \"range\": {\n        \"min\": \"-inf\",\n        \"max\": \"inf\"\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"eta\": {\n      \"description\": \"Noise parameter\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1,\n        \"exclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"N\": {\n      \"description\": \"Random noise drawn from normal distribution N(0,1)\",\n      \"distribution\": {\n        \"type\": \"normal\",\n        \"mean\": 0,\n        \"std\": 1\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    }\n  }\n}\n</VARIABLES>\n<SUMMARY>\nA linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (\u03b2) constrained to [0,1] and an unconstrained environmental sensitivity parameter (\u03b5). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.\n</SUMMARY>\n</EXAMPLE>\n\nPlease be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.\n\nThe parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.\n\nModel Type: \nYour model should directly predict a numerical value (not a binary choice). The model's predictions will be compared to actual values using mean squared error.\n\n\nInstructions: Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.\n\nFirst, reason step by step about:\n* The key psychological mechanisms involved\n* How these mechanisms interact\n* What mathematical form could capture these interactions\n* What parameters would be needed to calibrate the model\n* How the model variables map to observable behavior\n\nPrevious Models:Not Provided\n\nPlease think through this step by step, then provide your model specification and variable descriptions.",
+      "output": "Let me proceed step by step for this ultimatum game proposer model.\n\n### Step 1: Key Psychological Mechanisms\n\nWhen acting as a proposer in the ultimatum game, especially in a resource generation variant (where each party's contribution varies), the most influential psychological mechanisms likely are:\n\n- **Fairness Norms / Equity Preference**: Proposers consider what is \"fair\" given relative contributions.\n    - \"Fair\" could mean proportional to contribution, or equal (50/50), or \"advantageous for me\".\n- **Selfishness / Self-interest**: Proposers may keep more for themselves than is strictly \"fair\".\n- **Acceptance Expectation**: Proposers may modulate their offers to maximize their expected gain (not just offer as little as possible), anticipating the minimal acceptable offer.\n- **Noise / Inconsistency**: Some within-subject variability in proposing behavior unrelated to the above.\n\n### Step 2: Mechanism Interaction\n\n- Participants likely compute a \"deserved\" share for the opponent based on contributions, then potentially shade the offer to maximize their own payoff (self-interest). If overly selfish, the responder may reject, so the offer is a compromise.\n- A model should thus reference:\n    - Relative contribution: What share would be \"proportional\" to the opponent?\n    - Self-orientation: How much does the proposer bias toward their own gain?\n    - Some variability (error/noise).\n\n### Step 3: Mathematical Form\n\nFor each trial when the participant is proposer, they are to propose a percentage to the opponent.\n  \nA simple and interpretable model:\n- Compute the \"proportional\" offer: what % of the total does the opponent's tokens represent?\n- The actual offered percentage is a weighted average between this proportional value and a fixed minimum (or \"selfishness\" intercept, which could drift toward zero).\n\nMathematically:\n- Let \"prop_share\" be the percentage corresponding to the opponent\u2019s contribution.\n- Let \"fixed_bias\" be a learnable intercept (offset toward selfishness/fairness).\n- Let \"fairness_weight\" modulate adherence to the proportional (contribution-based) norm.\n\nA noisy linear model:\n\n`proposed_perc = fairness_weight * prop_share + (1 - fairness_weight) * fixed_bias + noise`\n\nWhere:\n- fairness_weight \u2208 [0,1] (0 = only own bias, 1 = perfectly proportional offer)\n- fixed_bias \u2208 [0,100] (the fixed % offered if ignoring fairness)\n- noise ~ N(0, sigma^2), sigma \u2265 0 (sigma can be set or learned, but if we're being minimal, consider as a data-level nuisance parameter)\n\nAlternatively, to avoid parameter covariance, and to separate out scaling/offset, we can do:\n\n`proposed_perc = intercept + fairness_weight * prop_share + error`\n\nBut, with only 14 proposer trials per participant, we need to minimize free parameters.\n\n### Step 4: Parameter Selection and Covariance Consideration\n\n- Avoid including both an \"intercept\" and a \"fixed_bias\" in a convex-combination, as both can serve similar functions, making covariance a problem.\n- Prefer a **single fairness_weight** parameter mapping prop_share to offer, plus a single offset (intercept). This enables interpretable parameter recovery, as the slope indicates fairness orientation (0 = insensitive to fairness, 1 = perfectly fair), and intercept shifts offers up or down.\n\nThus, the formula:\n\n`proposed_perc = intercept + fairness_weight * prop_share`\n\nwhere:\n- fairness_weight   (learnable, [0, 2])\n- intercept         (learnable, [-50, +50])   // generous bounds, but can only affect offers by \u00b150 percentage points.\n\n### Step 5: Mapping Variables\n\n- prop_share = 100 * token_opp / (token_self + token_opp)\n- Use this to capture the incentive structure.\n\n### Step 6: Final Model (No noise in point estimate, as per instructions; noise is \"absorbed\" in MSE.)\n\n## MODEL FORMULATION\n\n<MODEL>\nproposed_perc = intercept + fairness_weight * 100 * token_opp / (token_self + token_opp)\n</MODEL>\n\n## VARIABLE DESCRIPTIONS\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"proposed_perc\": {\n      \"description\": \"The predicted percentage of the total pot proposed to the opponent (0-100).\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"intercept\": {\n      \"description\": \"Fixed offset added to proportional offer, reflecting baseline generosity or selfishness.\",\n      \"range\": {\n        \"min\": -50,\n        \"max\": 50,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"low\": -50,\n          \"high\": 50\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"fairness_weight\": {\n      \"description\": \"Degree to which the proposer follows proportional fairness. 0=ignore contribution, 1=perfect fairness, >1=over-correct for fairness.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 2,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"low\": 0,\n          \"high\": 2\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1000,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1000,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n</VARIABLES>\n\n<target_variable>proposed_perc</target_variable>\n\n<SUMMARY>\nA linear model of proposer behavior in which the percentage offered to the opponent is a weighted function of the opponent's proportional contribution (in tokens), plus a base intercept reflecting baseline generosity or selfishness. This model has two learnable parameters: intercept (offset) and fairness_weight (sensitivity to proportional fairness), with finite, broad bounds to facilitate parameter recovery and reduce covariance.\n</SUMMARY>"
+    },
+    {
+      "solver": "simulate_model_solver",
+      "input": "\n                Write Python code to simulate the following mathematical model using only Python standard library (no pandas or numpy).\n                The code should take a list of dictionaries as input (each dictionary representing a trial) and return a value for each trial.\n\n                IMPORTANT: Use these exact parameter names for learnable parameters: ['intercept', 'fairness_weight']\n\n                Please write a function called `simulate_model` that:\n                1. Takes a list of dictionaries as input (each dictionary contains trial data)\n                2. Has parameter names that matches the variable descriptions exactly\n                3. Implements the mathematical model above using only standard Python math operations\n                4. Returns a list of model_predictions for each trial (please use the exact name \"model_predictions\" as the return value)\n\n                Your code will be implemented within the following code block (please do not include any code outside of this code block, for instance, you should not include data_json = # imported from .json dumps, or data = json.loads(data_json)):\n\n                ```python\nimport json\nimport math\n\n[YOUR SIMULATE_MODEL FUNCTION HERE]\n\n# Data as list of dictionaries\ndata_json = # imported from .json dumps\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n\nBelow is an example for you to follow:\n<EXAMPLE>\nModel Specification:\nU_i = \u03b2 + \u03b5E + \u03b7N\n\nVariable Descriptions:\nU_i: Utility (probability) of choosing action i \u03b2: [learnable] Base tendency parameter (0-1) representing inherent preference \u03b5: [learnable] Environmental sensitivity parameter (0-1) E: Environmental cue value (-1 to 1) \u03b7: Noise parameter (0-1) N: Random noise drawn from normal distribution N(0,1)\n\nDataset Structure:\nVariables available:\n- trial_id (int64)\n- environmental_cue (float64)\n- beta (float64)\n- epsilon (float64)\n- eta (float64)\n- utility (float64)\n- choice_made (int64)\n- trial_number (int64)\n- participant_id (int64)\n\n\n<YOUR RESPONSE>\ndef simulate_model(trial_data, beta=1, epsilon=1, eta=1):\n    model_predictions = []\n    for trial in trial_data:\n        E = trial.get(\"environmental_cue\", 0)\n        u1, u2 = random.random(), random.random()\n        N = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)\n        model_predictions.append(beta + (epsilon * E) + (eta * N))\n    return model_predictions\n</YOUR RESPONSE>\n\nNow, create a simulate_model function for the following model incorporating the information provided. DO NOT OUTPUT ANYTHING AFTER YOU RETURN THE MODEL PREDICTIONS.\n                Model Specification:\n                proposed_perc = intercept + fairness_weight * 100 * token_opp / (token_self + token_opp)\n\n                Variable Descriptions:\n                {\n  \"variables\": {\n    \"proposed_perc\": {\n      \"description\": \"The predicted percentage of the total pot proposed to the opponent (0-100).\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"intercept\": {\n      \"description\": \"Fixed offset added to proportional offer, reflecting baseline generosity or selfishness.\",\n      \"range\": {\n        \"min\": -50,\n        \"max\": 50,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"low\": -50,\n          \"high\": 50\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"fairness_weight\": {\n      \"description\": \"Degree to which the proposer follows proportional fairness. 0=ignore contribution, 1=perfect fairness, >1=over-correct for fairness.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 2,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"low\": 0,\n          \"high\": 2\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1000,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1000,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": null,\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n\nDataset Structure:\n\nDataset Structure:\nVariables available:\n- ID (int64)\n- group (object)\n- trial_number (int64)\n- trial_type (int64)\n- trial_role (int64)\n- token_opp (int64)\n- token_self (int64)\n- combined_earning (int64)\n- split_opp (float64)\n- split_self (float64)\n- splitperc_opp (int64)\n- splitperc_self (int64)\n- accept (float64)\n- accepted_amount (float64)\n- accepted_perc (float64)\n- proposed_perc (float64)\n- proposed_amount (float64)\n\nNumber of observations: 4641\n\n                ",
+      "output": "\n```python\nimport json\nimport math\n\ndef simulate_model(trial_data, intercept=0, fairness_weight=1):\n    model_predictions = []\n    for trial in trial_data:\n        token_opp = trial.get(\"token_opp\", 0)\n        token_self = trial.get(\"token_self\", 0)\n\n        # Calculate proportional share, handling potential division by zero\n        if (token_self + token_opp) == 0:\n            prop_share = 0  # Or any other reasonable default\n        else:\n            prop_share = 100 * token_opp / (token_self + token_opp)\n\n        # Calculate proposed percentage\n        proposed_perc = intercept + fairness_weight * prop_share\n        model_predictions.append(proposed_perc)\n    return model_predictions\n\n# Data as list of dictionaries\ndata_json = '[{\"ID\":1,\"group\":\"control\",\"trial_number\":1,\"trial_type\":1,\"trial_role\":0,\"token_opp\":160,\"token_self\":110,\"combined_earning\":270,\"split_opp\":135.0,\"split_self\":135.0,\"splitperc_opp\":50,\"splitperc_self\":50,\"accept\":1.0,\"accepted_amount\":135.0,\"accepted_perc\":50.0,\"proposed_perc\":48.0,\"proposed_amount\":129.6},{\"ID\":2,\"group\":\"control\",\"trial_number\":2,\"trial_type\":1,\"trial_role\":0,\"token_opp\":120,\"token_self\":150,\"combined_earning\":270,\"split_opp\":135.0,\"split_self\":135.0,\"splitperc_opp\":50,\"splitperc_self\":50,\"accept\":1.0,\"accepted_amount\":135.0,\"accepted_perc\":50.0,\"proposed_perc\":44.0,\"proposed_amount\":118.8},{\"ID\":3,\"group\":\"control\",\"trial_number\":3,\"trial_type\":1,\"trial_role\":0,\"token_opp\":127,\"token_self\":143,\"combined_earning\":270,\"split_opp\":135.0,\"split_self\":135.0,\"splitperc_opp\":50,\"splitperc_self\":50,\"accept\":1.0,\"accepted_amount\":135.0,\"accepted_perc\":50.0,\"proposed_perc\":45.0,\"proposed_amount\":121.5},{\"ID\":4,\"group\":\"control\",\"trial_number\":4,\"trial_type\":1,\"trial_role\":0,\"token_opp\":142,\"token_self\":128,\"combined_earning\":270,\"split_opp\":135.0,\"split_self\":135.0,\"splitperc_opp\":50,\"splitperc_self\":50,\"accept\":1.0,\"accepted_amount\":135.0,\"accepted_perc\":50.0,\"proposed_perc\":47.0,\"proposed_amount\":126.9},{\"ID\":5,\"group\":\"control\",\"trial_number\":5,\"trial_type\":1,\"trial_role\":0,\"token_opp\":138,\"token_self\":132,\"combined_earning\":270,\"split_opp\":135.0,\"split_self\":135.0,\"splitperc_opp\":50,\"splitperc_self\":50,\"accept\":1.0,\"accepted_amount\":135.0,\"accepted_perc\":50.0,\"proposed_perc\":47.0,\"proposed_amount\":126.9}]'\ndata = json.loads(data_json)\n\n# Get results for the data\nresults = simulate_model(data)\nprint(json.dumps({\"results\": results}))  # Output as JSON for reliable parsing\n'''\n```",
+      "timestamp": 1744732423.944185
+    }
+  ],
+  "learnable_parameters": {
+    "intercept": {
+      "description": "Fixed offset added to proportional offer, reflecting baseline generosity or selfishness.",
+      "range": {
+        "min": -50,
+        "max": 50,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {
+          "low": -50,
+          "high": 50
+        }
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "fairness_weight": {
+      "description": "Degree to which the proposer follows proportional fairness. 0=ignore contribution, 1=perfect fairness, >1=over-correct for fairness.",
+      "range": {
+        "min": 0,
+        "max": 2,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {
+          "low": 0,
+          "high": 2
+        }
+      },
+      "learnable": true,
+      "source": "learnable"
+    }
+  },
+  "model_specification": "proposed_perc = intercept + fairness_weight * 100 * token_opp / (token_self + token_opp)",
+  "variable_descriptions": {
+    "proposed_perc": {
+      "description": "The predicted percentage of the total pot proposed to the opponent (0-100).",
+      "range": {
+        "min": 0,
+        "max": 100,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "calculated"
+    },
+    "intercept": {
+      "description": "Fixed offset added to proportional offer, reflecting baseline generosity or selfishness.",
+      "range": {
+        "min": -50,
+        "max": 50,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {
+          "low": -50,
+          "high": 50
+        }
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "fairness_weight": {
+      "description": "Degree to which the proposer follows proportional fairness. 0=ignore contribution, 1=perfect fairness, >1=over-correct for fairness.",
+      "range": {
+        "min": 0,
+        "max": 2,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": {
+        "type": "uniform",
+        "parameters": {
+          "low": 0,
+          "high": 2
+        }
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "token_opp": {
+      "description": "Number of tokens found by the opponent.",
+      "range": {
+        "min": 0,
+        "max": 1000,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    },
+    "token_self": {
+      "description": "Number of tokens found by the participant.",
+      "range": {
+        "min": 0,
+        "max": 1000,
+        "inclusive_min": true,
+        "inclusive_max": true
+      },
+      "distribution": null,
+      "learnable": false,
+      "source": "data"
+    }
+  },
+  "model_summary": "A linear model of proposer behavior in which the percentage offered to the opponent is a weighted function of the opponent's proportional contribution (in tokens), plus a base intercept reflecting baseline generosity or selfishness. This model has two learnable parameters: intercept (offset) and fairness_weight (sensitivity to proportional fairness), with finite, broad bounds to facilitate parameter recovery and reduce covariance.",
+  "target_variable": "proposed_perc",
+  "full_reasoning": "Let me proceed step by step for this ultimatum game proposer model.\n\n### Step 1: Key Psychological Mechanisms\n\nWhen acting as a proposer in the ultimatum game, especially in a resource generation variant (where each party's contribution varies), the most influential psychological mechanisms likely are:\n\n- **Fairness Norms / Equity Preference**: Proposers consider what is \"fair\" given relative contributions.\n    - \"Fair\" could mean proportional to contribution, or equal (50/50), or \"advantageous for me\".\n- **Selfishness / Self-interest**: Proposers may keep more for themselves than is strictly \"fair\".\n- **Acceptance Expectation**: Proposers may modulate their offers to maximize their expected gain (not just offer as little as possible), anticipating the minimal acceptable offer.\n- **Noise / Inconsistency**: Some within-subject variability in proposing behavior unrelated to the above.\n\n### Step 2: Mechanism Interaction\n\n- Participants likely compute a \"deserved\" share for the opponent based on contributions, then potentially shade the offer to maximize their own payoff (self-interest). If overly selfish, the responder may reject, so the offer is a compromise.\n- A model should thus reference:\n    - Relative contribution: What share would be \"proportional\" to the opponent?\n    - Self-orientation: How much does the proposer bias toward their own gain?\n    - Some variability (error/noise).\n\n### Step 3: Mathematical Form\n\nFor each trial when the participant is proposer, they are to propose a percentage to the opponent.\n  \nA simple and interpretable model:\n- Compute the \"proportional\" offer: what % of the total does the opponent's tokens represent?\n- The actual offered percentage is a weighted average between this proportional value and a fixed minimum (or \"selfishness\" intercept, which could drift toward zero).\n\nMathematically:\n- Let \"prop_share\" be the percentage corresponding to the opponent\u2019s contribution.\n- Let \"fixed_bias\" be a learnable intercept (offset toward selfishness/fairness).\n- Let \"fairness_weight\" modulate adherence to the proportional (contribution-based) norm.\n\nA noisy linear model:\n\n`proposed_perc = fairness_weight * prop_share + (1 - fairness_weight) * fixed_bias + noise`\n\nWhere:\n- fairness_weight \u2208 [0,1] (0 = only own bias, 1 = perfectly proportional offer)\n- fixed_bias \u2208 [0,100] (the fixed % offered if ignoring fairness)\n- noise ~ N(0, sigma^2), sigma \u2265 0 (sigma can be set or learned, but if we're being minimal, consider as a data-level nuisance parameter)\n\nAlternatively, to avoid parameter covariance, and to separate out scaling/offset, we can do:\n\n`proposed_perc = intercept + fairness_weight * prop_share + error`\n\nBut, with only 14 proposer trials per participant, we need to minimize free parameters.\n\n### Step 4: Parameter Selection and Covariance Consideration\n\n- Avoid including both an \"intercept\" and a \"fixed_bias\" in a convex-combination, as both can serve similar functions, making covariance a problem.\n- Prefer a **single fairness_weight** parameter mapping prop_share to offer, plus a single offset (intercept). This enables interpretable parameter recovery, as the slope indicates fairness orientation (0 = insensitive to fairness, 1 = perfectly fair), and intercept shifts offers up or down.\n\nThus, the formula:\n\n`proposed_perc = intercept + fairness_weight * prop_share`\n\nwhere:\n- fairness_weight   (learnable, [0, 2])\n- intercept         (learnable, [-50, +50])   // generous bounds, but can only affect offers by \u00b150 percentage points.\n\n### Step 5: Mapping Variables\n\n- prop_share = 100 * token_opp / (token_self + token_opp)\n- Use this to capture the incentive structure.\n\n### Step 6: Final Model (No noise in point estimate, as per instructions; noise is \"absorbed\" in MSE.)\n\n## MODEL FORMULATION\n\n<MODEL>\nproposed_perc = intercept + fairness_weight * 100 * token_opp / (token_self + token_opp)\n</MODEL>\n\n## VARIABLE DESCRIPTIONS\n\n<VARIABLES>\n{\n  \"variables\": {\n    \"proposed_perc\": {\n      \"description\": \"The predicted percentage of the total pot proposed to the opponent (0-100).\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 100,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"calculated\"\n    },\n    \"intercept\": {\n      \"description\": \"Fixed offset added to proportional offer, reflecting baseline generosity or selfishness.\",\n      \"range\": {\n        \"min\": -50,\n        \"max\": 50,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"low\": -50,\n          \"high\": 50\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"fairness_weight\": {\n      \"description\": \"Degree to which the proposer follows proportional fairness. 0=ignore contribution, 1=perfect fairness, >1=over-correct for fairness.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 2,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"distribution\": {\n        \"type\": \"uniform\",\n        \"parameters\": {\n          \"low\": 0,\n          \"high\": 2\n        }\n      },\n      \"learnable\": true,\n      \"source\": \"learnable\"\n    },\n    \"token_opp\": {\n      \"description\": \"Number of tokens found by the opponent.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1000,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    },\n    \"token_self\": {\n      \"description\": \"Number of tokens found by the participant.\",\n      \"range\": {\n        \"min\": 0,\n        \"max\": 1000,\n        \"inclusive_min\": true,\n        \"inclusive_max\": true\n      },\n      \"learnable\": false,\n      \"source\": \"data\"\n    }\n  }\n}\n</VARIABLES>\n\n<target_variable>proposed_perc</target_variable>\n\n<SUMMARY>\nA linear model of proposer behavior in which the percentage offered to the opponent is a weighted function of the opponent's proportional contribution (in tokens), plus a base intercept reflecting baseline generosity or selfishness. This model has two learnable parameters: intercept (offset) and fairness_weight (sensitivity to proportional fairness), with finite, broad bounds to facilitate parameter recovery and reduce covariance.\n</SUMMARY>",
+  "prediction_type": "numerical_variable_estimation",
+  "current_model": "Specification: proposed_perc = intercept + fairness_weight * 100 * token_opp / (token_self + token_opp)\nSummary: A linear model of proposer behavior in which the percentage offered to the opponent is a weighted function of the opponent's proportional contribution (in tokens), plus a base intercept reflecting baseline generosity or selfishness. This model has two learnable parameters: intercept (offset) and fairness_weight (sensitivity to proportional fairness), with finite, broad bounds to facilitate parameter recovery and reduce covariance.\nTarget Variable: proposed_perc\nPrediction Type: numerical_variable_estimation",
+  "simulation_errors": [],
+  "current_retry": 0,
+  "simulation_code": "def simulate_model(trial_data, intercept=0, fairness_weight=1):\n    model_predictions = []\n    for trial in trial_data:\n        token_opp = trial.get(\"token_opp\", 0)\n        token_self = trial.get(\"token_self\", 0)\n\n        # Calculate proportional share, handling potential division by zero\n        if (token_self + token_opp) == 0:\n            prop_share = 0  # Or any other reasonable default\n        else:\n            prop_share = 100 * token_opp / (token_self + token_opp)\n\n        # Calculate proposed percentage\n        proposed_perc = intercept + fairness_weight * prop_share\n        model_predictions.append(proposed_perc)\n    return model_predictions",
+  "total_retries": 0,
+  "skipped_participants": [],
+  "num_skipped_participants": 0,
+  "group_parameter_averages": {
+    "Control": {
+      "intercept": 29.884645107602967,
+      "fairness_weight": 0.23362492310025737
+    },
+    "Cocaine": {
+      "intercept": 30.603402305893873,
+      "fairness_weight": 0.1120986169042581
+    }
+  },
+  "fitting_results": [
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 17.853208315585402,
+      "fairness_weight": 0.5229358254643676,
+      "success": true,
+      "mse": 19.84097859327267,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 0.19878042398584553,
+      "fairness_weight": 0.7293577243458961,
+      "success": true,
+      "mse": 16.320081549440236,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 14.412847748074839,
+      "fairness_weight": 0.5917430451948128,
+      "success": true,
+      "mse": 20.78899082568896,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 2.9724800750017075,
+      "fairness_weight": 0.6605503973014291,
+      "success": true,
+      "mse": 46.874617737003675,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 32.28134793321364,
+      "fairness_weight": 0.24770637168721588,
+      "success": true,
+      "mse": 68.31396534148871,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 34.28135081505302,
+      "fairness_weight": 0.2477063184782544,
+      "success": true,
+      "mse": 12.313965341490015,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 34.948014652235166,
+      "fairness_weight": 0.24770637152548555,
+      "success": true,
+      "mse": 9.64729867482203,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 16.56268477400603,
+      "fairness_weight": 0.4954129583408764,
+      "success": true,
+      "mse": 11.922528032622301,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 40.45259418929417,
+      "fairness_weight": 0.13761477137739186,
+      "success": true,
+      "mse": 29.830784913355433,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 32.90519767690922,
+      "fairness_weight": 0.27522937352872334,
+      "success": true,
+      "mse": 9.98980632008169,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 37.162083139497106,
+      "fairness_weight": 0.11009167014011942,
+      "success": true,
+      "mse": 30.93170234454724,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 37.1192688239263,
+      "fairness_weight": 0.13761462143719042,
+      "success": true,
+      "mse": 60.94189602446537,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 24.452590491762685,
+      "fairness_weight": 0.13761484240989524,
+      "success": true,
+      "mse": 21.830784913358563,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 16.733952151626752,
+      "fairness_weight": 0.38532096081618633,
+      "success": true,
+      "mse": 66.69113149847415,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 16.94800878940291,
+      "fairness_weight": 0.24770648743822313,
+      "success": true,
+      "mse": 62.980632008155645,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 37.78593241178064,
+      "fairness_weight": 0.13761467974387628,
+      "success": true,
+      "mse": 21.83078491335379,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 18.519877398063517,
+      "fairness_weight": 0.5229357812967923,
+      "success": true,
+      "mse": 20.729867482161108,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 30.840986698137822,
+      "fairness_weight": 0.31651360411699353,
+      "success": true,
+      "mse": 6.044852191645247,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.99999999500006,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 2.4999400179291046e-17,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 22.62691221920648,
+      "fairness_weight": 0.45412841838538526,
+      "success": true,
+      "mse": 18.252803261977693,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 22.77674864020277,
+      "fairness_weight": 0.3577983447168529,
+      "success": true,
+      "mse": 132.21610601427705,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.119240149761946,
+      "fairness_weight": 0.13761516077971728,
+      "success": true,
+      "mse": 114.27522935783892,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 17.186533184137232,
+      "fairness_weight": 0.5229359843907819,
+      "success": true,
+      "mse": 31.396534148835368,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 30.666665111451003,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 152.8888888888913,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 22.131517743539582,
+      "fairness_weight": 0.34403633034708003,
+      "success": true,
+      "mse": 133.77573904181673,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.89294711191219,
+      "fairness_weight": 0.06880769561044328,
+      "success": true,
+      "mse": 74.79102956169433,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 30.00000042591883,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 13.333333333333519,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 24.067283368550545,
+      "fairness_weight": 0.38532100050719154,
+      "success": true,
+      "mse": 24.913353720694808,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 36.345564551849236,
+      "fairness_weight": 0.2064220356934392,
+      "success": true,
+      "mse": 15.34148827726825,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 16.733954557606346,
+      "fairness_weight": 0.3853209151187649,
+      "success": true,
+      "mse": 66.69113149847662,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 20.776761037604757,
+      "fairness_weight": 0.3577981107536379,
+      "success": true,
+      "mse": 17.549439347604974,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 21.11926527836257,
+      "fairness_weight": 0.13761468932572868,
+      "success": true,
+      "mse": 132.9418960244649,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 15.165139744267288,
+      "fairness_weight": 0.5366972030383149,
+      "success": true,
+      "mse": 76.15290519877708,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Control",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.999999995002742,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 2.497258470752471e-17,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 46.000000529485234,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 64.00000000000027,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 21.999999678943695,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 56.00000000000008,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 26.388384756638214,
+      "fairness_weight": 0.17889897324903076,
+      "success": true,
+      "mse": 46.38735983690306,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.999999995000646,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 2.4993538615671968e-17,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 37.67889683401255,
+      "fairness_weight": 0.2064220555501485,
+      "success": true,
+      "mse": 9.119266055046245,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 41.333334232985706,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 171.55555555555637,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 25.828738273531496,
+      "fairness_weight": 0.11009188668513484,
+      "success": true,
+      "mse": 116.26503567788357,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 22.666666411239735,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 32.888888888888964,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 39.91437606448166,
+      "fairness_weight": 0.0550458111081142,
+      "success": true,
+      "mse": 152.39959225280387,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 17.119262133246988,
+      "fairness_weight": 0.1376147471728006,
+      "success": true,
+      "mse": 74.27522935779918,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 34.948011530674215,
+      "fairness_weight": 0.24770642996941028,
+      "success": true,
+      "mse": 9.647298674821718,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 35.055044963433396,
+      "fairness_weight": 0.17889909471523002,
+      "success": true,
+      "mse": 32.16513761467902,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 8.562693280123698,
+      "fairness_weight": 0.49541279871145727,
+      "success": true,
+      "mse": 115.92252803262012,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 29.85014615943484,
+      "fairness_weight": 0.09633039687544018,
+      "success": true,
+      "mse": 50.057084607546145,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 48.666666898649865,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 24.88888888888894,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 22.71254624037425,
+      "fairness_weight": 0.39908241304228864,
+      "success": true,
+      "mse": 47.170234454642085,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 34.666666821463956,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 144.88888888888889,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 28.174329448813467,
+      "fairness_weight": 0.31651342728728193,
+      "success": true,
+      "mse": 74.48929663610433,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 36.0000017951958,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 224.00000000000318,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 26.66666600090409,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 142.22222222222265,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 39.333333660709215,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 72.88888888888897,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 47.26911665055304,
+      "fairness_weight": 0.04128433300923501,
+      "success": true,
+      "mse": 5.946992864424865,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 37.67889161508373,
+      "fairness_weight": 0.2064221540084126,
+      "success": true,
+      "mse": 49.11926605504934,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 48.6666666636265,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 24.88888888888889,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 9.357788249007767,
+      "fairness_weight": 0.4128442196699929,
+      "success": true,
+      "mse": 172.47706422018945,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 5.400621292984975,
+      "fairness_weight": 0.3853209140541986,
+      "success": true,
+      "mse": 40.91335372069893,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 16.969429109173923,
+      "fairness_weight": 0.23394475860365632,
+      "success": true,
+      "mse": 96.05096839959857,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 25.678913225847417,
+      "fairness_weight": 0.20642174820274362,
+      "success": true,
+      "mse": 217.11926605505806,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 13.357796820370814,
+      "fairness_weight": 0.4128440569261039,
+      "success": true,
+      "mse": 89.810397553517,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 49.333333319133445,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 6.222222222222227,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.226297209231486,
+      "fairness_weight": 0.06880738144505805,
+      "success": true,
+      "mse": 58.791029561672175,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 27.226305702948107,
+      "fairness_weight": 0.06880722167752373,
+      "success": true,
+      "mse": 32.12436289500735,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 23.333330310502447,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 75.55555555556465,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 25.333332667821868,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 118.22222222222265,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 48.6666421686602,
+      "fairness_weight": 4.6790209218272594e-07,
+      "success": true,
+      "mse": 24.88888888892546,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 47.99999971559429,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 16.00000000000008,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 27.721714021713044,
+      "fairness_weight": 0.17889904745922205,
+      "success": true,
+      "mse": 150.38735983690142,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 21.999998964381405,
+      "fairness_weight": 1.4471483675475347e-08,
+      "success": true,
+      "mse": 56.00000000000011,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 37.67889616439115,
+      "fairness_weight": 0.2064220680738563,
+      "success": true,
+      "mse": 22.452599388379777,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 45.892970160906955,
+      "fairness_weight": 0.06880726312665816,
+      "success": true,
+      "mse": 5.457696228339373,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 35.99999549513276,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 157.3333333333536,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 50.0,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 0.0,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 25.33333615234019,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 104.88888888889687,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 30.862382690149722,
+      "fairness_weight": 0.3027523376501663,
+      "success": true,
+      "mse": 35.86544342507693,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 19.999999994992326,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 2.5076801646981224e-17,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 21.743120016761935,
+      "fairness_weight": 0.16513759075764833,
+      "success": true,
+      "mse": 128.92966360856298,
+      "optimization_message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    },
+    {
+      "intercept": 42.666666597251,
+      "fairness_weight": 0.0,
+      "success": true,
+      "mse": 139.55555555555554,
+      "optimization_message": "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL",
+      "prediction_type": "numerical",
+      "participant_id": null,
+      "group": "Cocaine",
+      "n_trials": 51
+    }
+  ],
+  "parameter_recovery": {
+    "correlations": {
+      "intercept": {
+        "r": 0.9999999999999521,
+        "p": 0.0
+      },
+      "fairness_weight": {
+        "r": 0.9999999999999204,
+        "p": 0.0
+      }
+    },
+    "plots_directory": "param_recovery_plots"
+  },
+  "bic_error": "math domain error",
+  "recovery_summary": "Parameter Recovery:\n- intercept: r = 1.000\n- fairness_weight: r = 1.000",
+  "previous_models": [
+    "Specification: proposed_perc = intercept + fairness_weight * 100 * token_opp / (token_self + token_opp)\nSummary: A linear model of proposer behavior in which the percentage offered to the opponent is a weighted function of the opponent's proportional contribution (in tokens), plus a base intercept reflecting baseline generosity or selfishness. This model has two learnable parameters: intercept (offset) and fairness_weight (sensitivity to proportional fairness), with finite, broad bounds to facilitate parameter recovery and reduce covariance.\nTarget Variable: proposed_perc\nPrediction Type: numerical_variable_estimation\n\nParameter Recovery:\n- intercept: r = 1.000\n- fairness_weight: r = 1.000"
+  ]
+}

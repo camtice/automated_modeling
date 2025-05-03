@@ -1,0 +1,50 @@
+
+
+New Instructions for Run 15:
+
+1. Candidate Families (≤3 Learnable Parameters)  
+   a. Curved Absolute‐Inequity (2 params):  
+      U = α + β⋅|z_share–0.5|^ρ,  with ρ fixed at 1.5 to boost recovery  
+   b. Prospect‐Theoryinequity (3 params):  
+      U = α + (z_share–0.5 ≥ 0)⋅(z_share–0.5)^ρ – λ⋅(0.5–z_share)^ρ,  with shared curvature exponent ρ learnable  
+   c. Quadratic Deviance (2 params):  
+      U = α + β1⋅d + β2⋅d^2,  where d=|z_share–0.5|  
+   d. Mixture Approach (3 params max):  
+      U = α + w⋅|z_share–0.5| + (1–w)⋅(z_share–0.5)^2,  w∈[0,1]  
+
+2. Feature Pipeline  
+   • Compute z_share = split_self/combined_earning, center at 0.5.  
+   • Derive dev = |z_share–0.5|.  
+   • For piecewise families derive pos_dev = max(z_share–0.5,0), neg_dev analogously.  
+   • Standardize all derived features to zero mean/unit SD.  
+   • No further orthogonalization needed if families use only one feature; for two‐feature models, orthogonalize via Gram–Schmidt.  
+
+3. Link & Noise  
+   • Logistic link with τ=1. No additional noise.  
+
+4. Priors & Bounds  
+   • α, β, β1, β2, λ ∼ Normal(0,0.05) truncated to [–0.2,0.2].  
+   • ρ ∼ Fixed (1.5) in a; ∼ Uniform(0.5,3) truncated in b.  
+   • Mixture weight w ∼ Beta(2,2) mapped to [0,1].  
+   • Total learnable parameters ≤3.  
+
+5. Two‐Stage Recovery (stringent)  
+   Stage 1: Simulate 2,000 synthetic datasets from priors → MAP estimates → compute Pearson r.  
+   Stage 2: Require all r≥0.85. If any param fails: drop that family or fix the weak param to its prior mean. If >1 param fails, abandon that family.  
+
+6. Validation & Comparison  
+   • Nested 10‐fold CV: report out‐of‐sample accuracy, BIC, WAIC, and LOO‐CV.  
+   • Require BIC drop ≥10 points *and* ≥10% accuracy gain vs. the 2‐param Quadratic Deviance baseline.  
+   • Conduct posterior predictive checks: ensure predicted acceptance rates match empirical quantiles in at least 5 bins.  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: Final chosen U formula only.  
+   • <VARIABLES>…</VARIABLES>: All features & parameters, bounds, priors, and “learnable” flags.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • Specify family name and psychological meaning of each term.  
+   • Note feature choice (dev, pos_dev/neg_dev), curvature fixes versus learned, shrinkage (σ=0.05), and recovery threshold (r≥0.85).  
+   • Report any parameters fixed or families discarded for recovery.  
+
+Encouragement: You may propose creative single‐feature transformations (e.g., dev^k for noninteger k) or lightweight mixture forms, but strictly enforce the ≤3 parameter limit and r≥0.85 recovery criterion. Ensure models remain interpretable and empirically identifiable.

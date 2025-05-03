@@ -1,0 +1,50 @@
+
+
+New Instructions for Run 20:
+
+1. Candidate Families (≤3 Learnable Parameters, fixed τ=1)  
+   • You may choose up to three of the following, or design your own novel ≤3‐parameter transform that emphasizes identifiability (e.g. dev·log(1+dev), tanh‐scaled dev, threshold‐splines). Always apply orthonormalization or piecewise separation.  
+   a. Piecewise Inequity Aversion (3 params):  
+      U = α + β_neg·neg_dev_std + β_pos·pos_dev_std  
+      • neg_dev = max(0.5 – z_share, 0); pos_dev = max(z_share – 0.5, 0)  
+   b. Quadratic‐Orthonormal (3 params):  
+      U = α + β₁·dev_std + β₂·dev_sq_orth  
+   c. Power‐Transform (2 params):  
+      U = α + β·dev_std^κ, κ∈[0.5,2]  
+   d. Exp–Power Hybrid (3 params):  
+      U = α + β·dev_std^κ·(1 – exp(–λ·dev_std)), κ∈[0.5,2], λ∈[0.5,5]  
+   e. Log‐Modulated (3 params):  
+      U = α + β·dev_std·log(1+δ·dev_std), δ∈[0.5,5]  
+
+2. Feature Pipeline  
+   • z_share = split_self / combined_earning (drop combined_earning=0)  
+   • Compute dev = |z_share–0.5|, neg_dev, pos_dev; center at 0  
+   • Standardize each raw feature on training folds  
+   • Build dev_sq, log/dev hybrids, then orthonormalize all candidate transforms via Gram–Schmidt  
+
+3. Choice Rule  
+   P_accept = 1 / (1 + exp(–U))  
+
+4. Priors & Parameter Bounds (stronger shrinkage)  
+   • α ∼ Normal(0,0.03) truncated to [–0.15,0.15]  
+   • All slope‐type parameters (β, β₁, β₂, β_neg, β_pos) ∼ Normal(0,0.03) truncated to [–0.15,0.15]  
+   • κ ∼ Uniform(0.5,2], λ, δ ∼ Uniform(0.5,5]  
+
+5. Two‐Stage Recovery & Priors Refinement  
+   Stage 1: Simulate 3,000 datasets → MAP fit → require Pearson r ≥ 0.90 for all parameters.  
+   Stage 2: If any r < 0.90, shrink priors on that parameter by 25% (reduce prior sd by 25%) and retest once. If still fails, remove or reparameterize that family.  
+
+6. Model Selection & Validation  
+   • 5‐fold CV → report out‐of‐sample accuracy, BIC, WAIC, LOO‐CV  
+   • Posterior predictive check in six P_accept bins  
+   • Final selection: ΔBIC ≥ 4 vs. next best OR ΔWAIC ≥ 4, all r ≥ 0.90, accuracy ≥ +12% over 2‐param baseline  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact utility formula  
+   • <VARIABLES>…</VARIABLES>: all data & calculated features + parameters with bounds, priors, learnable flags  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • State chosen family(ies), describe each term, shrinkage settings, fixed τ, recovery threshold (r ≥ 0.90), any priors adjusted or parameters pruned  
+
+Encouragement: Break out of conventional power‐only transforms—try hybrid logs, thresholded linear splines, or tanh‐scaled deviations. Always enforce orthonormalization or explicit piecewise definitions to ensure identifiability under the strict r ≥ 0.90 recovery criterion.

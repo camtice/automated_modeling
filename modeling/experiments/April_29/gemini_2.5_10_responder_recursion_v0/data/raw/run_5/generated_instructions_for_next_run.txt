@@ -1,0 +1,42 @@
+Okay, here are the updated instructions for the next run (Run 6):
+
+<instructions>
+The previous run successfully implemented a model with logarithmic transformation of disadvantageous inequity:
+`total_tokens = token_self + token_opp`
+`contribution_ratio = token_self / total_tokens if total_tokens > 0 else 0.5`
+`deserved_split = contribution_ratio * combined_earning`
+`inequity_abs = max(0, deserved_split - split_self)`
+`inequity_log = log(inequity_abs + 1)`
+`Utility = bias + sensitivity * split_self - alpha_log_ineq * inequity_log`
+
+This model achieved the best BIC (~33.4) and accuracy (~0.821) scores seen so far, significantly improving upon the baseline linear inequity model (BIC ~38.6, Acc ~0.814). However, while the recovery for `bias` (r~0.82) and `sensitivity` (r~0.79) remained good, the recovery for the new `alpha_log_ineq` parameter (r~0.67) fell below the desired threshold of 0.75.
+
+This suggests the non-linear transformation captured important aspects of the decision process (improving fit), but its specific implementation might be interfering with parameter identifiability, particularly for the inequity sensitivity parameter.
+
+**Your Goal:** Develop a model that maintains or improves upon the excellent BIC and Accuracy of the log-inequity model (Target BIC < 34, Accuracy > 0.82) **while ensuring excellent parameter recovery for *all* learnable parameters (Target r > 0.75 for all).**
+
+**New Directions to Explore:**
+
+Given the recovery issue with `alpha_log_ineq`, let's explore alternative ways to incorporate non-linearity or refine the model structure, focusing on maintaining parsimony (ideally 3 parameters) and improving parameter identifiability.
+
+1.  **Non-Linear Utility of Gain (Primary Focus):** Perhaps the non-linearity observed in the data is better attributed to diminishing marginal utility of the monetary gain (`split_self`) rather than the inequity term. Test this by keeping the inequity term *linear* (as in the original reliable 3-parameter model) but applying a non-linear transformation to the gain term.
+    *   **Option 1a (Logarithmic Gain):** `Utility = bias + sensitivity * log(split_self + 1) - alpha_ineq * inequity`
+        *   Where `inequity = max(0, deserved_split - split_self)` (calculated as before).
+        *   This uses 3 parameters (`bias`, `sensitivity`, `alpha_ineq`). `sensitivity` now applies to the log-transformed gain. Adding 1 avoids log(0).
+    *   **Option 1b (Square Root Gain):** `Utility = bias + sensitivity * sqrt(split_self) - alpha_ineq * inequity`
+        *   Similar structure, 3 parameters (`bias`, `sensitivity`, `alpha_ineq`), but uses square root to model diminishing returns.
+    *   **Justification:** This approach tests a standard economic principle (diminishing marginal utility) and uses the linear inequity formulation that previously showed good parameter recovery for `alpha_ineq`. It might achieve good fit by capturing non-linearity in gain, potentially resolving the recovery issue seen when non-linearity was forced onto the inequity term.
+
+2.  **Ratio-Based Inequity Perception (Secondary Option):** If non-linear gain doesn't resolve the issues, consider the alternative functional form for inequity based on ratios, which was suggested previously but not yet tested.
+    *   **Option 2a (Log-Ratio Inequity):** `Utility = bias + sensitivity * split_self - alpha_ratio_ineq * max(0, log((deserved_split + 0.01) / (split_self + 0.01)))`
+        *   Uses 3 parameters (`bias`, `sensitivity`, `alpha_ratio_ineq`). Epsilon (e.g., 0.01) is a small constant to prevent log(0) or division by zero.
+    *   **Justification:** This tests if perceiving fairness as a *ratio* rather than an absolute difference provides a better fit and potentially better parameter recovery properties than the previous log-difference model. Keep the gain term linear here (`sensitivity * split_self`).
+
+**Emphasis:**
+*   Prioritize the **Non-Linear Utility of Gain** approach first (Option 1a or 1b). Explain your choice (log vs sqrt) if you have a preference.
+*   Ensure your model uses exactly 3 learnable parameters.
+*   Critically evaluate how your chosen structure aims to maintain the BIC/Accuracy improvements while *specifically addressing* the parameter recovery problem encountered with `alpha_log_ineq` in the last run.
+*   Think creatively about functional forms, but ensure they are psychologically plausible and can be implemented robustly with the provided data structure.
+
+Please provide your reasoning step-by-step, justify your chosen model structure by explaining how it addresses the limitations of the previous model and aims to meet all performance goals (BIC, Accuracy, Recovery), and detail the model specification in the required format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>). Remember to define appropriate, generous but finite bounds for learnable parameters.
+</instructions>

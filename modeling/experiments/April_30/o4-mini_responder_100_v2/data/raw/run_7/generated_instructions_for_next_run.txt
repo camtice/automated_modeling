@@ -1,0 +1,48 @@
+
+
+New Instructions for Run 8:
+
+Be adventurous—your target is a ≤4-parameter logistic utility model with all parameters recovering at r > 0.80, ≥5-point BIC drop (control & treatment), and ≥5% accuracy gain. Follow these steps:
+
+1. Feature Engineering & Orthogonal Basis  
+   • Always compute share = split_self/combined_earning. Z-score → z_share.  
+   • Build two new fairness features:  
+     – mag = |share – 0.5|, then z-score → z_mag.  
+     – dir = sign(share – 0.5) (±1).  
+   • Optionally include interaction term interact = z_share * z_mag.  
+   • Run Gram–Schmidt or residualize each new feature on z_share, then z-score → orth_feat(s).  
+
+2. Four Candidate Families (pick one)  
+   A. Piecewise Fairness:  
+      U = α + β·z_share + γ_pos·max(0, z_mag)·I_dir+1 + γ_neg·max(0, z_mag)·I_dir–1   (4 params: α,β,γ_pos,γ_neg)  
+   B. Power‐Fairness:  
+      U = α + β·z_share + δ·(z_mag)^φ   (4 params: α,β,δ,φ); restrict φ to grid {0.5,1,2} to aid recovery.  
+   C. Interaction Curvature:  
+      U = α + β·z_share + γ·z_mag + θ·interact   (4 params: α,β,γ,θ)  
+   D. Minimal Quadratic:  
+      U = α + β1·z_share + β2·z_share²   (3 params: α,β1,β2)  
+
+3. Parameter Constraints & Priors  
+   • Bounds: β,β1∈[0,1]; β2,γ,γ_pos,γ_neg,δ,θ∈[–1,1]; φ∈{0.5,1,2}.  
+   • Apply Normal(0,1) priors (L2 penalty) on all parameters.  
+
+4. Automated Recovery & Simplification Loop  
+   • Simulate 2,000 datasets sampling true params from bounds. Fit MAP or penalized MLE.  
+   • Compute Pearson r for each; if any r < 0.80:  
+     – Simplify: drop lowest‐recovered parameter or collapse γ_pos/γ_neg into one symmetric term.  
+     – Or switch to alternative family.  
+     – Or tighten bounds to [–0.5,0.5] and/or restrict φ to a single value.  
+     – Repeat until r > 0.80 for all.  
+
+5. Cross‐Validation & Model Evidence  
+   • Run 10-fold CV on real data; compute out-of-sample accuracy.  
+   • Calculate BIC and WAIC for each family. Select model with ≥5-point BIC improvement and ≥5% accuracy gain vs. baseline.  
+
+6. Deliverables  
+   • Provide <MODEL>…</MODEL> with the chosen formula (no prose inside).  
+   • Provide <VARIABLES>…</VARIABLES>: for each learnable param state description, bounds, prior, source=learnable; for each engineered predictor document transformation, source=calculated.  
+   • Provide <target_variable>accept</target_variable>.  
+
+7. Summary (<SUMMARY>…</SUMMARY>)  
+   • Briefly describe the selected family, psychological rationale (piecewise vs power vs interaction vs curvature), and how dynamic recovery loops plus tight priors ensure r > 0.80, lower BIC, and improved accuracy.  
+   • Emphasize willingness to drop, merge or grid‐search features—think beyond standard linear weightings.

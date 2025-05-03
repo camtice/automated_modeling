@@ -1,0 +1,42 @@
+Okay, here are the improved instructions for the next run (Run 69), building on the analysis of previous attempts and maintaining the intense focus on achieving robust parameter identifiability for *both* learnable parameters.
+
+Instructions for Run 69 of 100:
+
+The **unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters**. This is the critical benchmark for model usability. While improved BIC (lower is better) and accuracy (higher is better) are valuable secondary goals, they must not come at the expense of robust parameter recovery.
+
+Run 68 explored a ratio structure (`U = (beta_value * split_perc_self) / (1.0 + beta_unfairness * NonLinearPenaltyTerm)`) using a squared positive difference as the non-linear penalty (`max(0.0, fair_perc_self_calc - split_perc_self)^2`). While this model showed a relatively good average BIC (44.58) and moderate accuracy (0.673), it failed the primary objective, yielding parameter recoveries of only r=0.497 for `beta_value` and r=0.445 for `beta_unfairness`. This result, combined with the history of other ratio models struggling with `beta_unfairness` recovery (e.g., Run 61, 63, 67), strongly suggests that putting the `beta_unfairness` term scaling a penalty in the denominator of a ratio structure, alongside `beta_value` scaling `split_perc_self` in the numerator, might inherently lead to identifiability issues due to correlated influences across offer ranges.
+
+The challenge persists: how to mathematically disentangle the influence of sensitivity to the *value* of the offer (`beta_value` scaling `split_perc_self`) from the influence of sensitivity to *unfairness* (`beta_unfairness` scaling some measure of deviation from fairness)? Previous attempts using additive models (like Run 66) also failed parameter recovery when using relatively simple penalty forms.
+
+For Run 69, let's return to an **additive utility structure**, but critically, use a **new and distinct functional form for the unfairness penalty term** that we hope will create a unique parameter landscape for `beta_unfairness`, allowing it to be disentangled from `beta_value`. Instead of a simple difference or the previous ratio penalties (`(Fair/Split) - 1`), let's define the penalty based on the **positive deviation from fairness *relative to the offered percentage***.
+
+Proposed Model Structure: An additive model where utility is the value of the offer minus a penalty proportional to unfairness.
+`U = beta_value * split_perc_self - beta_unfairness * RatioBasedPenalty`
+
+Here, `RatioBasedPenalty` is calculated as the positive difference between the fair share and the proposed share, divided by the proposed share (plus a small epsilon to prevent division by zero). Specifically:
+Calculate `fair_perc_self_calc` handling the `sum_tokens == 0` case (defaulting to 50.0).
+Calculate `deviation = fair_perc_self_calc - split_perc_self`.
+Define `positive_deviation = max(0.0, deviation)`. This ensures the penalty is only applied for offers below the fair share.
+Define `safe_split_perc_self = split_perc_self + 1e-6` (using a small constant like 1e-6 to avoid division by zero, especially when `split_perc_self` is 0).
+Define the `RatioBasedPenalty = positive_deviation / safe_split_perc_self`.
+Finally, `U_accept = beta_value * split_perc_self - beta_unfairness * RatioBasedPenalty`.
+
+The theoretical rationale for this specific penalty term (`(Fair - Split) / Split`) is that it grows non-linearly and increasingly steeply as the offer (`split_perc_self`) gets smaller, when it's below the fair share. This creates a potentially different influence profile for `beta_unfairness` (scaling this rapidly changing penalty) compared to `beta_value` (scaling the linearly changing `split_perc_self`) across the range of possible offers. This is an attempt to find a penalty form whose impact, when scaled by `beta_unfairness` in an additive model, is less correlated with the scaled value term than previous attempts.
+
+Design the model using the additive structure `U_accept = beta_value * split_perc_self - beta_unfairness * RatioBasedPenalty`, where `RatioBasedPenalty` is calculated as specified above.
+
+Focus on clearly defining the `RatioBasedPenalty` and articulating in the summary how its specific functional form (positive deviation divided by the offered percentage) within an additive utility structure is intended to help disentangle the influences of `beta_value` (scaling the linear value) and `beta_unfairness` (scaling this non-linear ratio penalty), thereby significantly improving robust parameter identifiability for *both* learnable parameters. Explain why this approach represents a departure from previous additive models and the recent ratio models.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc` (handling `sum_tokens == 0`), `deviation`, `positive_deviation`, `safe_split_perc_self`, `ratio_penalty`, and `U_accept`. Include any other necessary intermediate variables.
+*   **Model Formula:** Define `U_accept` using the additive structure: `U_accept = beta_value * split_perc_self - beta_unfairness * ratio_penalty`. Include calculation steps for derived variables *before* the formula for `U_accept`. Use clear mathematical notation within the <MODEL> tags (only the formula). Ensure you handle potential division by zero explicitly with the small epsilon (e.g., 1e-6).
+*   **Learnable Parameters:** Exactly **2 learnable parameters**: `beta_value` and `beta_unfairness`. Choose descriptive, Python-safe names. Define clear, generous, finite numerical bounds. Non-negative bounds (e.g., `[0.0, 100.0]` for both) are theoretically appropriate and may aid recovery, but consider if allowing negative values for `beta_value` (risk-seeking for unfair offers) or `beta_unfairness` (liking unfairness) is theoretically plausible in this context. Let's stick with non-negative bounds for now unless the model strongly suggests otherwise.
+*   **Calculated Variables:** Include descriptions for *all* calculated variables used in the model (including `U_accept`, `sum_tokens`, `fair_perc_self_calc`, `deviation`, `positive_deviation`, `safe_split_perc_self`, and `ratio_penalty`) with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables in the <MODEL> formula. Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Remember variable names must exactly match the model.
+*   **Target Variable:** Specify "accept" using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea (additive structure, value term, ratio-based penalty term). Crucially, explain *how the definition of the penalty term as the positive deviation from fair share percentage divided by the offered percentage* within the additive structure is specifically intended to improve robust parameter identifiability for *both* learnable parameters by creating mathematically distinct non-linear influences for `beta_unfairness` compared to the linear influence of `beta_value`. Explain how this builds on previous attempts by exploring a new combination of additive structure and a distinctly shaped penalty term.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters (>= 0.7 recovery for both) is the absolute priority. Your goal is to find a structure where both parameters' influences are clearly distinguishable across the range of possible offers, leading to reliable estimates. Be creative in how you define and utilize the ratio-based penalty term or alternative interactions within an additive structure to maximize this distinction while remaining theoretically plausible. Find a model structure that truly shines in parameter recovery.

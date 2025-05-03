@@ -1,0 +1,80 @@
+<think>
+The last run demonstrated quite strong predictive performance (BIC/accuracy), but parameter recovery was suboptimal for the power/exponent (fairness_exponent, r ≈ 0.42), and only moderate for beta (r ≈ 0.76). Bias parameter recovery was quite robust (r ≈ 0.85). This suggests that, while a flexible nonlinear model can fit data well, not all parameters are empirically recoverable—possibly due to redundancy or compensation between scaling and shape parameters, or limited data-range informativeness for the exponent in this fairness context.
+
+Given this, the next run needs to maximize both fit and true psychological interpretability/recovery, especially for shape/scale parameters. There is also room to further increase accuracy and reduce BIC if a single, globally-active but interpretable “asymmetry” or "smooth loss aversion" parameter is employed, ideally not overlapping with beta. Previous experience suggests that soft, differentiable loss/gain asymmetry applied to the log-ratio or to a normalized difference (e.g. via the tanh or sigmoid family) can be both interpretable and recoverable. 
+
+Three promising, creative, yet robust directions are:
+
+1. **Global Asymmetric Slope (Smooth Loss Aversion)**: Instead of a power/exponent, construct a model where deviations above vs. below the fairness norm are smoothly amplified by a learnable asymmetry or loss aversion parameter (e.g., via tanh or by multiplying the log-ratio by an asymmetry parameter when < 0, but strictly no if/max/abs). This can be realized by expressing the utility as a bias plus scaled log-ratio, the latter multiplied by a smooth learnable modifier as a function of sign—e.g., U = bias + beta * log(splitperc_self / deserved_perc) * (1 + asymmetry * tanh(γ * (splitperc_self/deserved_perc - 1))). This is globally smooth, monotonic, and enables separate identification of bias, fairness sensitivity, and asymmetry.
+
+2. **Globally-Warped Reference Function**: Instead of directly using a log or power, transform the normalized ratio with a sigmoid/softplus/tanh (e.g., U = bias + beta * tanh(gain * (splitperc_self / deserved_perc - 1))). Gain is a learnable parameter controlling the slope/psychophysical step size. This yields interpretable, globally active, and often highly recoverable shape effects.
+
+3. **Nonlinear Offset/Gain Mixture**: Use a generalized, smooth reference function, e.g. U = bias + beta * log(1 + gain*(splitperc_self/deserved_perc - 1)), where gain is a learnable smoothing parameter. This conveys both scaling and “stretch,” with gain and beta being non-redundant.
+
+Favor a model where **each parameter has strictly non-overlapping impact on the utility curve**: 
+- bias (intercept),
+- fairness sensitivity (beta, scaling main effect), 
+- asymmetry or nonlinearity parameter (stretching/skewing response above/below fairness, via smooth modulation).
+
+DO NOT permit piecewise functions (no max/if/step). All transforms must be differentiable everywhere. Three parameters may be used *if* all three are interpretable, non-redundant, and empirically recoverable. If shape or skew parameter recovery is empirically poor, opt for a globally active but simpler 2-parameter model.
+
+Make explicit the theoretical justification for the introduced nonlinearity or asymmetry. State which parameter controls overall reference sensitivity versus which acts as a perceptual “warp” versus which governs inherent acceptance tendency.
+
+Finally, encourage innovative but rigorous use of functions uncommon in basic prospect theory—e.g. arctanh, softsign, generalized logistic, or composed smooth nonlinearities. All must preserve global monotonicity with respect to received/fairness ratio. Output and documentation formatting must be precise and full, as previously.
+
+</think>
+
+---
+
+**Instructions for Run 10 Computational Modeling**
+
+Design a novel, reference-dependent, and psychologically interpretable computational model to predict responder acceptance behavior. Your design should optimize model fit (BIC), predictive accuracy, and, crucially, parameter recovery/identifiability for all learnable parameters. Please follow these detailed guidelines:
+
+1. **Reference Normalization and Global Monotonicity**
+   - Model utility as a smooth, monotonic function of the normalized offer: ratio of the participant's proposed share to their deserved share (e.g., splitperc_self / deserved_perc). 
+   - All transforms must be differentiable, globally monotonic, and free of regime shifts, piecewise, abs, or step logic.
+
+2. **Parameterization: Interpretability and Identifiability**
+   - Include at most three learnable parameters, only if all have clearly distinct psychological interpretations and their influence is non-overlapping.
+   - For each parameter, specify the theoretical logic and describe *exactly* how it shifts or reshapes the utility curve, and why it cannot be compensated for by other parameters.
+   - Provide a short justification for why every parameter will be empirically recoverable (i.e., produce separable, observable effects in the data).
+
+3. **Innovative, Smooth Nonlinearities or Asymmetries**
+   - Move beyond standard linear or log-ratio models. Strongly consider:
+     - Globally active *smooth loss/gain asymmetry* (e.g., via tanh or sigmoid modulation of fairness deviation).
+     - Smooth, differentiable nonlinearity that warps the fairness response, such as softplus, generalized sigmoid, or tanh applied to the ratio or deviation from fairness.
+     - Compose bias, scaling, and a shape/asymmetry parameter, ensuring all have distinct, non-redundant impacts.
+   - Avoid technical offset/floor parameters (e.g., epsilon) unless they are theoretically motivated and demonstrably recoverable.
+   - Do not allow parameter redundancy—e.g., that a strong bias and strong scaling could always compensate for a weak shape parameter.
+
+4. **Full Variable Documentation and Implementation**
+   - All calculations should be done in percent-normalized units (e.g., splitperc_self, deserved_perc).
+   - Each variable (including calculated/intermediate) must be fully described in JSON format as per the variable template.
+   - Each parameter should have a generous, finite numerical range and state whether it is learnable; recommendations for prior distributions may be included.
+   - Use parameter names that are Python-code safe and not reserved words.
+
+5. **Formatting and Output**
+   - The model’s full mathematical specification must be enclosed between <MODEL>...</MODEL> tags—no explanations, comments, or extraneous lines inside these tags.
+   - All variables and parameters must be formatted in a JSON block between <VARIABLES>...</VARIABLES> tags, including origin (learnable/data/calculated), and short descriptions.
+   - State the model’s target prediction variable from the dataset in <target_variable>accept</target_variable>.
+   - In <SUMMARY> tags, provide a concise, precise summary of model structure, interpretability, and parameter function (no generic task details).
+
+6. **Creativity and Justification**
+   - Propose at least one creative, smooth, and monotonic nonlinear or asymmetric transform—not just classic log/linear or simple exponents.
+   - Briefly justify (outside <MODEL> tags) how your chosen nonlinearity or asymmetry increases both fit and parameter recovery compared to previous (linear/power-log) models.
+   - Suggest if empirical parameter recovery or global interpretability could be improved by reducing rather than increasing parameter count.
+
+7. **Parameter Recoverability**
+   - For each learnable parameter, comment briefly (outside <MODEL> tags) on why it will be empirically identifiable and not redundant.
+   - If you employ a shape/skew parameter (e.g., asymmetry or gain), ensure its modulation changes the model’s predictions in ways orthogonal to bias or overall scaling.
+
+8. **Encouraged Creativity**
+   - Try smooth, flexible, but globally monotonic functions such as: tanh/softplus on normalized gaps, sigmoidal gain/loss asymmetries, generalized arctan/arctanh, or softly parameterized power/logistic stretches.
+
+9. **No Redundant or Pathological Parameters**
+   - Avoid adding technical parameters (e.g., small epsilon offsets for stabilization) unless empirically justified and demonstrably recoverable in practice.
+   - Do not use parameter combinations that are functionally redundant or only relevant in pathological data regimes.
+
+Prioritize out-of-the-box innovation, rigorous theoretical justification, and a clear mapping between each parameter and its psychological effect. Ensure documentation is implementation-ready and enables unambiguous recovery of all involved variables and parameters.
+
+Be inventive, concise, and strictly precise in all formatting and descriptions.

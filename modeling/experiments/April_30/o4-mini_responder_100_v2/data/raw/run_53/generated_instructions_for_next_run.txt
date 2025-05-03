@@ -1,0 +1,48 @@
+
+
+Run 54 Instructions:
+
+1. Candidate Families (exactly 3). Propose three strictly‐monotonic U(dev_std)=α+f(dev_std;θ) each with ≤2 non‐intercept θ’s. You must include:
+   • One classic (choose from Power, Exponential, or Logistic).  
+   • One novel two‐parameter form of your own design (e.g. f=β·(1–exp(–(γ·dev_std)^p)) or f=β·sinh(γ·dev_std)/(1+|sinh(γ·dev_std)|)).  
+   • One flexible but identifiable form (e.g. rational‐power, shifted‐logistic, or polynomial+exp combination).
+
+2. Feature Standardization & Orthogonalization  
+   a. Drop trials with combined_earning=0.  
+   b. Compute z_share=split_self/combined_earning; winsorize to [0.01,0.99].  
+   c. Compute dev=|z_share–0.5|; winsorize to [0,2].  
+   d. On training set, compute median μ_dev and MAD σ_dev; define dev_c = (dev–μ_dev)/σ_dev and use dev_c as “dev_std” everywhere.  
+   e. Optionally include dev_sq=dev_c^2 or log1p(dev_c) as auxiliary inputs in your formula if it boosts identifiability, but still produce a single scalar U.
+
+3. Parameter Bounds, Reparameterization & Priors  
+   • α_un∈ℝ, parametrized directly; α=clip(α_un,–0.06,0.06). Prior: α_un∼Normal(0,0.01).  
+   • θ‐scale parameter β_un∈ℝ; β=tanh(β_un)·0.08 to ensure |β|≤0.08. Prior: β_un∼Normal(0,0.5).  
+   • Shape parameters φ_un (for each p,γ,k,…): use φ=exp(φ_un) to enforce φ∈[0.5,2]; solve exp(φ_un)∈[0.5,2] via φ_un∼TruncatedNormal(log(1),0.25)[log(0.5),log(2)].  
+   • This log‐space reparameterization typically improves recovery.
+
+4. Choice Rule with Lapse  
+   P_accept = (1–λ)·σ(U) + λ/2, where σ(U)=1/(1+exp(–U)), λ=0.02 fixed.
+
+5. Two‐Stage Recovery & Identifiability  
+   • Stage A: 5 000 sims → MAP fit → require Pearson r ≥0.90 & |bias| ≤0.05 for all θ.  
+   • Stage B: 10 000 sims → require r ≥0.95 & |bias| ≤0.03.  
+   • Any family failing either stage is discarded.
+
+6. Model Selection & Validation  
+   • 20 repeats × 5‐fold CV → report mean±SD Accuracy, AUC, BIC, WAIC, ΔBIC vs. runner‐up, Brier score.  
+   • Calibration: slope ∈[0.95,1.05], intercept ≤0.05 over six equal‐mass dev_std bins.
+
+7. Final Winner Criteria  
+   • All θ’s pass Stage B.  
+   • ΔBIC ≥12 vs. next‐best.  
+   • Accuracy gain ≥18% over linear baseline U=α+β·dev_std_c.  
+   • AUC ≥0.84.  
+   • Brier score < baseline.
+
+8. Deliverables  
+   • <MODEL>…</MODEL>: exactly three U(dev_std_c)=α+f(dev_std_c;θ) formulas (no commentary).  
+   • <VARIABLES>…</VARIABLES>: JSON with every feature (dev_std_c, optional dev_sq/log1p), α_un, β_un, shape φ_un’s, including transformed bounds, priors (as distribution objects), learnable flags, source.  
+   • <target_variable>accept</target_variable>  
+   • <SUMMARY>…</SUMMARY>: concise table of families, θ definitions & priors, Stage A/B pass statuses, CV metrics (Acc±SD, AUC, BIC/WAIC, ΔBIC, Brier), calibration, and final winner.  
+
+Encourage creative transforms that reduce correlations among parameters and boost curvature near dev_std_c≈0. Out‐of‐the‐box two‐parameter shapes that maximize identifiability are strongly rewarded.

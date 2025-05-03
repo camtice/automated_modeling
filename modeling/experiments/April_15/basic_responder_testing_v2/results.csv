@@ -1,0 +1,278 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,alpha_recovery,lambda_param_recovery,gamma_self_recovery,beta_recovery,xi_recovery,kappa_recovery,trial_type_offset_equal_recovery,trial_type_offset_opponent_more_recovery,trial_type_offset_self_more_recovery,gamma_recovery,rho_recovery,omega_recovery,trial_type_multiplier_recovery,trial_type_effect_recovery
+4,33.97978375363018,,,0.8116605616605617,"FairShare = combined_earning * (token_self / (token_self + token_opp))
+Loss = FairShare - split_self
+StatusQuo = trial_type == 3
+U = beta * split_self - alpha * Loss * (1 + kappa * StatusQuo)","This model predicts responder behavior in the ultimatum game by considering fairness, loss aversion, and amount sensitivity. It calculates a fair share based on token contributions and quantifies the loss as the difference between the fair share and the offer. A status quo bias is added, penalizing offers where the participant contributed more. The model incorporates three learnable parameters: alpha (fairness sensitivity), beta (amount sensitivity), and kappa (status quo bias), each with specified bounds to aid parameter recovery.",v2,"Instructions:
+<think>
+The previous model had good recovery for beta and lambda, but very poor recovery for alpha, and the overall accuracy was middling, though the BIC score was good. We need to dramatically improve the recovery of alpha and consider if there is an interaction between alpha and the other parameters. This might involve rethinking the model's core assumptions about fairness. Also, it may be advantageous to try a different loss aversion functional form.
+
+Here's what I'll do:
+
+1. **Re-evaluate the fairness component:** The model seems to struggle with capturing fairness sensitivity. Encourage exploring alternative ways to model how people perceive fairness, beyond the simple proportional split based on token counts. Consider how trial_type (equal, opponent more, participant more) could directly inform fairness perception.
+2. **Explore non-linear loss aversion:** The current linear loss aversion might be too simplistic. Suggest a non-linear form, perhaps with diminishing sensitivity to losses as they become larger. For example, a log transform of the difference between the fair share and the actual split.
+3. **Interaction terms revisited:** While the previous attempt had an interaction term, it might not have been the right one. Prompt the model to consider interaction terms between alpha and beta. Is fairness more important when the stakes are high (high combined_earning)?
+4. **Prior Knowledge, again:** Re-emphasize the importance of incorporating prior knowledge, especially regarding fairness. What is a reasonable range for alpha, given the experimental context? Are participants likely to be completely insensitive to fairness (alpha close to 0), or are they likely to heavily weigh it (alpha significantly greater than 0)?
+5.  **Suggest an additional psychological mechanism**: Suggest that they add a ""status quo bias"", where they are biased to reject offers where they have contributed more.
+6. **Model Comparison Heuristic**: Strongly encourage that the model proposes a significantly different BIC.
+
+</think>
+
+Be VERY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a slight bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models.
+
+When developing your model, reason step by step about:
+
+*   The key psychological mechanisms involved, including fairness, loss aversion, and amount sensitivity.
+*   How these mechanisms interact, including potential multiplicative or non-linear interactions. Specifically, consider interactions between fairness sensitivity (alpha) and amount sensitivity (beta), as well as the role of combined_earning in modulating fairness perception.
+*   What mathematical form could capture these interactions, exploring options beyond standard linear or power law functions. Explore non-linear loss aversion functions (e.g., logarithmic) and alternative ways to model fairness perception, perhaps by incorporating trial_type.
+*   What parameters would be needed to calibrate the model, carefully considering potential parameter covariance and identifiability issues. What are reasonable estimates of each learnable parameter? What is a reasonable prior range for fairness sensitivity (alpha), and amount sensitivity (beta)?
+*   How the model variables map to observable behavior.
+*   Incorporate any prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. What are reasonable estimates of each learnable parameter? Consider adding a status quo bias where participants are more likely to reject offers when they contribute more.",0.8288096536917601,,,0.7566368587195118,,0.5974060443323036,,,,,,,,
+2,35.570673026662114,,,0.7695360195360195,"U = beta * split_self + alpha * (token_self / (token_self + token_opp)) * max(0, split_self - (combined_earning * (token_self / (token_self + token_opp)))) - lambda_param * (token_self / (token_self + token_opp)) * max(0, (combined_earning * (token_self / (token_self + token_opp))) - split_self)","This model predicts responder behavior in the ultimatum game. It calculates the utility of accepting an offer based on three factors: amount sensitivity (beta), fairness sensitivity (alpha), and loss aversion (lambda_param). The model incorporates the relative contributions of the participant and opponent to determine a ""fair"" split. The fairness and loss aversion parameters are weighted by the participants relative contribution.",v2,"Instructions:
+<think>
+The previous model had decent accuracy, but poor parameter recovery and a BIC that could be improved. The low parameter recovery suggests high covariance between the parameters or an insufficiently complex model. Let's focus on improving parameter recovery, which should also help with BIC. The recovery for gamma_self was high, whereas the others were not great.
+
+Here's what I'll do:
+
+1.  **Emphasize Prior Knowledge:** Remind the model to incorporate any prior knowledge or constraints that could reduce parameter covariance. For example, we could have a better prior belief about fairness_sensitivity (alpha), or amount_sensitivity (beta)
+2.  **Consider interaction terms:** Consider multiplicative interactions between the contribution weights and the fairness sensitivity.
+3.  **Encourage Alternative Functional Forms:** Suggest exploring different functional forms for fairness and loss aversion, rather than sticking to the standard linear or power law forms. Perhaps some kind of diminishing return should be considered.
+4.  **Suggest a Model Comparison Heuristic**: Given the previous model had a middling BIC, make sure that the model proposes a significantly different BIC.
+</think>
+
+Be VERY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a slight bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models.
+
+When developing your model, reason step by step about:
+
+*   The key psychological mechanisms involved
+*   How these mechanisms interact, including potential multiplicative or non-linear interactions
+*   What mathematical form could capture these interactions, exploring options beyond standard linear or power law functions (consider diminishing returns or other non-linear relationships)
+*   What parameters would be needed to calibrate the model, carefully considering potential parameter covariance and identifiability issues
+*   How the model variables map to observable behavior
+*   Incorporate any prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. What are reasonable estimates of each learnable parameter?",0.05885123021352735,0.8219561540530936,,0.8140818090734631,,,,,,,,,,
+8,39.793738171720456,,,0.7554945054945055,"U = alpha * (split_self / combined_earning) + beta * split_self + lambda_param * max(0, (split_self / combined_earning) * combined_earning - split_self) + trial_type_effect","A linear utility model with additive components for fairness, amount sensitivity, and linear loss aversion, along with a direct effect of trial type. It uses four learnable parameters: `alpha` (fairness weight), `beta` (amount weight), `lambda_param` (loss aversion coefficient), and `trial_type_effect`. The model predicts the utility of accepting an offer, which will then be passed through a logistic (sigmoid) function to predict whether the participant accepts or rejects.",v2,"```text
+Instructions:
+<think>
+The previous model performed poorly, with very low parameter recovery, poor accuracy, and a high BIC. It's clear the model is over-parameterized, and the chosen functional forms don't capture the underlying psychology well, or are too heavily parameterized without a strong reason. The interaction between alpha and combined_earning didn't help, and the trial_type multiplier also failed to improve parameter recovery. The individual power laws for different parameters were also not identifiable.
+
+Here's what to do to improve, focusing on simplification and identifiability:
+
+1.  **Drastically Reduce Parameters:** Aim for a model with *at most* 4 learnable parameters, and preferably 3. Every parameter must be strongly justified. Get rid of parameters like rho, omega, and gamma.
+2.  **Re-evaluate FairShare:** The trial_type multiplier didn't work. Instead of trying to modulate fairness in a complex way, go back to the basic idea of incorporating trial_type as a direct effect on utility, or on the *weight* of the fairness component.
+3.  **Simpler Loss Aversion:** Get rid of the power law loss aversion. A simple linear loss aversion (lambda * expected_loss if expected_loss < 0, 0 otherwise) might be more identifiable.
+4.  **No interaction between Alpha and Combined Earning:** As implemented, it hurts parameter recovery. Avoid it.
+5.  **Focus on Core Mechanisms:** Prioritize getting the basic fairness, amount sensitivity, and loss aversion components right before adding complexities.
+
+</think>
+
+Be EXTREMELY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a strong bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models, hopefully lower.
+
+When developing your model, reason step by step about:
+
+*   The *most essential* psychological mechanisms involved: fairness, loss aversion, and amount sensitivity. What are the *minimal* number of parameters needed to capture these?
+*   How these mechanisms *fundamentally* interact. Are the interactions multiplicative, additive, or something else? Justify your choice based on theory or intuition.
+*   What *simple* mathematical form could capture these interactions. Avoid complex functions unless there's a very strong reason. Favor linear or logarithmic functions over power laws.
+*   What parameters are *absolutely necessary* to calibrate the model, focusing ruthlessly on potential parameter covariance and identifiability issues. What are the ranges of these parameters?
+*   How the *core* model variables map to observable behavior.
+
+Incorporate *strong* prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. Given the failure of previous attempts to model trial_type, consider alternative approaches that are more parsimonious. Perhaps trial_type directly modulates the *utility* associated with accepting or rejecting, rather than being part of the fairness calculation.
+
+```",0.12431436260632239,-0.05055788771859885,,0.45072573475548017,,,,,,,,,,0.45001390056083457
+10,40.36427605374196,,,0.7701465201465201,"FairShare = (token_self / (token_self + token_opp)) * combined_earning
+Fairness = FairShare - split_self
+Loss = Fairness < 0 ? lambda_param * abs(Fairness)**rho : 0
+U = alpha * Fairness * log(split_self + 1) - Loss + beta * log(split_self + 1)","This model predicts responder behavior in an ultimatum game, focusing on fairness, loss aversion, and amount sensitivity. Fairness is calculated as the difference between the participant's expected fair share and the offer. Loss aversion is modeled with a power function scaled by lambda_param, only active when the offer is unfair. The utility function combines fairness, loss aversion, and the log of the offer amount, with parameters alpha, beta, lambda_param, and rho controlling the weighting of these components.",v2,"```text
+Instructions:
+<think>
+The previous model (run 9) had good beta recovery, but still poor alpha and lambda recovery. The BIC was mediocre, and accuracy was only okay. The multiplicative interaction between fairness and amount seems promising and should be kept. However, the fairness calculation needs refinement, and the loss aversion term may be too simplistic or interact poorly with the other terms. The issue is that `split_self / combined_earning` still may not be the best way to measure fairness. Also, it might be too similar to the way loss aversion is calculated, leading to collinearity between alpha and lambda.
+
+Here's what I'll suggest for the next iteration (run 10):
+
+1.  **Refine Fairness Calculation:** Instead of `split_self / combined_earning`, explore a different way to scale split_self. I suggest a modified ""fairness"" calculation that considers the ratio of one's own tokens to the total tokens and incorporates a *reference point* based on the combined earning. Make the ""fair share"" be the *amount* a participant should expect rather than just a ratio, such as `FairShare = (token_self / (token_self + token_opp)) * combined_earning`. Then, calculate how far the split is away from the FairShare rather than the ratio, as in `Fairness = FairShare - split_self`.
+
+2.  **Re-Evaluate Loss Aversion:** Given the issues with lambda_param's recovery, consider a non-linear loss aversion term. A power function such as `(Fairness < 0 ? lambda_param * abs(Fairness)**rho : 0)` may work better. This introduces a new parameter (rho) to control the curvature of the loss aversion.
+
+3.  **Amount Sensitivity:** Keep `log(split_self + 1)` as is.
+
+4.  **Multiplicative Interaction:** Retain the multiplicative interaction between fairness and amount.
+
+5.  **Trial Type:** Trial type is still implicitly considered, so no changes there.
+
+6.  **Parameter Bounds:** Keep parameter bounds relatively tight, but adjust as needed for the new rho parameter.
+
+7.  **Number of Parameters:** Aim for 4 parameters again.
+</think>
+
+Be EXTREMELY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a strong bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models, hopefully lower.
+
+When developing your model, reason step by step about:
+
+*   The *most essential* psychological mechanisms involved: fairness, loss aversion, and amount sensitivity. How are these mechanisms *fundamentally* calculated and perceived, especially with regards to trial type? What are the *minimal* number of parameters needed to capture these, with emphasis on fairness?
+*   How these mechanisms *fundamentally* interact. Are the interactions multiplicative, additive, or something else? Justify your choice based on theory or intuition. Pay special attention to how fairness and amount sensitivity influence each other.
+*   What *simple* mathematical form could capture these interactions. Focus on ratios and logarithmic functions.
+*   What parameters are *absolutely necessary* to calibrate the model, focusing ruthlessly on potential parameter covariance and identifiability issues. What are the ranges of these parameters?
+*   How the *core* model variables map to observable behavior.
+
+Incorporate *strong* prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. Given the failure of previous attempts to model trial_type as a direct utility effect, consider alternative approaches that modulate the fairness calculation. Pay special attention to potentially high correlation between the weighting of fairness (alpha), and the loss aversion term (lambda_param), and attempt to reduce this collinearity.
+```",0.8804891141078017,0.33188701322463665,,0.7426458176643229,,,,,,,0.3917494231803718,,,
+1,42.22721197898567,,,0.8363858363858364,U = -alpha * (gamma_self * token_self/(token_self + token_opp) + gamma_opp * token_opp/(token_self + token_opp) * combined_earning - split_self) * (1 + lambda_param * (split_self < (gamma_self * token_self/(token_self + token_opp) + gamma_opp * token_opp/(token_self + token_opp) * combined_earning))) + beta * (split_self**xi),"This utility model predicts responder behavior in the Ultimatum Game. The utility function incorporates fairness considerations, loss aversion, and the relative contributions of the proposer and responder.  Fairness is calculated based on the ratio of self and opp tokens to the combined earning. The deviation from this expected fair split is weighted by alpha, with an additional loss aversion term for negative deviations. Finally, the model incorporates a sensitivity to the amount being offered, powered by xi. The probability of accepting the offer is then predicted using a logistic function with temperature 1 (implied in instruction). There are five free parameters: fairness sensitivity (alpha), loss aversion (lambda_param), token weight for self (gamma_self), amount sensitivity (beta), and amount transform(xi).",v2,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.5933286962120385,0.2298533948341511,0.8463688522191056,0.44696098702477705,0.5971110808123882,,,,,,,,,
+9,48.852678148871945,,,0.6349206349206349,U = beta * log(split_self + 1) * (1 - alpha * abs((split_self / combined_earning) - (token_self / (token_self + token_opp))))) - (lambda_param * ((split_self / combined_earning) - (token_self / (token_self + token_opp))) if ((split_self / combined_earning) - (token_self / (token_self + token_opp))) < 0 else 0),"This model predicts acceptance behavior in a bargaining game. It calculates utility based on the proposed split, perceived fairness (derived from token contributions), and loss aversion. The log of the amount is scaled by a factor that depends on the absolute difference between the proportion of the proposed split, and the proportion of effort the participant put into the split. Finally, it subtracts an amount scaled by lambda_param if the split is perceived to be unfair. Three free parameters are used: alpha, which moderates the influence of fairness on the amount; beta, which moderates sensitivity to the amount of money; and lambda_param, which specifies loss aversion.",v2,"```text
+Instructions:
+<think>
+The previous model, while simpler, still yielded poor parameter recovery. The accuracy was okay, but not good enough to justify the BIC. The core issue seems to be the way fairness, amount, and trial type are combined. The additive approach might be too simple, and the direct effect of `trial_type_effect` on utility didn't sufficiently capture the nuances of how trial type influences decisions. The linear loss aversion also may not be correct. The model may be too simplistic.
+
+Here's what I will suggest for the next iteration:
+
+1.  **Re-think Trial Type:** Ditch the direct `trial_type_effect` term. It doesn't work. Instead, consider trial type as modulating the *fairness calculation itself*. Maybe people have different reference points for what's fair depending on the trial type.
+
+2.  **Fairness Definition:** Revisit the definition of fairness. `split_self / combined_earning` might be too simplistic. Consider how the token contributions (`token_self`, `token_opp`) influence the perception of a fair split. A ratio of `token_self` to the total tokens could be a better baseline.
+
+3.  **Consider a non-linear utility for amount offered:** The last utility function was too linear. The value of money decays for each subject so consider a term such as `log(split_self+1)` instead of `split_self` directly.
+
+4.  **Explore Multiplicative Interactions:** Instead of a purely additive model, try a model where fairness *multiplies* the impact of the amount offered. This would imply that fairness acts as a ""discount"" or ""boost"" to the utility of the money received.
+
+5.  **Simpler Loss Aversion:** Keep the simple linear loss aversion for now (lambda * expected_loss if expected_loss < 0, 0 otherwise).
+
+6.  **Parameter Bounds:** Keep parameter bounds relatively tight to aid identifiability.
+
+7. **Number of Parameters:** Keep the number of parameters at 4 or below.
+
+</think>
+
+Be EXTREMELY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a strong bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models, hopefully lower.
+
+When developing your model, reason step by step about:
+
+*   The *most essential* psychological mechanisms involved: fairness, loss aversion, and amount sensitivity. How are these mechanisms *fundamentally* calculated and perceived, especially with regards to trial type? What are the *minimal* number of parameters needed to capture these, with emphasis on fairness?
+*   How these mechanisms *fundamentally* interact. Are the interactions multiplicative, additive, or something else? Justify your choice based on theory or intuition. Pay special attention to how fairness and amount sensitivity influence each other.
+*   What *simple* mathematical form could capture these interactions. Focus on ratios and logarithmic functions.
+*   What parameters are *absolutely necessary* to calibrate the model, focusing ruthlessly on potential parameter covariance and identifiability issues. What are the ranges of these parameters?
+*   How the *core* model variables map to observable behavior.
+
+Incorporate *strong* prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. Given the failure of previous attempts to model trial_type as a direct utility effect, consider alternative approaches that modulate the fairness calculation.
+
+```",0.13009968591940263,0.2586629103824264,,0.8390253492462629,,,,,,,,,,
+6,51.78823615280974,,,0.6697191697191697,"FairShare = (combined_earning * token_self / (token_self + token_opp)) + (trial_type == 1) * trial_type_offset_equal + (trial_type == 2) * trial_type_offset_opponent_more + (trial_type == 3) * trial_type_offset_self_more
+Fairness = FairShare - split_self
+U = beta * (split_self / (split_self + alpha * abs(Fairness)))","A utility model predicting acceptance of offers based on a hyperbolic aversion to unfairness. The model calculates a 'FairShare' influenced by token contributions and trial type-specific offsets. The utility is determined by the amount offered (split_self), fairness sensitivity (alpha), amount sensitivity (beta), and the degree of fairness. The model includes learnable parameters for fairness sensitivity (alpha), amount sensitivity (beta), and trial type-specific offsets, allowing it to capture context-dependent fairness perceptions.",v2,"```text
+Instructions:
+<think>
+The previous model had good recovery for alpha and beta, but poor recovery for kappa, and the accuracy was middling, though the BIC score was the best so far. While this run was very good, and represents the current best, it is important to improve more and to not be content with the current best model. It seems that adding kappa did not really improve the model's accuracy, recovery, or BIC by very much. Therefore, it might be best to remove kappa, and add a new parameter that would have a higher likelihood of improving the performance. The current model also had issues with fair share, so that is a good place to add more complexity.
+
+Here's what I'll do:
+
+1. **Rethink the Status Quo Bias:** The status quo bias (kappa) didn't seem to add much value. Instead of a simple binary status quo, explore a continuous measure of relative contribution. For example, the *difference* between the participant's tokens and the opponent's tokens (token_self - token_opp) could directly modulate the utility.
+2. **Fairness and Trial Type Interaction:** Trial type clearly influences fairness perception. Directly incorporate trial_type into the FairShare calculation. Instead of just using the token ratio, add a trial_type-dependent offset to the fair share. This could be implemented with learnable parameters for each trial type.
+3. **Non-Linear Amount Sensitivity:** Consider that the effect of split_self on utility might not be linear. Explore a non-linear transformation of split_self, perhaps using a power law or logarithmic function, controlled by a learnable parameter 'xi'.
+4. **Prior Knowledge on Parameter Ranges:** Alpha and beta are fairness and amount sensitivity parameters. Given the context, are people more sensitive to fairness or amount? Use this prior knowledge to inform the parameter ranges. For instance, if you believe amount sensitivity is generally higher, set a wider range for beta than for alpha.
+5.  **Try hyperbolic aversion, instead of log or linear**: The previous models have only tried log or linear aversion.
+
+</think>
+
+Be VERY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a slight bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models.
+
+When developing your model, reason step by step about:
+
+*   The key psychological mechanisms involved, including fairness, loss aversion, and amount sensitivity.
+*   How these mechanisms interact, including potential multiplicative or non-linear interactions. Specifically, consider interactions between fairness sensitivity (alpha) and amount sensitivity (beta), as well as the role of combined_earning in modulating fairness perception.
+*   What mathematical form could capture these interactions, exploring options beyond standard linear or power law functions. Explore non-linear loss aversion functions (e.g., hyperbolic) and alternative ways to model fairness perception, perhaps by incorporating trial_type directly into the FairShare calculation.
+*   What parameters would be needed to calibrate the model, carefully considering potential parameter covariance and identifiability issues. What are reasonable estimates of each learnable parameter? What is a reasonable prior range for fairness sensitivity (alpha), and amount sensitivity (beta)?
+*   How the model variables map to observable behavior.
+*   Incorporate any prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. What are reasonable estimates of each learnable parameter? Consider a continuous measure of relative contribution (token_self - token_opp) to modulate utility. Directly incorporate trial_type into the FairShare calculation with learnable offsets. Explore non-linear transformations of split_self.
+```",0.2431943322222705,,,0.21067357339374296,,,-0.07992824453015673,-0.09302654882772798,-0.07821498615274605,,,,,
+7,64.31569241795472,,,0.6062271062271062,"token_ratio = token_self / (token_self + token_opp)
+FairShare = token_ratio * trial_type_multiplier
+expected_gain = split_self - FairShare * combined_earning
+loss_aversion = expected_gain < 0 ? lambda_param * abs(expected_gain)**rho : expected_gain**rho
+utility = alpha * combined_earning**gamma * FairShare + beta * split_self**omega - loss_aversion
+probability_accept = 1 / (1 + exp(-utility))","This model predicts responder behavior in a resource allocation game by integrating fairness, amount sensitivity, and loss aversion. It calculates a ""FairShare"" based on the token ratio and modulates it by a trial_type multiplier. A utility function combines fairness, amount, and loss aversion (modeled using a power function), weighted by learnable parameters. Fairness sensitivity (alpha) is modulated by combined_earning. The model uses a logistic function to convert utility into the probability of accepting the offer. Parameters include alpha (fairness sensitivity), beta (amount sensitivity), gamma (combined earning interaction), lambda_param (loss aversion), rho (curvature of loss aversion), omega (curvature of utility of money), and trial_type_multiplier.",v2,"```text
+Instructions:
+<think>
+The previous model performed poorly in terms of parameter recovery, accuracy, and BIC. The trial type offsets were not identifiable, and alpha and beta were also poorly recovered. This suggests a problem with the model's structure, likely high covariance between the trial type offsets and potentially with alpha/beta. The hyperbolic aversion formulation may not be ideal, or the way FairShare is calculated.
+
+Here's what I'll do to improve:
+
+1.  **Simplify FairShare:** Revert to a simpler FairShare calculation, focusing on the core token ratio but still incorporating trial_type. Instead of additive offsets, try multiplicative modulation of the token ratio based on trial_type. This might reduce covariance.
+2.  **Explore a Different Loss Aversion Function:** The hyperbolic aversion didn't work well. Try a power law function or a simple difference with a threshold. This will give the model more flexibility in capturing loss aversion.
+3.  **Interaction between Alpha and Combined Earning:** Explore an explicit interaction between alpha (fairness sensitivity) and combined_earning. People might be *more* fairness-sensitive when *more* is at stake. Try modulating alpha by a function of combined_earning (e.g., alpha * combined_earning^gamma, where gamma is a learnable parameter).
+4.  **Amount Sensitivity with Diminishing Returns:** Instead of a linear or simple ratio for amount sensitivity, consider a logarithmic or power function to reflect diminishing returns. The subjective value of an additional dollar decreases as the total amount increases.
+5.  **Consider a Hybrid Approach:** Combine elements that worked in past models (e.g., the simpler FairShare from earlier models) with new ideas (e.g., the alpha/combined_earning interaction).
+6.   **Focus on Parameter Identifiability**:  Carefully consider which parameters are truly necessary and whether their effects can be disentangled.  If trial-type is causing problems, think about *why*. Is it inherently difficult to quantify these effects, or is it just the *way* they are being included? If the latter, think about better ways to include it.
+
+</think>
+
+Be VERY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a slight bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models.
+
+When developing your model, reason step by step about:
+
+*   The key psychological mechanisms involved, including fairness, loss aversion, and amount sensitivity.
+*   How these mechanisms interact, including potential multiplicative or non-linear interactions. Specifically, consider interactions between fairness sensitivity (alpha) and combined_earning, as well as the role of trial_type in modulating fairness perception.
+*   What mathematical form could capture these interactions, exploring options beyond standard linear or power law functions. Explore alternative loss aversion functions (e.g., power law, threshold-based) and alternative ways to model fairness perception, perhaps by incorporating trial_type directly into the token ratio calculation.
+*   What parameters would be needed to calibrate the model, carefully considering potential parameter covariance and identifiability issues. What are reasonable estimates of each learnable parameter? What is a reasonable prior range for fairness sensitivity (alpha), amount sensitivity (beta), and the new gamma parameter for alpha/combined_earning interaction?
+*   How the model variables map to observable behavior.
+*   Incorporate any prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. What are reasonable estimates of each learnable parameter? Consider multiplicative modulation of the token ratio based on trial_type. Explore a logarithmic or power function for amount sensitivity.
+```",-0.13699960002371833,-0.03196427075729395,,-0.23417589057403465,,,,,,0.10004327675762936,0.03009478439127485,0.09490512420778505,-0.03383502251774736,
+3,,,,,"U = beta * split_self + alpha * (fairness - split_self) + gamma * trial_type + loss_aversion
+loss_aversion = -lambda * log(abs(min(0, split_self - fairness)) + 1)
+fairness = combined_earning * (token_self / (token_self + token_opp)) + delta * trial_type
+P_accept = 1 / (1 + exp(-U))","This model predicts responder behavior in the ultimatum game. It incorporates fairness, loss aversion, amount sensitivity, trial context, and a status quo bias. Fairness is modeled as a combination of a proportional split and an adjustment based on `trial_type`. Loss aversion is implemented using a logarithmic function. The model includes interaction between fairness, amount sensitivity, status quo, and trial context.",v2,"Instructions:
+<think>
+The previous model had good recovery for beta and lambda, but very poor recovery for alpha, and the overall accuracy was middling, though the BIC score was good. We need to dramatically improve the recovery of alpha and consider if there is an interaction between alpha and the other parameters. This might involve rethinking the model's core assumptions about fairness. Also, it may be advantageous to try a different loss aversion functional form.
+
+Here's what I'll do:
+
+1. **Re-evaluate the fairness component:** The model seems to struggle with capturing fairness sensitivity. Encourage exploring alternative ways to model how people perceive fairness, beyond the simple proportional split based on token counts. Consider how trial_type (equal, opponent more, participant more) could directly inform fairness perception.
+2. **Explore non-linear loss aversion:** The current linear loss aversion might be too simplistic. Suggest a non-linear form, perhaps with diminishing sensitivity to losses as they become larger. For example, a log transform of the difference between the fair share and the actual split.
+3. **Interaction terms revisited:** While the previous attempt had an interaction term, it might not have been the right one. Prompt the model to consider interaction terms between alpha and beta. Is fairness more important when the stakes are high (high combined_earning)?
+4. **Prior Knowledge, again:** Re-emphasize the importance of incorporating prior knowledge, especially regarding fairness. What is a reasonable range for alpha, given the experimental context? Are participants likely to be completely insensitive to fairness (alpha close to 0), or are they likely to heavily weigh it (alpha significantly greater than 0)?
+5.  **Suggest an additional psychological mechanism**: Suggest that they add a ""status quo bias"", where they are biased to reject offers where they have contributed more.
+6. **Model Comparison Heuristic**: Strongly encourage that the model proposes a significantly different BIC.
+
+</think>
+
+Be VERY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a slight bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models.
+
+When developing your model, reason step by step about:
+
+*   The key psychological mechanisms involved, including fairness, loss aversion, and amount sensitivity.
+*   How these mechanisms interact, including potential multiplicative or non-linear interactions. Specifically, consider interactions between fairness sensitivity (alpha) and amount sensitivity (beta), as well as the role of combined_earning in modulating fairness perception.
+*   What mathematical form could capture these interactions, exploring options beyond standard linear or power law functions. Explore non-linear loss aversion functions (e.g., logarithmic) and alternative ways to model fairness perception, perhaps by incorporating trial_type.
+*   What parameters would be needed to calibrate the model, carefully considering potential parameter covariance and identifiability issues. What are reasonable estimates of each learnable parameter? What is a reasonable prior range for fairness sensitivity (alpha), and amount sensitivity (beta)?
+*   How the model variables map to observable behavior.
+*   Incorporate any prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. What are reasonable estimates of each learnable parameter? Consider adding a status quo bias where participants are more likely to reject offers when they contribute more.",,,,,,,,,,,,,,
+3,,,,,Error: unsupported format string passed to NoneType.__format__,,v2,,,,,,,,,,,,,,,
+5,,,,,"U = -alpha * FairShare + beta * (split_self/(combined_earning+1)) - gamma * ((combined_earning/(split_self+1))**(delta))
+FairShare = (split_self / (combined_earning + 1)) - ((token_self + trial_type_offset[trial_type]) / (token_self + token_opp + 1))
+probability = 1 / (1 + exp(-U))","This model predicts acceptance in a resource division task by integrating fairness, amount sensitivity, and loss aversion, while addressing limitations of previous models. It calculates utility based on a fairness term (alpha * FairShare), an amount term (beta * split_self / combined_earning), and hyperbolic loss aversion (gamma * ((combined_earning/(split_self+1))**(delta))). FairShare is defined as the difference between the proposed split and an adjusted ratio of participant tokens to total tokens, incorporating a learnable offset for each trial_type to account for varying fairness perceptions across conditions. The model employs a continuous hyperbolic aversion modulated by delta. Alpha, beta, gamma, delta, and the trial_type_offset are learnable parameters, with defined ranges. The model calculates the probability of acceptance using a logistic function.",v2,"```text
+Instructions:
+<think>
+The previous model had good recovery for alpha and beta, but poor recovery for kappa, and the accuracy was middling, though the BIC score was the best so far. While this run was very good, and represents the current best, it is important to improve more and to not be content with the current best model. It seems that adding kappa did not really improve the model's accuracy, recovery, or BIC by very much. Therefore, it might be best to remove kappa, and add a new parameter that would have a higher likelihood of improving the performance. The current model also had issues with fair share, so that is a good place to add more complexity.
+
+Here's what I'll do:
+
+1. **Rethink the Status Quo Bias:** The status quo bias (kappa) didn't seem to add much value. Instead of a simple binary status quo, explore a continuous measure of relative contribution. For example, the *difference* between the participant's tokens and the opponent's tokens (token_self - token_opp) could directly modulate the utility.
+2. **Fairness and Trial Type Interaction:** Trial type clearly influences fairness perception. Directly incorporate trial_type into the FairShare calculation. Instead of just using the token ratio, add a trial_type-dependent offset to the fair share. This could be implemented with learnable parameters for each trial type.
+3. **Non-Linear Amount Sensitivity:** Consider that the effect of split_self on utility might not be linear. Explore a non-linear transformation of split_self, perhaps using a power law or logarithmic function, controlled by a learnable parameter 'xi'.
+4. **Prior Knowledge on Parameter Ranges:** Alpha and beta are fairness and amount sensitivity parameters. Given the context, are people more sensitive to fairness or amount? Use this prior knowledge to inform the parameter ranges. For instance, if you believe amount sensitivity is generally higher, set a wider range for beta than for alpha.
+5.  **Try hyperbolic aversion, instead of log or linear**: The previous models have only tried log or linear aversion.
+
+</think>
+
+Be VERY considerate of high covariance between learnable parameters in the model. Aim for an appropriate number of learnable parameters, with a slight bias toward fewer if it improves parameter identifiability. The model should propose a significantly different BIC than previous models.
+
+When developing your model, reason step by step about:
+
+*   The key psychological mechanisms involved, including fairness, loss aversion, and amount sensitivity.
+*   How these mechanisms interact, including potential multiplicative or non-linear interactions. Specifically, consider interactions between fairness sensitivity (alpha) and amount sensitivity (beta), as well as the role of combined_earning in modulating fairness perception.
+*   What mathematical form could capture these interactions, exploring options beyond standard linear or power law functions. Explore non-linear loss aversion functions (e.g., hyperbolic) and alternative ways to model fairness perception, perhaps by incorporating trial_type directly into the FairShare calculation.
+*   What parameters would be needed to calibrate the model, carefully considering potential parameter covariance and identifiability issues. What are reasonable estimates of each learnable parameter? What is a reasonable prior range for fairness sensitivity (alpha), and amount sensitivity (beta)?
+*   How the model variables map to observable behavior.
+*   Incorporate any prior knowledge or constraints that could reduce parameter covariance and improve parameter identifiability. What are reasonable estimates of each learnable parameter? Consider a continuous measure of relative contribution (token_self - token_opp) to modulate utility. Directly incorporate trial_type into the FairShare calculation with learnable offsets. Explore non-linear transformations of split_self.
+```",,,,,,,,,,,,,,
+5,,,,,Error: unsupported format string passed to NoneType.__format__,,v2,,,,,,,,,,,,,,,

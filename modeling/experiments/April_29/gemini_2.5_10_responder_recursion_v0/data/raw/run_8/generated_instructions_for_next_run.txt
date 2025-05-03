@@ -1,0 +1,43 @@
+Okay, here are the updated instructions for the next run (Run 9):
+
+<instructions>
+The previous run tested a linear model using proportional values (`Utility = bias + sensitivity_prop * split_perc - alpha_ineq_prop * inequity_perc`). This achieved the best BIC score so far (31.01) and excellent recovery for the `bias` parameter (r=0.91). However, it failed to meet the goals for accuracy (0.789 vs target >0.82) and, critically, resulted in poor parameter recovery for both `sensitivity_prop` (r=0.515) and `alpha_ineq_prop` (r=0.492), both well below the target of r > 0.75.
+
+This suggests that simply using proportions in a linear model, while improving overall fit (BIC), did not resolve the identifiability issue between the gain and inequity sensitivity parameters. There might still be significant correlation between the proportional gain (`split_perc`) and proportional inequity (`inequity_perc`) terms, or the linear relationship might be insufficient to capture the decision process accurately.
+
+**Your Goal:** Develop a model that leverages the improved fit potential of proportional values (aiming for **BIC < 31**) while significantly improving **parameter recovery (all r > 0.75)** and achieving **good accuracy (Accuracy > 0.82)**.
+
+**New Direction: Non-Linearity on Proportional Inequity**
+
+Since the proportional representation yielded good BIC, let's retain that but re-introduce non-linearity. Specifically, let's apply a transformation to the proportional inequity term, mirroring a previous model (Run 5, which used log-inequity on absolute values and showed better sensitivity recovery). This might capture diminishing sensitivity to proportional unfairness and help decorrelate the inequity term from the proportional gain term.
+
+**Proposed Model Structure (Primary Focus):**
+
+Test a utility model using proportional gain and a logarithmically transformed proportional inequity term:
+
+1.  Calculate intermediate proportional terms as before:
+    *   `total_tokens = token_self + token_opp`
+    *   `contribution_ratio = (token_self / total_tokens) if total_tokens > 0 else 0.5`
+    *   `deserved_perc = contribution_ratio`
+    *   `split_perc = (split_self / combined_earning) if combined_earning > 0 else 0`
+    *   `inequity_perc = max(0, deserved_perc - split_perc)`
+2.  Apply logarithmic transformation to the proportional inequity:
+    *   Define a small constant `epsilon = 1e-6` (to avoid log(0)).
+    *   `log_inequity_perc = log(inequity_perc + epsilon)`
+3.  Calculate Utility:
+    *   `Utility = bias + sensitivity_prop * split_perc - alpha_log_ineq_prop * log_inequity_perc`
+
+This model uses 3 learnable parameters:
+*   `bias`: Baseline acceptance tendency.
+*   `sensitivity_prop`: Sensitivity to the *proportion* of the total earnings offered (linear term).
+*   `alpha_log_ineq_prop`: Sensitivity (aversion) to the *logarithm* of proportional disadvantageous inequity.
+
+**Emphasis:**
+*   Implement the **proportional model with log-transformed inequity** described above. Include the small constant `epsilon` in your model specification and variable descriptions (as a fixed value).
+*   This approach aims to combine the good fit of proportions (Run 8 BIC) with the potential recovery benefits of non-linear inequity (inspired by Run 5 results).
+*   Ensure your model uses exactly 3 learnable parameters (`bias`, `sensitivity_prop`, `alpha_log_ineq_prop`).
+*   Define appropriate, generous but finite numerical bounds for these parameters. Consider the scaling implications of the log transformation on `alpha_log_ineq_prop`.
+*   While this is the primary focus, briefly consider alternative ways non-linearity could be incorporated with proportions if you have strong reasons, but justify why the proposed log-inequity model is being prioritized or modified.
+
+Please provide your reasoning step-by-step, justify your chosen model structure by explaining how it addresses the limitations of the previous model and aims to meet all performance goals (BIC, Accuracy, Recovery), and detail the model specification in the required format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>).
+</instructions>

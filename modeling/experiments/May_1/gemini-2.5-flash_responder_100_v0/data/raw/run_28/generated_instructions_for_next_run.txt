@@ -1,0 +1,195 @@
+<think>
+The user wants updated instructions for the modeling LLM.
+The goal is to improve model performance, especially parameter recovery (>= 0.7 for all).
+The previous run's model (piecewise threshold) had poor recovery for most parameters, despite being a novel structure compared to earlier linear/power-law models. Only `beta_utility_below_threshold` recovered well. This suggests that while piecewise might be a good direction, the specific implementation (learned absolute percentage threshold, linear utility *above* threshold) failed to disentangle parameters like `beta_zero`, `beta_amount`, and `fairness_threshold_perc`.
+
+The instructions need to:
+1.  Reiterate the task, data, and standard output format.
+2.  Emphasize the failure of *all* previous models (linear, quadratic, power-law, piecewise) on parameter recovery across *all* learnable parameters. State clearly that recovery < 0.7 for *any* parameter makes the model unusable, and this is the absolute highest priority.
+3.  Point out that varying the functional form (linear, quadratic, power) or adding simple thresholds hasn't solved the fundamental identifiability problem.
+4.  Suggest a *different* structural approach, building on the previous instruction's ideas but focusing on the deviation from the calculated fair percentage (`fair_perc_self`) as a central reference point.
+5.  Specifically propose a model structure that incorporates asymmetric effects for offers *better than* vs. *worse than* the fair percentage, potentially like a piecewise linear function *around* the `fair_perc_self` reference point (e.g., `U = beta_base + beta_gain * max(0, offer - fair) + beta_loss * max(0, fair - offer)` using percentages). This is a common structure in behavioral economics/psychology (like Prospect Theory value functions centered at a reference point).
+6.  Guide the LLM to define `fair_perc_self` as a calculated variable, handling the edge case.
+7.  Guide the LLM to define the positive and negative deviation variables based on percentage differences from `fair_perc_self`.
+8.  Remind the LLM about defining all variables (data, calculated, learnable), their bounds (finite, generous for learnable), and ensuring all variables in the <MODEL> are described in <VARIABLES>.
+9.  Update the run number in the instructions.
+10. Do not refer to the previous interaction or mention that I am improving previous instructions. The instructions should be self-contained as if they are the first time the LLM is receiving them, but incorporating lessons from the prior runs.
+
+Drafting the core "Instructions" section:
+- Start by clearly stating the objective: design a responder model (`trial_role == 1`) focusing on utility prediction for acceptance.
+- Immediately state the main challenge observed in previous runs: consistent failure to achieve sufficient parameter recovery (all parameters >= 0.7). Mention that multiple structural variations have been attempted and failed recovery, despite sometimes achieving decent BIC or accuracy.
+- Reiterate that parameter recovery is the *absolute highest priority* because models with unidentifiable parameters are unusable.
+- Introduce the proposed structural theme: modeling utility based on the *relative* value of the offer compared to the *calculated fair percentage* derived from token contributions (`fair_perc_self`).
+- Define `fair_perc_self` calculation clearly, including the edge case.
+- Suggest creating calculated variables for positive and negative deviations from `fair_perc_self` using `split_perc_self`.
+- Propose a specific structural form: utility as a baseline plus potentially different sensitivities (learnable parameters) for these positive and negative deviations. This moves beyond simple additive or multiplicative effects of amount/deviation and tests if sensitivity to *signed deviation from fair percentage* is a more identifiable component.
+- Remind about bounds, variable descriptions, and the output format.
+- Add a touch encouraging "out-of-the-box" thinking *within this suggested direction* to find the best functional form (e.g., maybe not strictly linear deviation, but powers, although linear is a good start given past power failures). But focus the novelty on the reference point and asymmetric deviation structure.
+
+Refining the "Guidance for the Next Model":
+- Keep the core requirements list.
+- Merge the general instructions and the specific guidance.
+- Structure: Intro -> Problem (Recovery Failure) -> Priority -> Lessons Learned (Past structures failed recovery) -> Proposed New Direction (Reference Point/Asymmetric Deviation) -> Specific Guidance (Calculate fair_perc_self, define deviations, suggest utility form) -> Output Requirements Reminder.
+
+Okay, constructing the final instruction text. I will ensure it flows logically and clearly states the updated priority and the suggested structural approach, while retaining all necessary context and formatting requirements.Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable "token_self". The other variable, "token_opp", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.
+
+Again, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.
+
+Note that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same "fairness".
+
+Below is the description of each variable in the dataset, which will be followed by information about the data type of the variable:
+
+trial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]
+trial_role = the role of the participant [1 = responder, 2 = proposer]
+token_opp = number of tokens found by the opponent
+token_self = number of tokens found by the participant
+combined_earning = amount of money earned in total (note that each token found is £3)
+split_opp = the proposed share of the opponent (in £)
+split_self = the proposed share for the participant (in £)
+splitperc_opp = same but in %
+split_perc_self = same but in %
+accept = whether the participant responded accept (1) or reject (0)
+accepted_amount = if accepted, what is the amount gain (in £)
+accepted_perc = same as above but in %
+proposed_perc = when participant is the proposer, what is the % proposed to the opponent
+proposed_amount = when participant is the proposer, what is the amount proposed to the opponent
+
+Desired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified).
+
+The model should:
+1. Predict only responder behavior (should target "accept = whether the participant responded accept (1) or reject (0)")
+2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.
+3. Be applicable to the dataset given within the task description (i.e. the model should be able to be run using only the provided dataset structure).
+4. Predict utility, where less than 0 is less than 50% likely.
+
+For any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).
+
+Then, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.
+For example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal.
+
+Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied.
+
+```json
+{
+  "variables": {
+    "variable_name": {
+      "description": "Clear description",
+      "range": {
+        "min": value,
+        "max": value,
+        "inclusive_min": boolean,
+        "inclusive_max": boolean
+      },
+      "distribution": {
+        "type": "distribution type",
+        "parameters": {}
+      },
+      "learnable": boolean,
+      "source": "learnable/data/calculated"
+    }
+  }
+}
+```
+</VARIABLES>
+
+Example #1:
+<EXAMPLE>
+(Model of a Random Choice Task):
+Let me think through this step by step...
+[your reasoning here]
+
+<MODEL>
+U_i = beta_param + epsilon_param * E + eta_param * N
+</MODEL>
+
+<VARIABLES>
+{
+  "variables": {
+    "U_i": {
+      "description": "Utility of choosing action i",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "calculated"
+    },
+    "beta_param": {
+      "description": "Base tendency parameter (inherent preference)",
+      "range": {
+        "min": 0,
+        "max": 1
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "epsilon_param": {
+      "description": "Environmental sensitivity parameter",
+      "range": {"min": "-inf", "max": "inf"},
+      "learnable": true,
+      "source": "learnable"
+    },
+    "E": {
+      "description": "Environmental cue value",
+      "range": {"min": "-inf", "max": "inf"},
+      "learnable": false,
+      "source": "data"
+    },
+    "eta_param": {"description": "Noise parameter", "range": {"min": 0, "max": 1, "exclusive_max": true}, "learnable": true, "source": "learnable"},\
+    "N": {
+      "description": "Random noise drawn from normal distribution N(0,1)",
+      "distribution": {
+        "type": "normal",
+        "mean": 0,
+        "std": 1
+      },
+      "learnable": false,
+      "source": "calculated"
+    }
+  }
+}
+</VARIABLES>
+<SUMMARY>
+A linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (beta) constrained to [0,1] and an unconstrained environmental sensitivity parameter (epsilon). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.
+</SUMMARY>
+</EXAMPLE>
+
+Please be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.
+
+The parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.
+
+Model Type:
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.
+
+Instructions for Run 29 of 100:
+Previous attempts at modeling responder behavior have consistently struggled with parameter recovery. Models based on linear, quadratic, or power-law combinations of proposed amount/percentage and unfair deviation have failed to achieve recovery >= 0.7 for all parameters. A recent attempt using a piecewise structure based on a learned percentage threshold also resulted in poor recovery for most parameters, rendering the model unusable despite exploring a different structural form.
+
+For this run, the **absolute highest priority remains achieving parameter recovery >= 0.7 for *all* learnable parameters**. A computational model is unusable if its parameters cannot be reliably estimated, regardless of its fit (BIC) or predictive accuracy on observed data. You must design a model structure where each learnable parameter has a distinct and separable influence on the predicted utility across the dataset's trials.
+
+Given the repeated failure of previous structural approaches, it is clear that a fundamentally *different way of conceptualizing utility* in this task is needed to improve parameter identifiability. Sticking to variations of adding penalty terms to a base utility seems insufficient.
+
+**Guidance for the Next Model (Focusing on Identifiability via Reference Point):**
+
+Design a computational model for responder decisions (`trial_role == 1`) that predicts the utility of accepting an offer, prioritizing parameter identifiability through a novel structural approach based on deviations from a reference point.
+
+*   **Parameter Identifiability:** Focus intensely on designing the model such that the impact of changing one learnable parameter cannot be replicated simply by changing another. Consider the correlations between variables and how your parameters interact with them.
+*   **Reference Point & Asymmetric Deviations:** A promising direction, different from previous models, is to model utility relative to a salient reference point. In this task, the calculated "fair share" based on token contributions is a strong candidate for a reference point.
+    *   First, calculate the fair percentage for the participant (`fair_perc_self`) based on token contributions: `fair_perc_self = (token_self / (token_self + token_opp)) * 100`. **Crucially, handle the case where `token_self + token_opp == 0` by setting `fair_perc_self` to 50 in that instance.**
+    *   Next, define variables representing the participant's proposed share (`split_perc_self`) relative to this calculated fair percentage. Consider the *deviations* from this fair percentage:
+        *   `perc_gain_from_fair = max(0, split_perc_self - fair_perc_self)` (positive deviation)
+        *   `perc_loss_from_fair = max(0, fair_perc_self - split_perc_self)` (negative deviation)
+*   **Model Structure:** Design the utility function as a combination of a base utility (`beta_base`) and the influence of these deviations. Consider allowing for *asymmetric* sensitivities to positive vs. negative deviations relative to the fair percentage. A structure like `U = beta_base + beta_gain * perc_gain_from_fair + beta_loss * perc_loss_from_fair` is one example of this approach, allowing `beta_gain` and `beta_loss` to capture different impacts of receiving more or less than the fair share. Explore variations on how these deviations influence utility (e.g., perhaps non-linearly, but focus first on disentangling the *sources* of influence - base, gain deviation, loss deviation).
+*   **Calculated Variables:** Ensure `fair_perc_self`, `perc_gain_from_fair`, and `perc_loss_from_fair` (and any other variables you define based on data) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs to these calculations (`token_self`, `token_opp`, `split_perc_self`).
+*   **Parameter Constraints:** Define clear, generous, finite numerical bounds for *all* learnable parameters (`beta_base`, `beta_gain`, `beta_loss` etc.). Consider carefully if parameters should be constrained (e.g., non-negative/non-positive) based on the psychological interpretation and their role in making them identifiable, but generous finite bounds are required.
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Use clear notation.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include bounds and learnable status.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing the model structure, its key components (especially the use of fair percentage as a reference point and asymmetric deviation sensitivities), and how it relates to the decision process, with a focus on the *novelty* or structural changes aimed at identifiability.
+
+Design a model that you believe has the best chance of achieving parameter recovery >= 0.7 for all its learnable parameters by adopting a structural form that explicitly uses deviation from the calculated fair percentage as a reference point, allowing for potentially asymmetric influences of receiving more vs. less than fair. Think critically about how each parameter influences decisions and how this influence can be uniquely captured by the model structure given the characteristics of the dataset. Do not be afraid to propose a structure that is significantly different from previous attempts based on simple penalty terms or fixed thresholds.
+
+Please think through this step by step, focusing intently on designing a model structure that improves parameter identifiability through a novel approach centered on the calculated fair percentage reference point and asymmetric deviations, and ensure all output requirements are met. Then provide your model specification, variable descriptions, target variable, and summary.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+</previous_instructions>

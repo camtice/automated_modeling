@@ -1,0 +1,52 @@
+
+
+New Instructions for Run 13:
+
+1. Candidate Families (≤4 Learnable Parameters)  
+   a. Absolute‐Inequity Model (2 params):  
+      U = α + β⋅|z_share – 0.5|  
+   b. Piecewise Inequity Aversion (3 params):  
+      U = α + β_pos⋅max(0.5–z_share,0) + β_neg⋅max(z_share–0.5,0)  
+   c. Saturating Fairness Model (3 params):  
+      U = α + γ⋅(1 – exp(–λ⋅|z_share – 0.5|)), with λ learnable  
+   d. Linear Reference Model (2 params):  
+      U = α + β⋅(z_share – 0.5)  
+
+2. Feature Engineering  
+   • Compute z_share = split_self/combined_earning; center at 0.5.  
+   • Derive pos_dev = max(z_share–0.5,0), neg_dev = max(0.5–z_share,0), and abs_dev = |z_share–0.5|.  
+   • Standardize each derived feature to zero mean/unit SD.  
+   • Orthogonalize only if two features are jointly used (Gram–Schmidt), drop any redundant input.  
+
+3. Link & Noise  
+   • Always apply a logistic link with fixed temperature τ=1.  
+   • No extra noise parameters beyond these link assumptions.  
+
+4. Priors, Bounds & Reparameterization  
+   • All linear weights (α, β, β_pos, β_neg, γ) ∼ Normal(0,0.1), truncated to [–0.3,0.3].  
+   • Saturation rate λ ∼ Gamma(2,2), truncated to [0.1,10].  
+   • No exponents or parameters fixed at arbitrary values—if λ is unstable, drop it and revert to simpler family.  
+   • Total learnable parameters ≤4.  
+
+5. Two‐Stage Simulation & Recovery (strict)  
+   Stage 1: Draw 1,000 synthetic datasets from priors → estimate MAP → compute Pearson r.  
+   Stage 2: If any parameter’s r<0.80:  
+     – Drop or fix that parameter to zero.  
+     – Re‐evaluate recovery; if more than one parameter must be dropped, switch to the next simplest family.  
+
+6. Validation & Model Comparison  
+   • Nested 10‐fold cross‐validation; report out‐of‐sample accuracy, BIC, WAIC, and LOO‐CV.  
+   • Require ≥8‐point BIC drop and ≥8% accuracy gain versus the 2‐param linear reference model.  
+   • Perform posterior predictive checks to ensure realistic choice probabilities.  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: Only the final chosen formula.  
+   • <VARIABLES>…</VARIABLES>: Full list of all parameters and features, with descriptions, numerical bounds, priors, and data/calculated source.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • Name the selected family and its psychological rationale.  
+   • Highlight key design choices: feature definitions (abs_dev, pos_dev, neg_dev), zero‐mean/unit‐variance standardization, strong shrinkage (σ=0.1), saturated vs. linear terms, and strict recovery threshold (r≥0.80).  
+   • Note any parameters dropped for identifiability and the reason.  
+
+Encouragement: Feel free to propose truly novel transforms or mixture approaches (e.g., combining absolute inequity with a small piecewise term) within the 4‐parameter limit, but ensure all parameters pass the r≥0.80 recovery test.

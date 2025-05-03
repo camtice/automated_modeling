@@ -1,0 +1,49 @@
+Okay, here are the updated instructions for the next run:
+
+<instructions>
+The previous run tested a model incorporating non-linear disadvantageous inequity using a power function: `Utility = bias + sensitivity * split_self - alpha_ineq * (inequity ** delta_ineq)`. This 4-parameter model achieved the best BIC score so far (~36.3), slightly improving upon the best 3-parameter model (~38.6). However, accuracy remained similar (~0.813), and critically, parameter recovery significantly worsened. While `bias` (r~0.80) and `sensitivity` (r~0.70) were reasonable, `alpha_ineq` dropped (r~0.69), and the new `delta_ineq` parameter had very poor recovery (r~0.44).
+
+This suggests that while some form of non-linearity or refinement might improve model fit (as indicated by BIC), the power function formulation introduced issues with parameter identifiability, potentially due to trade-offs between `alpha_ineq` and `delta_ineq`.
+
+The best reliable model remains the 3-parameter one:
+`total_tokens = token_self + token_opp`
+`deserved_split = (combined_earning * token_self / total_tokens) if total_tokens > 0 else 0`
+`inequity = max(0, deserved_split - split_self)`
+`Utility = bias + sens * split_self - alpha_ineq * inequity`
+(BIC ~38.6, Accuracy ~0.814, Recovery: bias=0.87, sens=0.78, alpha_ineq=0.81)
+
+**Your Goal:** Develop a model that significantly improves upon *all* metrics compared to the best 3-parameter model above. Specifically aim for:
+
+1.  **Lower BIC** (Target below 36.3, ideally lower).
+2.  **Higher Accuracy** (Target above ~0.814).
+3.  **Excellent Parameter Recovery** (All parameter correlations should be > 0.75).
+
+**New Directions to Explore:**
+
+Given the recovery issues with the power function, let's explore alternative functional forms or conceptualizations, focusing on parsimony and clear psychological interpretation. Aim for 3 parameters if possible, or 4 only if strongly justified and high recovery can be maintained.
+
+1.  **Ratio-Based Inequity Perception:** Instead of the absolute *difference* `(deserved_split - split_self)`, perhaps subjects perceive unfairness based on the *ratio* between what was deserved and what was offered.
+    *   Consider incorporating a term like `log((deserved_split + epsilon) / (split_self + epsilon))`, where epsilon is a small constant (e.g., 0.01) to handle potential division by zero or instability near zero. Disadvantageous inequity occurs when this log-ratio is positive.
+    *   Example structure (3 parameters): `Utility = bias + sensitivity * split_self - alpha_ratio_ineq * max(0, log((deserved_split + 0.01) / (split_self + 0.01)))`.
+    *   Justify why a ratio might be psychologically more plausible than an absolute difference.
+
+2.  **Logarithmic Transformation of Inequity Difference:** Revisit the idea of non-linearity in inequity aversion, but use a fixed transformation instead of a learnable exponent. A logarithm captures diminishing sensitivity to larger absolute differences.
+    *   Example structure (3 parameters): `Utility = bias + sensitivity * split_self - alpha_log_ineq * log(inequity + 1)`. (Note: `inequity` is still `max(0, deserved_split - split_self)`. Adding 1 avoids log(0)).
+    *   This tests non-linearity without adding the potentially problematic `delta_ineq` parameter.
+
+3.  **Non-Linear Utility of Gain:** Perhaps the linearity assumption is weaker for the gain term (`split_self`) rather than the inequity term. Diminishing marginal utility of money is a standard economic concept.
+    *   Keep the inequity term linear as in the best 3-parameter model, but transform the gain.
+    *   Example structure (3 parameters): `Utility = bias + sensitivity * log(split_self + 1) - alpha_ineq * inequity`.
+    *   Alternatively: `Utility = bias + sensitivity * sqrt(split_self) - alpha_ineq * inequity`.
+    *   This might allow the linear inequity term to fit better if non-linearity in gain was previously interfering.
+
+4.  **Proportional Fairness Comparison:** Frame fairness not in absolute pounds (£), but in terms of proportions of the total pot compared to proportions of contribution.
+    *   Calculate `contribution_share = token_self / total_tokens` (handle division by zero).
+    *   Calculate `offer_share = split_self / combined_earning` (handle division by zero).
+    *   Define inequity based on the difference between these shares: `proportional_inequity = max(0, contribution_share - offer_share)`.
+    *   Example structure (3 parameters): `Utility = bias + sensitivity * split_self - alpha_prop_ineq * proportional_inequity`. (Think carefully about edge cases like `total_tokens = 0` or `combined_earning = 0`. Maybe set shares to 0.5 in those cases?).
+
+**Emphasis:** Focus on models that modify the *functional form* of the relationship between variables, rather than just adding parameters linearly (like the advantageous inequity term previously). Prioritize models that maintain 3 parameters or have a very strong justification for a 4th, coupled with excellent expected parameter recovery. Think outside the standard Fehr-Schmidt variations if inspired, but ensure psychological plausibility and testability with the given data.
+
+Please provide your reasoning step-by-step, justify your chosen model structure by explaining how it addresses the limitations of previous models and aims to improve performance metrics (especially recovery), and detail the model specification in the required format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>).
+</instructions>

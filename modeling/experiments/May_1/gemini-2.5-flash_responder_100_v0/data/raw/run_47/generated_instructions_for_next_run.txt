@@ -1,0 +1,52 @@
+Okay, here are the improved instructions for the next run (Run 48), building on the results of the previous runs.
+
+Instructions for Run 48 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The previous run (Run 47) successfully achieved parameter recovery above the 0.7 threshold for *both* of its learnable parameters (`beta_gain_linear_diff: r = 0.727`, `beta_loss_linear_diff: r = 0.966`), using a piecewise linear function of the *difference* from the fair ratio (`R_val - 1.0`). This reinforces that the piecewise structure, splitting based on the fair ratio (`R_val` vs 1.0), seems crucial for parameter identifiability with exactly two learnable parameters. However, the BIC (40.53) and accuracy (0.672) did not significantly improve compared to the current best *recoverable* model (the piecewise log-log ratio model, BIC 40.45, accuracy 0.662). This suggests the linear functional form applied to the difference might not provide the best fit to the data.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** that ensures both parameters have distinct, identifiable influences on responder decisions (`trial_role == 1`) while also improving model fit (lower BIC, higher accuracy).
+
+For this run, let's continue to leverage the successful *piecewise structure* based on the ratio `R_val` split at 1.0, maintaining exactly **2 learnable parameters**. We will explore a *hybrid* functional form, combining elements from previously successful models: **use a logarithmic function for the gain side (`R_val >= 1.0`) and a linear function of the difference for the loss side (`R_val < 1.0`)**. This attempts to combine the fit characteristics of the logarithmic form seen in the best recoverable model for favorable offers with the linear difference form that showed good recovery in the last run for unfavorable offers.
+
+Design a computational model that predicts the utility of accepting an offer based on a **piecewise function of the ratio of the proposed percentage share to the participant's fair percentage share (`R_val`)**. For offers where `R_val >= 1.0`, utility should be a logarithmic function of `R_val` scaled by one learnable parameter. For offers where `R_val < 1.0`, utility should be a linear function of the *difference* (`R_val - 1.0`) scaled by a second learnable parameter.
+
+*   **Structural Direction (Piecewise Hybrid Function):** Model utility (`U`) based on `R_val`, using different functional forms and scaling parameters depending on whether `R_val` is non-negative (fair or generous offers) or negative (unfair offers).
+    *   Calculate the necessary intermediate variables as before:
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self_calc = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)` (Ensures `fair_perc_self_calc` is >= 0).
+        *   `epsilon_val = 1e-6` (Small constant for numerical stability).
+        *   `R_val = (split_perc_self + epsilon_val) / (fair_perc_self_calc + epsilon_val)` (Calculate the ratio, ensuring `R_val` is always positive).
+        *   `R_diff = R_val - 1.0` (Calculate the difference from the fair ratio).
+    *   Structure the utility (`U`) using a conditional statement based on the value of `R_val`:
+        *   If `R_val >= 1.0`: `U = beta_gain_log * log(R_val)` (Logarithmic scaling for gain/favorable offers, using `log(R_val)` where `R_val >= 1`).
+        *   If `R_val < 1.0`: `U = beta_loss_linear_diff * R_diff` (Linear scaling for loss/unfair offers, using the *difference* `R_diff = R_val - 1.0`, which will be negative here).
+    *   This structure uses two distinct learnable parameters (`beta_gain_log` and `beta_loss_linear_diff`) that scale the outcome of different functional forms applied based on whether the offer ratio is a gain or a loss relative to the fair point. This is a direct attempt to combine the piecewise identifiability success with potentially better functional forms.
+
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self`, `token_self`, `token_opp` as data variables.
+    *   Calculate `sum_tokens`, `fair_perc_self_calc`, `epsilon_val`, `R_val`, `R_diff`, and `U`.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+
+*   **Model Formula:** Define the utility (`U`) based on the conditional logic applied to `R_val` and your 2 learnable parameters. Include the calculation steps for necessary derived variables (`sum_tokens`, `fair_perc_self_calc`, `epsilon_val`, `R_val`, `R_diff`) before the final formula for `U`. Use clear mathematical notation (IF/ELSE or similar conditional structure), making sure to use `log()` for the logarithm.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**.
+    *   `beta_gain_log`: Sensitivity parameter scaling `log(R_val)` when `R_val >= 1.0` (fair or favorable offers). Suggest generous bounds like [-10.0, 10.0].
+    *   `beta_loss_linear_diff`: Sensitivity parameter scaling the *difference* (`R_val - 1.0`) when `R_val < 1.0` (unfair offers). Suggest generous bounds like [-10.0, 10.0].
+    Choose descriptive names suitable for Python code that reflect the functional form (log vs linear) and the value they scale (ratio vs difference) and the ratio range (gain vs loss). Define clear, generous, finite numerical bounds for both.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self_calc`, `epsilon_val`, `R_val`, `R_diff`, `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`). Be mindful of the range for `R_diff` given its calculation (it can be negative).
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by a piecewise function based on the ratio (`R_val`), using `log(R_val)` scaled by `beta_gain_log` for gain/favorable offers (`R_val >= 1.0`) and the linear difference (`R_val - 1.0`) scaled by `beta_loss_linear_diff` for loss/unfair offers (`R_val < 1.0`). Explain how this hybrid piecewise structure is designed to improve fit (BIC/Accuracy) by incorporating the log function for gains, while building on the successful piecewise structure and linear difference form for losses to maintain parameter identifiability.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability *within* the constraints of **exactly 2 learnable parameters** is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This piecewise hybrid approach is a direct attempt to combine successful elements from previous models. If this structure also meets recovery but doesn't significantly improve BIC/Accuracy, or if it fails recovery for either parameter, be prepared to think even further outside the box for the next iteration – consider alternative conceptualizations of fairness's influence (e.g., is it just a reference point, or does it modulate sensitivity in a non-linear way?), different ways of incorporating the absolute amounts or tokens themselves rather than just percentages, or exploring fundamentally different model structures (e.g., additive utility components instead of just scaled ratios/differences). The key is finding a structure where the two parameters’ contributions to utility are as independent as possible across the dataset, while also capturing the behavioral patterns better than previous attempts.

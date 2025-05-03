@@ -1,0 +1,68 @@
+<think>
+Although the last model achieved very strong parameter recovery (beta: r = 0.959), it underperformed the overall best model from previous runs in both BIC and accuracy (BIC ~39.8 and accuracy ~0.65 versus BIC = 30.4 and accuracy ~0.78 for the best model, which used a bias + scaled log-ratio as a two-parameter model). This suggests that a pure single-parameter log-ratio, while optimal for recoverability, may be missing either a baseline intercept/bias effect or a more flexible form of nonlinearity.
+
+Further, history shows the best model used a small additive bias alongside the log-ratio, while still avoiding parameter collinearity by explicit normalization—and their summary notes the combination allows for "continuous, reference-dependent loss aversion, minimizes parameter collinearity through explicit normalization, and is highly interpretable for both prediction and psychological inference."
+
+Thus, for this round, instructions should:
+- Encourage inclusion of a bias/intercept IF and only IF it is mathematically separable from the main fairness sensitivity, and only after ensuring both parameters are directly interpretable and recoverable.
+- Prompt creative exploration of new, monotonic global nonlinearities—such as the use of a softplus or smooth absolute (e.g., log[1 + k·(offer/deserved - 1)]), or parameterized sigmoids—while still strictly avoiding discontinuities or piecewise forms.
+- Reiterate that all variables must be normalized (e.g., all shares as percent or relative to deserved), and transformations must be monotonic and smooth everywhere.
+- Suggest examining the possibility that a small, constrained additive bias or an alternative smoothly-sloped baseline (e.g., offset inside the log or as a pre-sigmoid additive) could further increase fit and accuracy while still maintaining excellent recovery.
+- Strongly encourage providing a clear rationale for how each parameter can be recovered and why the proposed innovation is likely to improve fit over the prior form.
+- Continue to discourage "patches" such as max(), if/else, or regime switches in favor of models with fully smooth gradients and separable parameter effects.
+- Optionally, recommend the implementation of a bias parameter with an explicit explanation for why it will not interfere with fairness sensitivity estimation.
+- Invite out-of-the-box variants, for instance: generalized log-ratio (log(offer/deserved + c)), ratio raised to a global exponent, or activation of a learnable nonlinearity on the log-ratio (e.g., sigmoid or softplus) before or after the main parameter.
+
+The overall goal: maintain or further improve recoverability while reducing BIC and boosting predictive accuracy, via either judicious introduction of a bias/intercept (if justified), a more flexible global nonlinearity, or both.
+</think>
+
+---
+
+**Instructions for Run 8 Computational Modeling**
+
+To design an improved responder choice model for this dataset, follow these principles to maximize data fit, parameter recoverability, and interpretability:
+
+1. **Globally-Smooth, Monotonic Reference-Dependent Model**
+   - Build utility as a monotonic, smoothly-varying function of the *ratio* between the actual offer and the fairness norm (such as offer/deserved_share, offer/pot_share, etc).
+   - Strongly prefer log-ratio or log-transformed ratio models, but do not limit yourself to strict log forms; consider other generalized monotonic, differentiable transforms.
+
+2. **Parameterization: Balance Simplicity and Flexibility**
+   - Include up to two *fully separable, interpretable* learnable parameters—generally, a global “fairness sensitivity” (scaling or shaping the reference effect) plus an optional bias/intercept term, maximum, or an alternative smooth baseline term.
+   - Any bias/intercept parameter must have a clear, direct effect on model output across all input values without introducing collinearity with the main shape parameter.
+   - You may propose novel alternatives to standard bias—e.g., adding an offset inside the log or as a global activation function on the output.
+
+3. **Encourage Innovative, Out-of-the-Box Nonlinearities**
+   - Consider smooth, monotonic nonlinearities beyond the log, such as:
+     - Power transforms or exponents applied to (offer/deserved_share)
+     - Activation functions (e.g., softplus, sigmoid, tanh) applied to the log-ratio or its scaled version
+     - A learnable smooth asymmetry parameter modifying slope above/below the fairness point, as long as it is not piecewise
+     - Log-ratio with a learnable “floor” parameter for extra robustness, provided all terms remain monotonic
+   - Clearly explain how the new transformation or parameter should improve both fit and identifiability.
+
+4. **Strict Bans on Discontinuities and Piecewise Functions**
+   - Do not use max(), min(), abs(), if-else, indicator functions, or other discontinuities anywhere in the model.
+   - Any asymmetry or loss aversion effect must be smoothly parametrized over the entire range, not only for “loss” or “gain” trials.
+
+5. **Normalization and Psychological Interpretability**
+   - All calculations must be in relative/normalized units (percent, share of pot, offer/deserved share).
+   - Each parameter should reflect a clear psychological interpretation (e.g., baseline generosity, reference sensitivity, or nonlinear aversion/gain).
+
+6. **Demonstrate Parameter Recoverability**
+   - Briefly describe, with each parameter, how varying it would shift predicted acceptance across the dataset and why this separates cleanly from the other parameters.
+
+7. **Precise Output Formatting**
+   - Mathematical model goes (and only the equation) between <MODEL>...</MODEL> tags.
+   - Variables—in specified JSON format—go between <VARIABLES>...</VARIABLES> tags.
+   - State prediction target in <target_variable> tags.
+   - Model summary belongs in <SUMMARY> tags—describe model structure and psychological logic only, not task details.
+
+8. **Prioritize Parsimony but Justify Flexibility**
+   - Avoid including extra parameters unless you have sound reason (supported by the model’s structure) that they will both enhance fit and remain recoverable and interpretable.
+   - Explicitly clarify how each included parameter avoids redundancy or non-identifiability.
+
+**Special Recommendations:**
+- If including a bias/intercept, concisely explain how it does not interfere with fairness sensitivity estimation but instead meaningfully improves BIC or accuracy.
+- Propose creative nonlinearities that enhance global fit without introducing inference confusion or overlap.
+- Above all, ensure every parameter is “live” across all observed data and improvements to fit do not come at the cost of parameter recovery.
+
+Be rigorous, creative, and succinct. The model must be directly implementable given the dataset and the formatting guidelines above.

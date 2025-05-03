@@ -1,0 +1,442 @@
+Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable "token_self". The other variable, "token_opp", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.
+
+Again, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.
+
+Note that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same "fairness".
+
+Below is the description of each variable in the dataset, which will be followed by information about the data type of the variable:
+
+trial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]
+trial_role = the role of the participant [1 = responder, 2 = proposer]
+token_opp = number of tokens found by the opponent
+token_self = number of tokens found by the participant
+combined_earning = amount of money earned in total (note that each token found is £3)
+split_opp = the proposed share of the opponent (in £)
+split_self = the proposed share for the participant (in £)
+splitperc_opp = same but in %
+split_perc_self = same but in %
+accept = whether the participant responded accept (1) or reject (0)
+accepted_amount = if accepted, what is the amount gain (in £)
+accepted_perc = same as above but in %
+proposed_perc = when participant is the proposer, what is the % proposed to the opponent
+proposed_amount = same as above but in £
+
+Desired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified).
+
+The model should:
+1. Predict only responder behavior (should target "accept = whether the participant responded accept (1) or reject (0)")
+2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.
+3. Be applicable to the dataset given within the task description (i.e. the model should be able
+to be run using only the provided dataset structure).
+4. Predict utility, where less than 0 is less than 50% likely.
+
+For any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).
+
+Then, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.
+For example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal.
+
+Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied.
+
+{
+  "variables": {
+    "variable_name": {
+      "description": "Clear description",
+      "range": {
+        "min": value,
+        "max": value,
+        "inclusive_min": boolean,
+        "inclusive_max": boolean
+      },
+      "distribution": {
+        "type": "distribution type",
+        "parameters": {}
+      },
+      "learnable": boolean,
+      "source": "learnable/data/calculated"
+    }
+  }
+}
+</VARIABLES>
+
+Example #1:
+<EXAMPLE>
+(Model of a Random Choice Task):
+Let me think through this step by step...
+[your reasoning here]
+
+<MODEL>
+U_i = beta + epsilon*E + eta*N
+</MODEL>
+
+<VARIABLES>
+{
+  "variables": {
+    "U_i": {
+      "description": "Utility of choosing action i",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "calculated"
+    },
+    "beta": {
+      "description": "Base tendency parameter (inherent preference)",
+      "range": {
+        "min": 0,\n        "max": 1
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "epsilon": {
+      "description": "Environmental sensitivity parameter",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "E": {
+      "description": "Environmental cue value",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "data"
+    },
+    "eta": {
+      "description": "Noise parameter",
+      "range": {
+        "min": 0,
+        "max": 1,
+        "exclusive_max": true
+      },
+      "learnable": false,
+      "source": "data"
+    },
+    "N": {
+      "description": "Random noise drawn from normal distribution N(0,1)",
+      "distribution": {
+        "type": "normal",
+        "mean": 0,
+        "std": 1
+      },
+      "learnable": false,
+      "source": "calculated"
+    }
+  }
+}
+</VARIABLES>
+<SUMMARY>
+A linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (beta) constrained to [0,1] and an unconstrained environmental sensitivity parameter (epsilon). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.
+</SUMMARY>
+</EXAMPLE>
+
+Please be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.
+
+The parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like \'lambda\' and use alternatives like \'learning_rate\' or \'lambda_param\'.
+
+Model Type:
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.
+
+
+Instructions: Okay, here are the improved instructions for the next run (Run 55), building on the results of the previous runs.
+
+Instructions for Run 55 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The previous run (Run 54) implemented a piecewise non-linear model based on fairness difference (`U = (perc_difference >= 0) ? beta_gain_sensitivity * sqrt(perc_difference + epsilon) : beta_loss_sensitivity * (fair_perc_self_calc - split_perc_self + epsilon)^2`). It unfortunately failed the parameter recovery test for *both* `beta_gain_sensitivity` (r = 0.332) and `beta_loss_sensitivity` (r = 0.596). Its overall performance (BIC 449.36, Acc 0.697) was also relatively poor.
+
+Analysis of Run 54's failure and previous models: The piecewise structure in Run 54 assigned the two learnable parameters to scale distinct non-linear functions (`sqrt` vs. `square`) of the fairness deviation in gain vs. loss regimes. However, this approach, similar to previous attempts that scaled linear terms (Run 4) or combined linear terms (Run 1, 3), did not create sufficiently distinct influences for the parameters to be reliably estimated. We've observed a pattern where parameters scaling the absolute value of the offer or gain component (`beta_value` in Runs 1 & 3) sometimes achieve decent recovery, but parameters specifically scaling the *fairness deviation* or *loss penalty* (`beta_fairness_deviation`, `beta_unfairness_penalty`, `beta_loss_sensitivity`) consistently fail to reach the 0.7 threshold. This suggests the influence of the fairness deviation/penalty term is either too correlated with the absolute value term, or its impact is not captured in a mathematically separable way by simply scaling it.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** such that *both* parameters have truly distinct and identifiable influences on responder decisions (`trial_role == 1`). We need to find a way for the second parameter (the fairness/penalty related one) to exert its influence in a manner that is mathematically orthogonal or highly distinct from the first parameter's influence (the value/gain related one).
+
+Based on this analysis, focus your exploration for Run 55 on model structures where the two learnable parameters contribute to utility in fundamentally different mathematical ways. Simply scaling different terms (linear or non-linear) within or across regimes hasn't consistently worked. Consider structures where one parameter influences the sensitivity to the *absolute* value of the offer (`split_perc_self`), while the other parameter influences sensitivity to the *relative* fairness (e.g., the ratio `R_val = split_perc_self / fair_perc_self_calc`) via a non-linear transformation.
+
+Consider this strategy to enhance identifiability:
+
+*   **Combine Linear Value with Non-Linear Relative Fairness:** Design a model where one parameter scales the proposed percentage itself (`split_perc_self`), capturing a general sensitivity to the absolute value being offered, and the second parameter scales a non-linear function of the *ratio* of the proposed percentage to the calculated fair percentage (`R_val`). The non-linear function of the ratio should capture the specific impact of relative fairness/unfairness.
+    *   *Structural Principle:* A potentially promising structure is `U = beta_value * split_perc_self + beta_relative_fairness * f(R_val)`, where `f` is a non-linear function like `log`, `sqrt`, or a power function. This allows `beta_value` to influence the baseline utility based on the offer size, while `beta_relative_fairness` modulates this based on how fair the offer is, via a distinct mathematical operation on the ratio.
+    *   *Example Idea (building on the ratio concept):* Consider using the logarithm of the ratio. `log(R_val)` is 0 when the offer is fair (R_val=1), positive for favorable offers (R_val>1), and negative for unfavorable offers (R_val<1), with decreasing marginal impact as R_val increases.
+        *   `U = beta_value * split_perc_self + beta_relative_fairness * log(R_val + epsilon)`
+        *   Where `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self_calc = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)` (Ensure this handles `sum_tokens=0` correctly).
+        *   `R_val = IF(fair_perc_self_calc > 0, split_perc_self / fair_perc_self_calc, IF(split_perc_self > 0, 100.0, epsilon))` (Handle `fair_perc_self_calc = 0`. If fair is 0 and split is positive, treat as a large ratio (e.g., 100.0). If both are 0, treat R_val as close to 0 to get a large negative log).
+        *   `epsilon = 1e-6` (Small constant for log input).
+
+*   **Explore Other Structures:** If the above doesn't work, continue to think creatively about how two parameters can control mathematically separable aspects of the utility function. Could one parameter control a threshold or an exponent? Could they define the shape of a smooth function (e.g., sigmoid, power law) that takes fairness deviation as input? Avoid structures that simply scale linearly dependent terms.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc`, and necessary intermediate terms like `R_val` and `epsilon`. Ensure `fair_perc_self_calc` is handled correctly when `sum_tokens` is 0.
+
+*   **Model Formula:** Define the utility (`U`). Include calculation steps for necessary derived variables *before* the final formula for `U`. Use clear mathematical notation within the <MODEL> tags.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**. Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds (e.g., [-50.0, 50.0] or wider/narrower if appropriate). Consider the expected sign and scale, but keep bounds wide enough.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model formula (including `sum_tokens`, `fair_perc_self_calc`, intermediate terms like `R_val` and `epsilon`, and `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`. Ensure the description for `fair_perc_self_calc` explicitly mentions the `sum_tokens > 0` condition and the default value.
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Only the formula should be inside these tags.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Use `split_perc_self` as the variable name for the proposed percentage share for self.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea and, crucially, explain how its specific mathematical structure is designed to ensure parameter identifiability for *both* learnable parameters (e.g., by having them scale distinct mathematical forms like linear value and non-linear relative fairness).
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. Previous attempts scaling different terms (linear or non-linear) within or across regimes have struggled, particularly with the fairness/penalty parameter. Explore combining a term based on absolute value with a term based on a non-linear transformation of relative fairness (like the log of the ratio), or other structures that create highly distinct roles for the two parameters. Be creative in designing the mathematical relationship between inputs, parameters, and utility to achieve this separation.Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable "token_self". The other variable, "token_opp", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.
+
+Again, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.
+
+Note that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same "fairness".
+
+Below is the description of each variable in the dataset, which will be followed by information about the data type of the variable:
+
+trial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]
+trial_role = the role of the participant [1 = responder, 2 = proposer]
+token_opp = number of tokens found by the opponent
+token_self = number of tokens found by the participant
+combined_earning = amount of money earned in total (note that each token found is £3)
+split_opp = the proposed share of the opponent (in £)
+split_self = the proposed share for the participant (in £)
+splitperc_opp = same but in %
+split_perc_self = same but in %
+accept = whether the participant responded accept (1) or reject (0)
+accepted_amount = if accepted, what is the amount gain (in £)
+accepted_perc = same as above but in %
+proposed_perc = when participant is the proposer, what is the % proposed to the opponent
+proposed_amount = same as above but in £
+
+Desired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified).
+
+The model should:
+1. Predict only responder behavior (should target "accept = whether the participant responded accept (1) or reject (0)")
+2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.
+3. Be applicable to the dataset given within the task description (i.e. the model should be able
+to be run using only the provided dataset structure).
+4. Predict utility, where less than 0 is less than 50% likely.
+
+For any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).
+
+Then, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.
+For example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal.
+
+Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied.
+
+{
+  "variables": {
+    "variable_name": {
+      "description": "Clear description",
+      "range": {
+        "min": value,
+        "max": value,
+        "inclusive_min": boolean,
+        "inclusive_max": boolean
+      },
+      "distribution": {
+        "type": "distribution type",
+        "parameters": {}
+      },
+      "learnable": boolean,
+      "source": "learnable/data/calculated"
+    }
+  }
+}
+</VARIABLES>
+
+Example #1:
+<EXAMPLE>
+(Model of a Random Choice Task):\nLet me think through this step by step...
+[your reasoning here]
+
+<MODEL>
+U_i = beta + epsilon*E + eta*N
+</MODEL>
+
+<VARIABLES>
+{
+  "variables": {
+    "U_i": {
+      "description": "Utility of choosing action i",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "calculated"
+    },
+    "beta": {
+      "description": "Base tendency parameter (inherent preference)",
+      "range": {
+        "min": 0,
+        "max": 1
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "epsilon": {
+      "description": "Environmental sensitivity parameter",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "E": {
+      "description": "Environmental cue value",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "data"
+    },
+    "eta": {
+      "description": "Noise parameter",
+      "range": {
+        "min": 0,
+        "max": 1,
+        "exclusive_max": true
+      },
+      "learnable": false,
+      "source": "data"
+    },
+    "N": {
+      "description": "Random noise drawn from normal distribution N(0,1)",
+      "distribution": {
+        "type": "normal",
+        "mean": 0,
+        "std": 1
+      },
+      "learnable": false,
+      "source": "calculated"
+    }
+  }
+}
+</VARIABLES>
+<SUMMARY>
+A linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (beta) constrained to [0,1] and an unconstrained environmental sensitivity parameter (epsilon). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.
+</SUMMARY>
+</EXAMPLE>
+
+Please be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.
+
+The parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like \'lambda\' and use alternatives like \'learning_rate\' or \'lambda_param\'.
+
+Model Type:
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.
+
+<think>
+The user wants improved instructions for Run 55.
+Primary goal: Parameter Recovery >= 0.7 for *all* 2 learnable parameters.
+Secondary goals: Lower BIC, higher Accuracy.
+Stateless LLM requires full context (task, variables, previous run analysis, objective, output format).
+
+Previous run (Run 54) details:
+- Model: Piecewise non-linear (`sqrt` for gain, `square` for loss), scaling the transformed fairness difference.
+- Results: BIC 449.36, Acc 0.697, Rec beta_gain_sensitivity=0.332, beta_loss_sensitivity=0.596.
+- Failure: Poor recovery for *both* parameters.
+
+Analysis of previous runs provided:
+- Run 1: Linear combination of `split_perc_self` and `fairness_deviation`. Rec: beta_value=0.718, beta_fairness_deviation=0.653. (Failed recovery on fairness param)
+- Run 2: Linear combo of `split_perc_self` and squared fairness penalty. Rec: beta_value=0.359, beta_fairness_penalty=0.630. (Failed recovery on both)
+- Run 3: Piecewise linear penalty below fair. Rec: beta_value=0.768, beta_unfairness_penalty=0.561. (Failed recovery on penalty param)
+- Run 4: Piecewise linear, scaling `split_perc_self` vs `abs_perc_difference`. Rec: beta_gain_scale=0.058, beta_loss_penalty=0.302. (Failed recovery on both, very low)
+- Run 5 (Run 54): Piecewise non-linear (`sqrt` vs `square`). Rec: beta_gain_sensitivity=0.332, beta_loss_sensitivity=0.596. (Failed recovery on both)
+
+Pattern: Models often struggle to recover the parameter associated with fairness deviation or penalty terms, even when the parameter scaling the absolute value/gain is recovered well (Runs 1, 3). Simply scaling different terms (linear or non-linear) in piecewise models (Runs 4, 5) or combining them linearly (Runs 1, 2) hasn't consistently yielded distinct parameter influences for *both*.
+
+New Strategy Idea: Combine a linear term for the absolute value (`split_perc_self`) with a *non-linear* term for *relative* fairness (ratio `R_val`). This attempts to create two dimensions of influence: absolute value sensitivity and non-linear relative fairness sensitivity.
+Proposed structure: `U = beta_value * split_perc_self + beta_relative_fairness * log(R_val + epsilon)`
+Need to define `R_val` and handle the `fair_perc_self_calc = 0` case.
+`R_val = split_perc_self / fair_perc_self_calc` if `fair_perc_self_calc > 0`.
+If `fair_perc_self_calc == 0` (participant contributed 0 tokens), the fair share is 0. Any offer > 0 is infinitely fair in ratio terms, but absolute value still matters. Setting `R_val` to a large constant (e.g., 100.0) if `split_perc_self > 0` and fair is 0 seems like a reasonable heuristic for a very high relative gain. If both are 0, `R_val` should be handled to produce a large negative log utility (representing getting nothing when expecting nothing, maybe very low utility). Let's define `R_val = IF(fair_perc_self_calc > 0, split_perc_self / (fair_perc_self_calc + epsilon), IF(split_perc_self > 0, 100.0, epsilon))` where epsilon is small. This avoids division by zero and log of zero. Using `(fair_perc_self_calc + epsilon)` in the denominator is slightly safer mathematically than checking `>0` then dividing. Let's refine:
+`fair_perc_self_calc_safe = fair_perc_self_calc + epsilon` (add epsilon always to denominator)
+`R_val = split_perc_self / fair_perc_self_calc_safe`
+`U = beta_value * split_perc_self + beta_relative_fairness * log(R_val + epsilon)`
+This looks cleaner. Need to define `fair_perc_self_calc_safe` and `epsilon` as calculated variables.
+
+The instructions should:
+- State run number (55).
+- Restate primary objective (rec >= 0.7 for *both*).
+- Summarize Run 54 results and failure (poor rec on both, using piecewise non-linear).
+- Analyze pattern of failure across previous runs (fairness param recovery consistently failing).
+- Propose the new strategy: combine linear `split_perc_self` with non-linear `log(R_val)`. Explain *why* this might help identifiability (absolute value vs. log-relative value).
+- Provide the specific model structure proposed.
+- Remind about 2 params, bounds, variable descriptions (all variables used!), target variable, summary.
+- Encourage out-of-the-box thinking beyond the specific example, but stress the need for mathematically separable parameter influences.
+- Include full task/variable context.
+
+Make sure to update the Run number in the instructions title and body.
+Ensure variable descriptions cover all variables in the proposed model structure, including calculated intermediates and constants like epsilon.
+Use clear Python-compatible names for parameters.
+
+Model structure to propose:
+```
+sum_tokens = token_self + token_opp
+fair_perc_self_calc = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)
+epsilon = 1e-6
+fair_perc_self_calc_safe = fair_perc_self_calc + epsilon
+R_val = split_perc_self / fair_perc_self_calc_safe
+U = beta_value * split_perc_self + beta_relative_fairness * log(R_val + epsilon)
+```
+Variable descriptions needed for: `token_self`, `token_opp`, `split_perc_self` (data); `sum_tokens`, `fair_perc_self_calc`, `epsilon`, `fair_perc_self_calc_safe`, `R_val`, `U` (calculated); `beta_value`, `beta_relative_fairness` (learnable).
+
+Check variable sources and learnable flags. Range for epsilon should be fixed min/max. Range for U should be -inf/inf. Bounds for learnable parameters should be finite and generous.
+
+This new structure combines absolute value and relative fairness in a non-additive, non-piecewise way (within the second term). This might provide the necessary mathematical separation.
+Okay, here are the improved instructions for the next run (Run 55), building on the results of the previous runs.
+
+Instructions for Run 55 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The previous run (Run 54) implemented a piecewise non-linear model based on fairness difference (`U = (perc_difference >= 0) ? beta_gain_sensitivity * sqrt(perc_difference + epsilon) : beta_loss_sensitivity * (fair_perc_self_calc - split_perc_self + epsilon)^2`). It unfortunately failed the parameter recovery test for *both* `beta_gain_sensitivity` (r = 0.332) and `beta_loss_sensitivity` (r = 0.596). Its overall performance (BIC 449.36, Acc 0.697) was also relatively poor compared to the better-fitting models.
+
+Analysis of Run 54's failure and previous models: The piecewise structure in Run 54 assigned the two learnable parameters to scale distinct non-linear functions (`sqrt` vs. `square`) of the fairness deviation in gain vs. loss regimes. However, this approach, similar to previous attempts that scaled linear terms (Run 4) or combined linear terms (Run 1, 3), did not create sufficiently distinct influences for the parameters to be reliably estimated. We've observed a pattern where parameters scaling the absolute value of the offer or gain component (`beta_value` in Runs 1 & 3) sometimes achieve decent recovery, but parameters specifically scaling the *fairness deviation* or *loss penalty* (`beta_fairness_deviation`, `beta_unfairness_penalty`, `beta_loss_sensitivity`) consistently fail to reach the 0.7 threshold. This strongly suggests the influence of the fairness deviation/penalty term is either too correlated with the absolute value term across trials, or its impact is not captured in a mathematically separable way by simply scaling a function of the deviation.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** such that *both* parameters have truly distinct and identifiable influences on responder decisions (`trial_role == 1`). We need to find a way for the second parameter (the fairness/penalty related one) to exert its influence in a manner that is mathematically orthogonal or highly distinct from the first parameter's influence (the value/gain related one).
+
+Based on this analysis, focus your exploration for Run 55 on model structures where the two learnable parameters contribute to utility in fundamentally different mathematical ways, beyond simply scaling different terms additively or piecewise. Consider structures where one parameter influences the sensitivity to the *absolute* value of the offer (`split_perc_self`), while the other parameter influences sensitivity to the *relative* fairness (e.g., the ratio `R_val = split_perc_self / fair_perc_self_calc`) via a non-linear transformation.
+
+Consider this strategy to enhance identifiability:
+
+*   **Combine Linear Value with Non-Linear Relative Fairness:** Design a model where one parameter scales the proposed percentage itself (`split_perc_self`), capturing a general sensitivity to the absolute value being offered, and the second parameter scales a non-linear function of the *ratio* of the proposed percentage to the calculated fair percentage (`R_val`). The non-linear function of the ratio should capture the specific impact of relative fairness/unfairness. This approach aims for parameter identifiability by having parameters scale terms that represent different dimensions (absolute vs. relative) via different mathematical operations (linear vs. non-linear transformation).
+    *   *Structural Principle:* A potentially promising structure is `U = beta_value * split_perc_self + beta_relative_fairness * f(R_val)`, where `f` is a non-linear function like `log`, `sqrt`, or a power function. This allows `beta_value` to influence the baseline utility based on the offer size, while `beta_relative_fairness` modulates this based on how fair the offer is, via a distinct mathematical operation on the ratio.
+    *   *Example Idea (using the logarithm of the ratio, addressing edge cases):* The logarithm of the ratio `log(R_val)` is 0 when the offer is fair (R_val=1), positive for favorable offers (R_val>1), and negative for unfavorable offers (R_val<1), offering a non-linear representation of relative value.
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self_calc = IF(sum_tokens > 0.0, (token_self / sum_tokens) * 100.0, 50.0)` (Ensure this handles `sum_tokens=0`).
+        *   `epsilon = 1e-6` (Small constant to handle division by zero and log of zero/negative).
+        *   `fair_perc_self_calc_safe = fair_perc_self_calc + epsilon` (Add epsilon to denominator to prevent division by zero when fair_perc_self_calc is 0).
+        *   `R_val = split_perc_self / fair_perc_self_calc_safe` (Calculate the ratio using the safe fair value).
+        *   `U = beta_value * split_perc_self + beta_relative_fairness * log(R_val + epsilon)` (Combine linear split percentage with log-transformed ratio).
+
+*   **Explore Other Structures:** If the above specific example doesn't seem optimal, continue to think creatively about how two parameters can control mathematically separable aspects of the utility function. Could one parameter control a threshold or an exponent in a non-trivial way? Could they define the shape of a smooth function (e.g., sigmoid, power law) that takes fairness deviation as input, where the parameters affect different parameters of the function (e.g., slope and inflection point)? Avoid structures that simply scale linearly dependent terms or rely solely on simple piecewise linear or piecewise scaled non-linear functions, as these have failed recovery for one or both parameters previously.
+
+*   **Key Inputs & Calculated Variables:** Use `split_perc_self`, `token_self`, `token_opp` as data variables. Calculate `sum_tokens`, `fair_perc_self_calc`, and necessary intermediate terms like `R_val`, `epsilon`, `fair_perc_self_calc_safe`. Ensure `fair_perc_self_calc` is handled correctly when `sum_tokens` is 0.
+
+*   **Model Formula:** Define the utility (`U`). Include calculation steps for necessary derived variables *before* the final formula for `U`. Use clear mathematical notation within the <MODEL> tags.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**. Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds (e.g., [-50.0, 50.0] or wider/narrower if appropriate). Consider the expected sign and scale, but keep bounds wide enough.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model formula (including `sum_tokens`, `fair_perc_self_calc`, intermediate terms like `epsilon`, `fair_perc_self_calc_safe`, `R_val`, and `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`) with `source: "data"`. Ensure the description for `fair_perc_self_calc` explicitly mentions the `sum_tokens > 0` condition and the default value.
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Only the formula should be inside these tags.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status. Use `split_perc_self` as the variable name for the participant's proposed percentage share percentage.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags. Describe the model's core idea and, crucially, explain how its specific mathematical structure is designed to ensure parameter identifiability for *both* learnable parameters (e.g., by having them scale distinct mathematical forms like linear value and non-linear relative fairness).
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+(Note: Use `split_perc_self` for the participant's proposed percentage share percentage).
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability for *both* learnable parameters is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. Previous attempts scaling different terms (linear or non-linear) within or across regimes have struggled, particularly with the fairness/penalty parameter. Explore combining a term based on absolute value with a term based on a non-linear transformation of relative fairness (like the log of the ratio), or other structures that create highly distinct roles for the two parameters. Be creative in designing the mathematical relationship between inputs, parameters, and utility to achieve this separation.

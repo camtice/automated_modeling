@@ -1,0 +1,46 @@
+
+
+New Instructions for Run 12:
+
+1. Candidate Families (≤4 Learnable Parameters)  
+   a. Quadratic Reference‐Curvature Model (3 params):  
+      U = α + β·(z_share–0.5) + ω·(z_share–0.5)²  
+   b. Power‐Transform Fairness Model (3 params):  
+      U = α + β·(z_share–0.5) + γ·sign(z_share–0.5)·|z_share–0.5|^φ, with φ fixed=2  
+   c. Piecewise Inequity Aversion (4 params):  
+      U = α + β_pos·max(z_share–0.5,0) + β_neg·max(0.5–z_share,0)  
+
+2. Feature Preparation  
+   • Compute z_share = split_self/combined_earning.  
+   • Center and standardize z_share to zero mean, unit SD.  
+   • For fairness features, derive share_dev = z_share–0.5 and standardize.  
+   • Apply Gram–Schmidt to orthogonalize any two derived features; drop raw correlated ones.  
+
+3. Link & Temperature  
+   • Use only logistic link with fixed temperature τ=1 to reduce interactions.  
+
+4. Priors, Bounds & Reparameterization  
+   • All learnable weights ∼ Normal(0,0.2), truncated to [–0.4,0.4].  
+   • If φ appears, fix φ=2 (no learnable exponent).  
+   • No additional parameters (e.g. ψ) that routinely fail recovery.  
+
+5. Two‐Stage Simulation & Recovery (strict)  
+   Stage 1: Simulate 1,000 synthetic datasets from priors → MAP estimates → compute Pearson r.  
+   Stage 2: If any r<0.70 for a parameter:  
+     – Automatically drop or fix that parameter (e.g., set weight=0)  
+     – Re‐run simulation until all remaining r≥0.70  
+     – If more than one parameter must be dropped, switch to the simplest family.  
+
+6. Validation & Model Selection  
+   • Nested 10-fold cross-validation; report out-of-sample accuracy, BIC, WAIC.  
+   • Require ≥6-point BIC drop and ≥6% accuracy gain vs. baseline.  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: Declare only the final chosen formula.  
+   • <VARIABLES>…</VARIABLES>: Specify all parameters and features with descriptions, standardized ranges, priors, and source.  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • Name the selected family and succinct psychological interpretation.  
+   • Emphasize zero mean/unit variance standardization, strong shrinkage (σ=0.2), fixed curvature φ, strict r≥0.70 recovery, and focused logistic link.  
+   • Note any dropped parameters and why (recoverability criterion).

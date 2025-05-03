@@ -1,0 +1,160 @@
+Task Description: In this ultimatum game experiment, the participant acts as both a proposer and a responsder. They are the proposer 14 times and the responsder 36 times. Each is designated by a trial number in the data set. This gives 50 instances for the learnable parameters to be trained (although really it may rather be 36 or 14 depending on how the computational model should be created). There is also a pretask where the participant finds a number of tokens that correspond to their contribution to the group. This is designated by the variable "token_self". The other variable, "token_opp", is the number of tokens found the opponent's and represents the opoonents contribution to the shared pot that will be later divided by the opponent. The rounds are a mixed, with the participant doing a handful of turns as a responder, then a handful as a proposer, and then a handful as a responder, and so on.
+
+Again, the participant gets to act as both a proposer and responder - this is reflected in the data. If you are guessing the proposed amount, you should only be making this guess when trial_role == 2, since this is when the data within the proposed_perc and proposed_amount columns are relevent.
+
+Note that in each trial there is a variable amount of money in the combined earning, so that two equal split_self variables do not represent the same "fairness".
+
+Below is the description of each variable in the dataset, which will be followed by information about the data type of the variable:
+
+trial_type = how much was the contribution [1 = equal, 2 = opponent more, 3 = participant more]
+trial_role = the role of the participant [1 = responder, 2 = proposer]
+token_opp = number of tokens found by the opponent
+token_self = number of tokens found by the participant
+combined_earning = amount of money earned in total (note that each token found is £3)
+split_opp = the proposed share of the opponent (in £)
+split_self = the proposed share for the participant (in £)
+splitperc_opp = same but in %
+split_perc_self = same but in %
+accept = whether the participant responded accept (1) or reject (0))
+accepted_amount = if accepted, what is the amount gain (in £)
+accepted_perc = same as above but in %
+proposed_perc = when participant is the proposer, what is the % proposed to the opponent
+proposed_amount = when participant is the proposer, what is the amount proposed to the opponent
+
+Desired Output Specification: Design a computational model for the described task. Your model should utilyze the given variables appropriately (but not necessarily all unless otherwise specified).
+
+The model should:
+1. Predict only responder behavior (should target "accept = whether the participant responded accept (1) or reject (0)")
+2. You will have to pass parameter recovery tests. This should be roughly equal in priority to accuracy.
+3. Be applicable to the dataset given within the task description (i.e. the model should be able to be run using only the provided dataset structure).
+4. Predict utility, where less than 0 is less than 50% likely.
+
+For any learnable parameters in your model, you must specify finite numerical bounds (it just can not be infinity) in the variable descriptions. However, this bound should be generous. The utility variable may be unbounded (-inf to inf).
+
+Then, provide your formal mathematical model between <MODEL> tags, followed by variable descriptions between <VARIABLES> tags. Additionally, specify the target variable that your model will predict. This should be one of the variables from the dataset above. Enclose it in <target_variable> tags.
+For example: <target_variable>accept</target_variable> if your model is predicting whether a participant accepts or rejects a proposal.
+
+Use clear mathematical notation and ensure each variable is fully described. Every variable must be utilized within the mathematical formula provided between <MODEL> and </MODEL>, and only strictly the mathematical formula should be provided between these tags with no filler words or descriptions. For variable descriptions, provide them in a JSON format with the following structure: <VARIABLES> Bounds are by default inclusive. Please spell out the greek variable names instead of using the symbols. Finally, you should provide a short description of the model in the summary tags <SUMMARY> </SUMMARY>. This will be used to compare different computational models of the task; it should be concise and purely descriptive. Do not include generic information about the name of the tasks, since that is implied.
+
+```json
+{
+  "variables": {
+    "variable_name": {
+      "description": "Clear description",
+      "range": {
+        "min": value,
+        "max": value,
+        "inclusive_min": boolean,
+        "inclusive_max": boolean
+      },
+      "distribution": {
+        "type": "distribution type",
+        "parameters": {}
+      },
+      "learnable": boolean,
+      "source": "learnable/data/calculated"
+    }
+  }
+}
+```
+</VARIABLES>
+
+Example #1:
+<EXAMPLE>
+(Model of a Random Choice Task):
+Let me think through this step by step...
+[your reasoning here]
+
+<MODEL>
+U_i = beta_param + epsilon_param * E + eta_param * N
+</MODEL>
+
+<VARIABLES>
+{
+  "variables": {
+    "U_i": {
+      "description": "Utility of choosing action i",
+      "range": {
+        "min": "-inf",
+        "max": "inf"
+      },
+      "learnable": false,
+      "source": "calculated"
+    },
+    "beta_param": {
+      "description": "Base tendency parameter (inherent preference)",
+      "range": {
+        "min": 0,
+        "max": 1
+      },
+      "learnable": true,
+      "source": "learnable"
+    },
+    "epsilon_param": {
+      "description": "Environmental sensitivity parameter",
+      "range": {"min": "-inf", "max": "inf"},
+      "learnable": true,
+      "source": "learnable"
+    },
+    "E": {
+      "description": "Environmental cue value",
+      "range": {"min": "-inf", "max": "inf"},
+      "learnable": false,
+      "source": "data"
+    },
+    "eta_param": {"description": "Noise parameter", "range": {"min": 0, "max": 1, "exclusive_max": true}, "learnable": true, "source": "learnable"},
+    "N": {
+      "description": "Random noise drawn from normal distribution N(0,1)",
+      "distribution": {
+        "type": "normal",
+        "mean": 0,
+        "std": 1
+      },
+      "learnable": false,
+      "source": "calculated"
+    }
+  }
+}
+</VARIABLES>
+<SUMMARY>
+A linear utility model combining base preference, environmental influence, and stochastic noise. The model uses two learnable parameters: a base tendency parameter (beta) constrained to [0,1] and an unconstrained environmental sensitivity parameter (epsilon). Environmental cues and normally distributed noise modify the base utility, allowing for both systematic and random variation in choice behavior.
+</SUMMARY>
+</EXAMPLE>
+
+Please be sure to provide the mathematical formula for the model between <MODEL> and </MODEL>, and the variable descriptions between <VARIABLES> and </VARIABLES>. No description of the model should be provided within the <MODEL> tags.
+
+The parameter names you choose in your <VARIABLES> section will be used exactly as specified in subsequent code generation. Please choose clear, non-reserved parameter names that can be used directly in Python code. For example, avoid Python reserved words like 'lambda' and use alternatives like 'learning_rate' or 'lambda_param'.
+
+Model Type:
+Your model should predict the utility of a binary choice. The utility will be converted to a probability using a logistic function with temperature 1, and then used to predict binary decisions.
+
+Instructions:
+Previous attempts modeling responder behavior have consistently struggled with parameter recovery. Specifically, recent models, including those based on linear or quadratic effects of percentage deviations from fairness and a model combining absolute amount with percentage deviations, have failed to achieve acceptable parameter recovery (>= 0.7 for *all* learnable parameters). This indicates a significant issue with parameter identifiability – the data does not provide enough unique information to reliably estimate all parameters in these specific structural forms.
+
+For this run (27 of 100), the **absolute highest priority is achieving parameter recovery >= 0.7 for *all* learnable parameters**. While good BIC and accuracy are desired, a model is unusable if its parameters cannot be reliably estimated. This means you must design a model where each learnable parameter contributes uniquely to the predicted utility across different scenarios in the dataset, making it possible to distinguish the influence of one parameter from another during fitting.
+
+Given the repeated failure of previous structural approaches (linear/quadratic effects of percentage/amount + deviation terms, including separate gain/loss terms), it is clear that a fundamentally *different* modeling structure is required to improve parameter identifiability in this dataset. Simple linear combinations of standard variables (`split_perc_self`, `unfair_deviation`, `split_self`) seem insufficient.
+
+**Guidance for the Next Model (Focusing on Identifiability):**
+
+Design a computational model for responder decisions (`trial_role == 1`) that predicts the utility of accepting an offer, prioritizing parameter identifiability above all else. This requires creative thinking beyond standard linear models of offers and deviations.
+
+*   **Parameter Identifiability:** Design the model structure such that changing the value of *one* learnable parameter has a distinct and non-overlapping effect on the predicted utility compared to changing another parameter. This is the key to good recovery.
+*   **Explore Novel Structures:** Previous attempts indicate that simple linear or quadratic functions of `split_perc_self`, `unfair_deviation`, or `split_self` in combination do not yield identifiable parameters. Consider:
+    *   **Non-linearities:** Explore non-linear effects beyond quadratic. Perhaps threshold models (utility changes sharply above/below a certain offer/deviation level), exponential decay of negative utility with increasing unfairness, or sigmoidal effects.
+    *   **Contextual Effects:** How does `trial_type` (contribution structure) or `combined_earning` (total pot size) influence preferences? Could these variables modulate the effect of other terms (e.g., sensitivity to unfairness depends on the pot size, or the baseline acceptance bias depends on `trial_type`)? Interaction terms or separate parameters per context type might be viable approaches here.
+    *   **Ratio-based Fairness:** Instead of percentage differences (`unfair_deviation`), model utility based on the ratio of received share to fair share (`split_perc_self / fair_perc_self`). This might capture proportional fairness differently and potentially be more identifiable.
+    *   **Alternative Utility Formulations:** Are there psychological theories of fairness or decision-making that suggest a utility structure fundamentally different from linear combinations? (e.g., models based on comparing offers to a reference point beyond just the fair share, or models with multiplicative components).
+    *   **Calculated Variables:** You will likely need `fair_perc_self` calculated as `(token_self / (token_self + token_opp)) * 100` (handle the `token_self + token_opp == 0` case by setting `fair_perc_self` to 50). Include *all* calculated variables used in the model in your descriptions. Use percentage terms (`split_perc_self`) for fairness comparisons to potentially reduce collinearity with absolute amount (`split_self`) unless you have a specific, justified structure using both.
+*   **Parameter Constraints:** Define clear, generous, finite numerical bounds for *all* learnable parameters. Consider carefully if parameters should be non-negative or unbounded based on their psychological interpretation and their role in making them identifiable.
+*   **Model Specification:** Provide the mathematical formula between <MODEL> tags. Use clear notation.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include bounds and learnable status.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing the model structure, its key components, and how it relates to the decision process, with a focus on the *novelty* or structural changes aimed at identifiability.
+
+Design a model that you believe has the best chance of achieving parameter recovery >= 0.7 for all its learnable parameters by adopting a structural form that avoids the apparent identifiability issues of previous linear/quadratic approaches, while still fitting the data well (lower BIC, higher accuracy). Think critically about how each parameter influences decisions and how this influence can be uniquely captured by the model structure given the characteristics of the dataset.
+
+Please think through this step by step, focusing intently on designing a model structure that improves parameter identifiability, and ensure all output requirements are met. Then provide your model specification, variable descriptions, target variable, and summary.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.

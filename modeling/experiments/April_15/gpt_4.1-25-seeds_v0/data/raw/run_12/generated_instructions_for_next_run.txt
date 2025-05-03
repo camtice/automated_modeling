@@ -1,0 +1,63 @@
+
+
+---
+
+**INSTRUCTIONS – RUN 13**
+
+Your task is to design a high-performance computational model to predict responder (accept/reject) decisions, focusing on maximal parameter recovery, interpretability, and data fit. Your priorities are:
+
+- **(1) Maximize parameter recoverability and influence:** Every learnable parameter must robustly and *exclusively* control one region of model output, with strong, visually recoverable effects—especially in both sub-threshold ("unfair") and supra-threshold ("generous") zones. Parameter tuning should always meaningfully and independently alter the acceptance curve, even for edge cases and rare trial types.
+- **(2) Directly optimize for low BIC and high accuracy:** Employ creative nonlinearities and context normalizations to capture the breadth of behavioral patterns seen in the data, not just mean or typical offers.
+- **(3) Retain strict psychological interpretability:** Map all computations and parameters to clear social/psychological constructs (fairness, unfairness aversion, generosity, or context-sensitivity).
+
+**Updated and Expanded Guidelines:**
+
+1. **Parameter Exclusivity and Region Separation:**
+   - Strictly limit to exactly three learnable parameters, each acting *only* in one region: fairness threshold, unfairness penalty, generosity bonus.
+   - Absolutely no parameter overlap between model regions.
+   - Each region's functional form and impact must extend broadly across the actual trial variable range—do not confine effects to a narrow margin or rarely-visited corner.
+
+2. **Powerfully Nonlinear, Distinct Functions (with Explicit Context and Steepness Parameters):**
+   - **Penalty region** (below threshold): Must employ an *exponential-minus-one* or *steeply parameterized* nonlinearity, robustly tunable via a *learnable shape parameter* (not just a scale/strength). Example: -A * [exp(B * relative deficit) – 1], where both A (scale) and B (steepness/power) are possible but only one is learnable; tune B when possible.
+   - **Generosity/bonus region** (above threshold): 
+     - Must use a *parameterized*, sharply nonlinear function—such as exponential, steep power, or context-weighted sigmoid.
+     - Must include a *learnable parameter* that governs either the bonus's slope/steepness, its context-dependence, or its relative amplification above threshold. For example: bonus = C * sigmoid(D * context-normed surplus).
+     - The *bonus* function MUST be normalized (by context, threshold, or both) so that its effects generalize across pots and conditions, and parameter estimation is robust.
+     - You are strongly encouraged to introduce a "context_weight" or "bonus_steepness" parameter that operates *only* in the bonus region.
+   - Functions that saturate quickly, or produce vanishingly small outputs over most of the domain, are **not allowed** unless their "window" is fully tunable by a learnable parameter.
+
+3. **Fairness Threshold Construction:**
+   - Implement fairness threshold as a direct function of participant-specific entitlement (e.g., via tokens) if possible. Use a multiplicative scaling parameter (e.g., fairness_multiplier) to anchor recoverability, rather than a raw splitperc cutoff.
+   - If you retain a percentage-based threshold, justify the choice in simulation.
+
+4. **Mandatory, Detailed Simulation-Based Parameter Reasoning:**
+   - For *each* parameter, **explicitly and quantitatively** describe—using at least two realistic trial scenarios for each (one high and one low combined_earning or split)—how changing **only** that parameter alters model utility predictions. For the *bonus parameter*, focus especially on demonstrating parameter impact and recoverability for above-threshold offers of different magnitudes/context.
+   - For the generosity bonus, you must show that as you sweep the bonus parameter, U strongly and smoothly varies for all offers above threshold across small and large pot sizes, *holding all other parameters fixed*.
+   - Explicitly compare and contrast the discriminability (recoverability) between parameters—show there is no redundancy.
+   - Highlight in your reasoning any edge cases (e.g., high generosity offers, large combined_earning) where parameter effects might be strongest or weakest.
+
+5. **Contextual Amplification:**
+   - Where possible, include a *separate, strictly-bounded, learnable parameter* for context sensitivity that acts only in the bonus region (e.g., context_weight for large pots).
+   - In the penalty region, you may normalize or scale by the threshold or by combined_earning for stability and identifiability, but do NOT share scaling parameters across regions.
+
+6. **Formatting and Output Requirements:**
+   - Start with simulation-based parameter reasoning with full quantitative examples and clear cross-comparisons.
+   - Present model equations strictly between <MODEL> and </MODEL> tags, with no descriptive text inside.
+   - Provide all parameter and variable descriptions (with precise bounds and types) in JSON within <VARIABLES> tags, clearly indicating which are learnable.
+   - Include the model’s target variable in <target_variable> tags.
+   - Write a concise, 1–2 line mechanism-oriented summary in <SUMMARY> tags focusing on the innovation and recoverability axes of the model design.
+
+7. **Additional Creative Challenge:**  
+   - Combine standard nonlinearities with at least one context-weighted or context-parameterized element in the generosity region, such as: context_weight * exp(surplus), or bonus = A * sigmoid(context_weight * (surplus)).  
+   - Hybrid approaches (e.g. a power-of-exponential bonus, or context-weighted hinge) are actively encouraged!
+
+8. **Explicit Prohibitions:**  
+   - Do NOT use identical or mirrored mathematical forms for both penalty and bonus.
+   - No unparameterized (fixed) nonlinearities or non-contextual bonuses.
+   - No parameter interactions or "soft overlap" between regions.
+
+The goal of this round is for all parameters—threshold, penalty, and generosity/context bonus—to show strong, non-redundant, and highly recoverable effects in fits to both real and simulated data. 
+
+Push for innovation, but do not sacrifice parameter identifiability or interpretability!
+
+---

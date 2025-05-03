@@ -1,0 +1,31 @@
+Instructions for Run 39 of 100:
+
+The primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is non-negotiable for a usable model. Improved BIC and accuracy are important secondary goals.
+
+Prior attempts have consistently struggled with parameter identifiability, leading to poor recovery values well below the 0.7 threshold across various model structures (simple linear combinations, piecewise linear centered on deviation, and most recently, Run 38's multiplicative structure `U = kappa * (split_perc_self - lambda_param * loss_below_fair - mu)`). The poor recovery in Run 38 (kappa: -0.014, lambda_param: 0.242, mu: 0.546) strongly suggests that scaling an entire expression containing other parameterized terms creates significant identifiability issues. The parameters' influences are too coupled.
+
+For this run, design a computational model for responder decisions (`trial_role == 1`) that predicts the utility of accepting an offer. Your model should utilize the proposed share percentage (`split_perc_self`) and a calculated fair percentage for the participant (`fair_perc_self`) based on token contributions as key inputs.
+
+*   **Parameter Identifiability is Paramount:** The central challenge is to design a mathematical structure (formula for `U`) using these inputs and **2 or 3 learnable parameters** such that these parameters have distinct and identifiable influences on utility across the range of possible offers. **Explicitly avoid structures where parameters multiply or scale expressions containing other learnable parameters or multiple variable terms** (like the `kappa * (...)` structure in Run 38). Instead, favor structures where parameters additively scale *individual* input terms or clearly defined derived variables. This additive separation tends to improve identifiability.
+*   **Promising Structural Direction:** Based on the analysis of previous failures, a promising structural direction is a model where utility is an additive combination of a baseline offset, a term related to the proposed percentage, and a term related to losses below the fair percentage, each scaled by a distinct learnable parameter. Consider a structure like:
+    `U = beta_intercept + beta_split_perc * split_perc_self - beta_loss_penalty * loss_below_fair`
+    Where `loss_below_fair` is calculated as `max(0.0, fair_perc_self - split_perc_self)`.
+    This structure uses 3 parameters (`beta_intercept`, `beta_split_perc`, `beta_loss_penalty`) that each contribute additively to the utility calculation, reducing the coupling seen in the previous multiplicative model. `beta_intercept` shifts the baseline, `beta_split_perc` scales the effect of the proposed offer, and `beta_loss_penalty` scales the specific penalty incurred only when the offer is below fair. This distinct influence is expected to aid parameter recovery.
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self` directly as a data variable.
+    *   Calculate `sum_tokens` as `token_self + token_opp`.
+    *   Calculate `fair_perc_self` as `(token_self / sum_tokens) * 100.0` if `sum_tokens > 0`, and `50.0` if `sum_tokens == 0`.
+    *   Calculate `loss_below_fair` as `max(0.0, fair_perc_self - split_perc_self)`.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+*   **Model Formula:** Define the utility (`U`) based on `split_perc_self`, `fair_perc_self` (or derived variables like `loss_below_fair`), and your 2 or 3 learnable parameters. Structure the formula to maximize the distinct, additive influence of each parameter.
+*   **Learnable Parameters:** Your model must have exactly 2 or 3 learnable parameters. Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds (e.g., [-50, 50] or similar, depending on how parameters scale inputs). For the suggested structure, consider bounds like [-50, 50] for `beta_intercept`, [-10, 10] for `beta_split_perc`, and [0, 20] for `beta_loss_penalty`.
+*   **Calculated Variables:** Ensure `sum_tokens`, `fair_perc_self`, `loss_below_fair` (and any other variables you calculate as intermediate steps) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`, etc.).
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by the proposed share and fairness/loss, and how your chosen additive mathematical structure and parameterization aim to improve parameter identifiability compared to previously attempted structures.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that out-of-the-box thinking *within* the constraints of parameter identifiability and the 2/3 parameter limit is encouraged.

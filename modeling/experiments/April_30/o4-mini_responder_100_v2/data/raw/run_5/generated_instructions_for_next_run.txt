@@ -1,0 +1,47 @@
+
+
+New Instructions for Run 6:
+
+Be inventively rigorous—your goal is a compact (≤4 learnable parameters), psychologically grounded logistic utility model whose every parameter recovers with Pearson r > 0.80, yields at least a 5-point BIC drop versus the baseline, and pushes accuracy up by ≥5%.
+
+1. Feature Engineering & Diagnostics  
+   • Compute share = split_self/combined_earning and z_share over responder trials.  
+   • Construct raw_dis = max(0, 0.5 – share) and raw_adv = max(0, share – 0.5).  
+   • Orthogonalize raw_dis and raw_adv relative to z_share via Gram–Schmidt or residualizing + z-scoring → res_dis_z, res_adv_z.  
+   • AFTER orthogonalization, compute pairwise correlations and VIFs among {z_share, res_dis_z, res_adv_z}. If any VIF > 4 or |corr| > 0.3, fallback to one of:  
+     – a single symmetric fairness term: raw_fair = z-score(|share – 0.5|), or  
+     – PCA on {raw_dis, raw_adv}, keep first component as res_fair_pca.
+
+2. Model Formulation & Constraints  
+   • Propose TWO candidate model forms (choose one at deployment):  
+     A. Asymmetric: U = α + β·z_share + γ_envy·res_dis_z + γ_guilt·res_adv_z  
+     B. Simpler: U = α + β·z_share + γ·res_fair (either symmetric |share–0.5| or PCA)  
+   • No more than four learnable parameters.  
+   • Strong sign/bound constraints to aid identifiability:  
+     – β ∈ [0,1] (self‐interest must increase U),  
+     – γ_envy ∈ [–1,0] (disadvantageous inequality lowers U),  
+     – γ_guilt ∈ [0,1] (advantageous inequality raises or lowers U depending on sign hypothesis),  
+     – or γ ∈ [–1,1] for symmetric fairness.  
+   • Use logistic link (temperature=1):  
+     P_accept = 1⁄(1+exp(–U)).
+
+3. Automated Recovery‐Driven Loop  
+   • Simulate ≥1,000 synthetic datasets sampling true parameters from the prescribed bounds.  
+   • Fit your chosen model to each dataset.  
+   • If any parameter’s Pearson r < 0.80, automatically:  
+     – reshape the feature set (switch between asymmetric vs symmetric fairness),  
+     – tighten bounds to [–0.5,0.5] or enforce stronger sign constraints,  
+     – re-run simulations until all r > 0.80.
+
+4. Cross-Validation & BIC Reporting  
+   • On the real data, conduct 5-fold cross-validation to estimate out-of-sample accuracy.  
+   • Compute BIC separately for control and treatment; require ≥5-point improvement over the canonical baseline model.
+
+5. Variable Specification (<VARIABLES>…</VARIABLES>)  
+   • For each learnable parameter: clear description, numeric bounds (as above), uniform prior, source=learnable.  
+   • For each calculated predictor: document the exact standardization or PCA step.  
+   • Declare <target_variable>accept</target_variable>.
+
+6. Summary (<SUMMARY>…</SUMMARY>)  
+   • Briefly contrast the two candidate forms (asymmetric vs symmetric fairness) and the adaptive recovery loop.  
+   • Emphasize how orthogonalization, diagnostic VIF checks, sign constraints, and an automated simulation loop guarantee high identifiability, robust parameter recovery (r > 0.80), lower BIC, and improved predictive accuracy.

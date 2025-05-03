@@ -1,0 +1,38 @@
+Okay, here are the updated instructions for the next run:
+
+<instructions>
+The previous run explored adding an advantageous inequity term (`beta_adv_ineq`) to the successful 3-parameter Fehr-Schmidt-style model (`bias`, `sensitivity`, `alpha_ineq`). While accuracy remained high (~0.815), this addition resulted in a significantly worse BIC (~45.6 vs. the best of ~38.6) and very poor parameter recovery for the new `beta_adv_ineq` parameter (r ~ 0.13). This suggests that, at least in this linear formulation, advantageous inequity aversion does not significantly improve the model's fit or identifiability for this dataset.
+
+The best performing model identified so far is:
+`total_tokens = token_self + token_opp`
+`deserved_split = (combined_earning * token_self / total_tokens) if total_tokens > 0 else 0`
+`inequity = max(0, deserved_split - split_self)`
+`Utility = bias + sens * split_self - alpha_ineq * inequity`
+This model achieved BIC ~38.6, Accuracy ~0.814, and good recovery for all parameters (r > 0.75).
+
+Your goal for this run is to **improve upon this best-performing 3-parameter model**. Focus on achieving:
+
+1.  **Lower BIC** (significantly below ~38.6).
+2.  **Higher Accuracy** (above ~0.814).
+3.  **Excellent Parameter Recovery** (all correlations preferably > 0.75).
+
+Given that simply adding a linear advantageous inequity term was detrimental, consider modifications to the *functional form* or conceptualization of the utility components in the best 3-parameter model. Avoid merely adding parameters unless strongly justified. Here are some avenues to explore:
+
+1.  **Non-Linearity in Disadvantageous Inequity:** The current model assumes the negative utility from disadvantageous inequity (`inequity = max(0, deserved_split - split_self)`) scales linearly via `alpha_ineq`. Is this psychologically plausible?
+    *   **Power Function:** Perhaps sensitivity increases or decreases with the magnitude of the inequity. Explore `alpha_ineq * (inequity ^ delta_ineq)`. A `delta_ineq > 1` implies increasing sensitivity to larger unfairness, while `delta_ineq < 1` implies diminishing sensitivity.
+    *   **Logarithmic Function:** Could the impact be logarithmic? E.g., `- alpha_ineq * log(inequity + 1)` (adding 1 to avoid log(0)).
+    *   Think carefully about the range and interpretation of any new non-linearity parameter (`delta_ineq`).
+
+2.  **Ratio-Based Fairness Perception:** Instead of the absolute *difference* (`deserved_split - split_self`), maybe fairness is judged based on the *ratio* of the offered amount to the deserved amount.
+    *   How could `split_self / deserved_split` (or a related ratio) be incorporated? Consider potential issues when `deserved_split` is zero or very small. A possibility: incorporate the log-ratio `log((split_self + epsilon) / (deserved_split + epsilon))`, where epsilon is a small constant (e.g., 0.01) to handle zeros.
+    *   Example structure: `Utility = bias + sensitivity * split_self - alpha_ineq * max(0, log((deserved_split + epsilon) / (split_self + epsilon)))` (Note: this captures disadvantageous inequity when the ratio is > 1, so the log is positive).
+
+3.  **Interaction Effects:** Could the participant's sensitivity to the offered amount (`split_self`) *change* depending on how fair the offer is perceived?
+    *   Explore an interaction between `split_self` and `inequity`. For example: `Utility = bias + (sensitivity_base + sensitivity_interaction * inequity) * split_self - alpha_ineq * inequity`. Here, the effective sensitivity to the offered amount is modulated by the level of unfairness. Be mindful of potential complexity and recovery issues with interaction terms.
+
+4.  **Alternative Functional Forms for Gain:** While the linear sensitivity to `split_self` worked well, perhaps a simple non-linear transformation like `sensitivity * log(split_self + 1)` or `sensitivity * sqrt(split_self)` could capture diminishing returns on monetary gain better, potentially freeing up variance explained by other terms.
+
+**Emphasis:** Prioritize models that offer a clear psychological interpretation and maintain parsimony (aim for 3-4 parameters maximum). Any added complexity compared to the best 3-parameter model must demonstrate clear improvements in BIC and maintain strong parameter recovery.
+
+Please provide your reasoning step-by-step, justify your chosen model structure by explaining how it might better capture the underlying decision process compared to previous models, and detail how it aims to improve performance metrics. Then, provide the model specification in the required format (<MODEL>, <VARIABLES>, <target_variable>, <SUMMARY>).
+</instructions>

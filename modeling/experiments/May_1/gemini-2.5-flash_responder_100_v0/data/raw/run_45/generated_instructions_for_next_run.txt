@@ -1,0 +1,51 @@
+Okay, here are the improved instructions for the next run (Run 46), building on the results of the previous run.
+
+Instructions for Run 46 of 100:
+
+The unwavering primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery. A model with excellent fit but poor parameter identifiability is not suitable for drawing meaningful conclusions about the underlying cognitive processes.
+
+The previous run (Run 45) explored a piecewise *log-linear* model based on the ratio of proposed share to fair share. Specifically, it used `U = beta_gain_log_sens * log(R_val)` for ratios >= 1 and `U = beta_loss_linear_sens * R_val` for ratios < 1. This model achieved parameter recovery values of 0.711 for `beta_gain_log_sens` and 0.964 for `beta_loss_linear_sens`. This is a significant success, as it is the first model that meets the parameter recovery threshold (>= 0.7) for *both* learnable parameters simultaneously, making it the current best *recoverable* model. Its BIC (41.09) is good, though not the absolute lowest seen so far, and its accuracy (0.680) is moderate.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** that ensures both parameters have distinct, identifiable influences on responder decisions (`trial_role == 1`). The piecewise structure based on the ratio `R_val` and the split at 1.0 appears promising for parameter identifiability, as demonstrated by the success of the log-linear model in the previous run. The difference in functional form (log vs linear) across the piecewise split seemed to help separate parameter influences.
+
+For this run, let's continue to explore the *piecewise ratio* concept and the split at `R_val = 1.0`, maintaining exactly **2 learnable parameters**, but try applying the *same functional form* (logarithm) to the ratio in *both* regions. This creates a piecewise *log-log* model structure based on the ratio.
+
+Design a computational model that predicts the utility of accepting an offer based on a **piecewise log-log function of the ratio** between the proposed percentage share and the participant's fair percentage share.
+
+*   **Structural Direction (Piecewise Log-Log Ratio):** Model utility (`U`) based on the logarithm of the ratio of the proposed share to the fair share, using different scaling parameters depending on whether the ratio is at least 1 (fair or generous) or less than 1 (unfair).
+    *   Calculate the necessary intermediate variables as before:
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self_calc = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)` (Ensures `fair_perc_self_calc` is >= 0).
+        *   `epsilon_val = 1e-6` (Small constant for numerical stability).
+        *   `R_val = (split_perc_self + epsilon_val) / (fair_perc_self_calc + epsilon_val)` (Calculate the ratio, ensuring `R_val` is always positive).
+    *   Structure the utility (`U`) using a conditional statement based on the value of `R_val`:\n
+        *   If `R_val >= 1.0`, `U = beta_gain_log_sens * log(R_val)` (Logarithmic scaling for gain/favorable offers, same as previous run).
+        *   If `R_val < 1.0`, `U = beta_loss_log_sens * log(R_val)` (Logarithmic scaling for loss/unfair offers, *different* from previous run). Note that `log(R_val)` will be negative for `R_val < 1`.
+    *   This structure uses two distinct learnable parameters (`beta_gain_log_sens` and `beta_loss_log_sens`) that scale the logarithm of the ratio depending on whether the offer is favorable or unfavorable. This modification from the previous linear scaling in the loss region (`R_val < 1`) is an attempt to see if a consistent logarithmic functional form across the piecewise split can maintain or improve parameter identifiability and potentially improve fit (BIC/Accuracy).
+
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self`, `token_self`, `token_opp` as data variables.
+    *   Calculate `sum_tokens`, `fair_perc_self_calc`, `epsilon_val`, `R_val`, and `U`.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+
+*   **Model Formula:** Define the utility (`U`) based on the conditional logic applied to `R_val` and your 2 learnable parameters. Include the calculation steps for necessary derived variables (`sum_tokens`, `fair_perc_self_calc`, `epsilon_val`, `R_val`) before the final formula for `U`. Use clear mathematical notation (IF/ELSE or similar conditional structure) and the standard mathematical logarithm function `log()`.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**.
+    *   `beta_gain_log_sens`: Sensitivity parameter scaling the *log* of the ratio when it is greater than or equal to 1 (fair or favorable offers). Suggest generous bounds like [-10.0, 10.0].
+    *   `beta_loss_log_sens`: Sensitivity parameter scaling the *log* of the ratio when it is less than 1 (unfair offers). Suggest generous bounds like [-10.0, 10.0].
+    Choose descriptive names suitable for Python code that reflect the functional form they scale (log) and the ratio range (gain vs loss). Define clear, generous, finite numerical bounds for both.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self_calc`, `epsilon_val`, `R_val`, `U`) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`). Be mindful of the range for `R_val` given its calculation (it will be >= `epsilon_val` / (100 + `epsilon_val`)).
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by a piecewise function of the ratio between proposed and fair shares, with a *logarithmic* relationship scaled by `beta_gain_log_sens` for ratios at or above 1, and a *logarithmic* relationship scaled by `beta_loss_log_sens` for ratios below 1. Explain how this consistent logarithmic piecewise structure on the ratio is the next attempt to improve fit (BIC/Accuracy) while maintaining the parameter identifiability achieved by the previous piecewise log-linear ratio model.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability *within* the constraints of **exactly 2 learnable parameters** is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This piecewise log-log ratio approach is a direct evolution of the successful log-linear model. If this structure also meets recovery but doesn't improve BIC/Accuracy, or if it fails recovery for either parameter, be prepared to think even further outside the box for the next iteration – consider entirely different inputs, different ways of combining inputs (e.g., non-ratio based interactions, exponential terms), or conceptualizing fairness's role differently (e.g., as a non-linear modulator of sensitivity, or a threshold in a non-standard way). The key is finding a structure where the two parameters’ contributions to utility are as independent as possible across the dataset.

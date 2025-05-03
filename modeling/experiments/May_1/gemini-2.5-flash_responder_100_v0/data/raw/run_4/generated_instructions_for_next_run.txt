@@ -1,0 +1,40 @@
+<new_instructions>Design a computational model for the described ultimatum game responder task. Your model must meet the following criteria:
+1.  **Predict only responder behavior** (target variable: "accept").
+2.  **Achieve excellent parameter recovery (>= 0.7 correlation) for ALL learnable parameters.** This is the *single most important* objective. A model is unusable if any learnable parameter cannot be reliably recovered. Models that do not meet this threshold will be rejected regardless of other performance metrics (BIC, accuracy). Prioritize model structures that inherently enhance parameter identifiability from the data.
+3.  **Be applicable to the dataset:** Use only the provided data structure and variables available during responder trials (trial_role == 1).
+4.  **Predict utility:** Utility values will be converted to acceptance probabilities using a logistic function (with temperature 1). A utility > 0 implies > 50% probability of acceptance.
+
+**Addressing Past Failures:** Previous model attempts, particularly those using simple linear combinations of features or mixing absolute (£) and percentage (%) values in the utility function, have consistently failed to achieve adequate parameter recovery. The parameters' influences were likely too correlated or not distinct enough given the data structure.
+
+**Guidance for the Next Model (Prioritizing Parameter Recovery):**
+
+*   **Consistent Scaling:** Given the variable `combined_earning` across trials, using percentages (`split_perc_self`) is likely a more robust approach for calculating utility related to the proposed offer and fairness deviations. **Strongly consider calculating *all* components of the utility function that relate to the offer amount and fairness deviations using percentages** (e.g., basing the 'self-interest' term on `split_perc_self` rather than `split_self`). This provides a consistent scale and may improve parameter identifiability.
+*   **Break Away from Linearity:** Standard linear additive models (e.g., `U = beta1*X1 + beta2*X2 + ...`) have proven insufficient for parameter recovery here. **Design a model with non-linear functional forms or non-additive interactions between components.** For example:
+    *   Instead of linear penalties for fairness deviations, explore quadratic penalties (e.g., `beta * max(0, norm - split_perc_self)^2`).
+    *   Consider parameters that modulate the strength or effect of other terms or variables in a non-linear way.
+    *   Explore reference-dependent utility where utility is explicitly a function of deviations from norms, but perhaps the sensitivity to positive vs. negative deviations is different, or the deviation itself is transformed non-linearly.
+    *   Think about how parameters could interact in a multiplicative or gating fashion, *if* this interaction helps make their individual influences distinct (be cautious of introducing more collinearity).
+*   **Ensure Distinct Parameter Influences:** Carefully define how each learnable parameter contributes to the overall utility. The contribution of one parameter should not be easily explained by a combination of other parameters. This is key to achieving parameter recovery.
+*   **Minimum Necessary Parameters (for identifiability):** While the structure is more important than just the count, a model with fewer, well-identified parameters is preferable to one with many poorly-identified parameters. Strive for parsimony *while ensuring identifiability*.
+
+For any learnable parameters, you must specify generous, finite numerical bounds. The utility variable may be unbounded (-inf to inf).
+
+Provide your formal mathematical model between <MODEL> tags. Ensure *only* the mathematical formula is within these tags.
+Provide variable descriptions in JSON format between <VARIABLES> tags. Ensure learnable parameter names are clear and suitable for coding. Spell out Greek variables.
+Specify the target variable using <target_variable> tags.
+Provide a concise, descriptive summary of the model between <SUMMARY> tags.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+Remember to only model responder trials (where trial_role == 1).
+
+First, reason step by step about:
+*   The key psychological mechanisms involved in responder decisions (self-interest, aversion to 50% split unfairness, aversion to proportional split unfairness).
+*   **Crucial Design Choice:** How to consistently scale the offer and fairness terms. **Strongly advocate for and implement a model that uses *only* percentages (`split_perc_self`)** for all offer-related components in the utility function to improve consistency and potential identifiability across varying `combined_earning`.
+*   **Mandatory Non-linear Structure:** How to incorporate non-linear functional forms or interactions into the utility calculation (e.g., quadratic penalties, non-linear parameter interactions) to ensure parameter identifiability and break away from failed linear approaches.
+*   How the learnable parameters are defined to have maximally distinct and identifiable effects on utility, minimizing covariance.
+*   What is the *minimum necessary* set of learnable parameters that can robustly capture the essential aspects of the behavior while prioritizing parameter identifiability (>= 0.7 recovery)?
+*   How the model variables map to observable behavior ("accept") via the logistic function.
+
+Please think through this step by step, focusing intently on how the model structure guarantees parameter identifiability, then provide your model specification, variable descriptions, target variable, and summary.
+</new_instructions>

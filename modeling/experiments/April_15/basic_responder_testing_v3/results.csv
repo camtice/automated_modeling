@@ -1,0 +1,581 @@
+run_number,average_bic,bic_control,bic_cocaine,overall_accuracy,model_specification,model_summary,version,instructions_used,alpha_recovery,gamma_recovery,beta_recovery,bias_recovery,beta_gain_recovery,beta_inequity_recovery,beta_log_ratio_recovery,accept_threshold_recovery,weight_gap_recovery,penalty_below_threshold_recovery,sigma_cutoff_recovery,slope_recovery,penalty_recovery,lambda_param_recovery,fairness_sensitivity_recovery,epsilon_recovery,fairness_exponent_recovery,asym_recovery
+3,30.417160851765022,,,0.7844932844932845,"U = bias + beta_log_ratio * log(max((splitperc_self / 100) / (token_self / (token_self + token_opp)), floor))","A two-parameter log-ratio model of responder utility, in which the percent of the pot offered to the responder is evaluated relative to a contribution-based fairness norm. The utility is proportional to the log of the offered-over-deserved share (with a small floor to prevent divergence). This structure allows for continuous, reference-dependent loss aversion, minimizes parameter collinearity through explicit normalization, and is highly interpretable for both prediction and psychological inference.",v3,"<think>
+Reviewing the run results: Current parameter recovery for bias is strong, but for beta_gain, beta_inequity, and especially gamma, it is moderate to low. BIC and accuracy are decent but not exceptional. Given the instructions, the LLM already considers nonlinearity and penalizes only deviations below a contribution-based fairness norm, with a nonlinear exponent. 
+
+Parameter recovery issues for beta_inequity and gamma suggest that including both a fairness sensitivity and a nonlinearity exponent creates collinearity or overfitting. Additionally, gain and fairness terms may be correlated if the variables are not normalized. The variable mapping may still allow redundancy.
+
+To improve, the instructions should urge explicit normalization of variables (e.g., working in percents of pot rather than absolute values), and/or divisive or interaction forms that can better separate psychological drivers and reduce parameter collinearity. The role of a fairness norm could be operationalized in ratio or difference space, or a relative–not just absolute–utility. Moreover, the possibility of using “softmax” or “ratio-based” forms (e.g., offered/deserved, or log(offered/deserved)), or piecewise relationships, should be specifically highlighted—not just general nonlinearity.
+
+Additionally, there may be too many parameters for the data, so the instructions should emphasize bias towards minimizing unnecessary parameters, selecting the most behaviorally-identifiable ones (e.g., choose either nonlinearity OR fairness strength, but not both unless clearly distinct).
+
+Finally, the modeler should explicitly simulate and reason about parameter recovery: which parameters can be recovered, and why. They should be told to assess/remedy collinearity and to compare alternative forms for possible parsimony and recovery enhancement.
+
+Encourage less obvious modeling strategies—for example, “softmin” rather than “max”, or self/other differences; allow asymmetrical punishment for unfairness; or even “categorical” or “threshold” regimes that are hybrid between continuous and step models. Suggest considering whether a “reference-dependent” utility (evaluating relative to norm) or even a piecewise-linear/step utility might outperform additive approaches.
+
+Additionally, nudge the LLM to avoid using both split_self and norm_self as separate inputs if they could yield the same information, and to explore modeling with derived/composite variables—such as ratio, percent deviation, or an explicit “relative unfairness” metric.
+
+Make sure all terms in the instructions are precise. Encourage modelers to provide a short statement indicating why their model should yield improved parameter recovery AND prediction, not just post hoc description.
+
+Summarize and clean up these changes in new instructions.
+</think>
+
+---
+**Instructions for Next Computational Modeling Run**
+
+Before preparing your model, think systematically through each of the following steps:
+
+1. **Clarify Psychological Mechanisms**  
+   - Explicitly identify the cognitive drivers influencing responder acceptance/rejection in this context (e.g., self-interest, inequity aversion, contribution-to-reward matching, ""reference points"" or norms, threshold effects).
+   - Consider at least one non-standard mechanism, such as categorical regime change, attention to ratios, or “reference-dependent” utility—do not default to only additive linear or threshold forms.
+
+2. **Consider Alternative Variable Mappings and Normalization**  
+   - Reflect critically on whether using absolute values (e.g., £) or normalized values (e.g., percent of combined_earning, offered/deserved ratio) would improve parameter independence and interpretability.
+   - Explore composite variables that condense information (e.g., offered/proportional norm, percent deviation from norm) to reduce redundancy and multicollinearity among predictors.
+
+3. **Explore Varied Mathematical Formulations**  
+   - Explicitly consider functional forms beyond strictly additive or monotonic (e.g., softmin, ratio, log-ratio, piecewise, or hybrid step-continuous).
+   - If using nonlinearity (e.g., exponents, sigmoid penalties), justify its necessity and consider whether it can be parameterized so as not to be collinear with other parameters. If adding a nonlinearity parameter, consider omitting or fixing the corresponding slope so each parameter is interpretable and separately recoverable.
+   - Where possible, choose between magnitude-based and direction-based fairness penalties (e.g., only penalize under-offers, or penalize both over- and under-offers differently).
+
+4. **Apply Special Attention to Parameter Recovery and Parsimony**  
+   - Before finalizing your model, reason about which parameters can be successfully identified and separated when fit to behavioral data. Prefer models with parameters that are not mathematically or conceptually redundant, to maximize recovery.
+   - Where possible, simulate or reason about the collinearity between parameters, and bias toward forms that give clearer, less correlated parameter interpretations.
+   - If two parameters show highly overlapping behavioral patterns, simplify: consider fixing one or removing it.
+
+5. **Be Thoughtful and Justified in Model Construction**
+   - Clearly justify the inclusion (or exclusion) of each model term and parameter, referencing psychological theory and the potential for behavioral identification.
+   - Minimize number of learnable parameters, but do not ignore important mechanisms; if a standard mechanism does not improve recovery, consider alternatives such as stepwise or regime-change models, or interaction terms.
+   - Consider offering at least one form that “breaks the mold” of recent models for this dataset (for instance, using a ratio, a piecewise or asymmetrical penalty, or log transformation).
+
+6. **Explicitly Reflect and Predict Improved Performance**
+   - In your reasoning, clearly state why your model form should yield improved parameter recovery AND predictive fit, not just descriptive plausibility.
+   - Reflect on how your modeling choices specifically address previous limitations of collinearity, overfitting, or poor parameter identifiability.
+
+**Formatting and Output Requirements**
+
+- Use the provided tag format:  
+  - Present your model’s formula using explicit mathematical notation between <MODEL>...</MODEL> tags.  
+  - Detail all variables (including their source, learnability, range, and a clear description) in JSON format between <VARIABLES>...</VARIABLES> tags.  
+  - Specify the target variable your model predicts (should be “accept”) within <target_variable> tags.  
+  - Summarize your model, focusing only on its theoretical structure and innovations, within <SUMMARY> tags.
+
+**General Advice**  
+- Favor models that increase interpretability and parameter identifiability, potentially by using normalized or composite variables and reducing redundant terms.
+- Directly address possible weak spots in earlier approaches—such as parameter correlation or indistinguishable effects.
+- Encourage careful, creative departures from past models, ideally proposing structures that would provide more robust and recoverable insights.
+
+Be rigorous, concise, and specific in your modeling choices and justifications.",,,,0.9383782063995547,,,0.8947434039917639,,,,,,,,,,,
+9,33.40199622217957,,,0.7826617826617828,U = bias + beta * ((splitperc_self / deserved_perc)^fairness_exponent - 1),"A globally monotonic, power-law fairness model for responder choice: utility depends on bias, fairness scaling, and a learnable exponent shaping nonlinear sensitivity to the ratio of received/deserved percent shares. The exponent allows asymmetric, compression- or expansion-based deviations from proportional fairness, providing greater flexibility and separable recoverability for all parameters compared to standard log- or linear-ratio models. All variables are percent-normalized, and the model is strictly smooth, differentiable, and monotonic for all parameter settings.",v3,"<think>
+The previous model achieved a strong balance of fit (BIC, accuracy) and parameter recovery, with two highly recoverable parameters (bias and fairness_sensitivity). However, the learnable epsilon (the log denominator offset) was essentially unrecoverable (r ≈ 0), indicating it functions mainly as a technical stabilizer rather than a meaningful psychological parameter. The overall structure—a bias plus scaled log-ratio of actual/deserved percent—is highly effective, but further gains may require:
+
+1. Addressing the redundancy/non-informativeness of epsilon, either by reimagining its role (as a learnable slope/nonlinearity instead, or as a robust but fixed value), or reallocating complexity to a more globally-influential but still monotonic and separable parameter.
+2. Introducing an additional nonlinearity or smooth asymmetry parameter, so long as all components remain globally differentiable, monotonic, and interpretable. For example, a power/exponent shaping of the (splitperc_self / deserved_perc) ratio, or a smooth, learnable slope difference above/below norm—implemented via a hyperbolic tangent or smooth exponential function, not via step/if/max.
+3. Ensuring all parameters have non-overlapping psychological interpretations, live gradients across all data, and produce separable effects observable in parameter recovery.
+
+Other possibilities include:
+- A model where the main effect is through a power-law (e.g., (offer/deserved)^rho or its log variant), providing flexible psychophysical scaling—rho can control “compression/expansion” around fairness.
+- Use of a soft, differentiable global nonlinearity such as tanh, sigmoid, or softplus applied to the bias/scaled log-ratio sum, or transformation of the ratio itself (e.g., log(1 + gamma*[x - 1])).
+- Introduction of a single smooth ""loss aversion"" or ""asymmetry"" parameter, but in a way that does not rely on piecewise/if/else logic (e.g., via tanh or a parametrized scalar multiplying log-ratio for negative values).
+
+It is essential to avoid adding parameters unless they improve BIC/accuracy and are demonstrably and theoretically recoverable—do not introduce technical terms whose estimation is neither robust nor interpretable. The goal is to surpass previous performance by increasing either fit or identifiability—or, ideally, both—using creative, smooth, nonlinear transforms or asymmetry, but never at the expense of modeling clarity or inference soundness.
+
+Finally, rigorous parameterization and careful explanation of how each parameter can be independently recovered is crucial. If bias is retained, make sure it is not redundant with any new nonlinearity or scaling term.
+
+Encourage out-of-the-box innovations such as generalized ratio exponents, soft nonlinear ""loss aversion,"" activation-based models, or flexible, reference-dependent sigmoids, always within the constraints of monotonicity, smoothness, and interpretability.
+</think>
+
+---
+
+**Instructions for Run 9 Computational Modeling**
+
+To design the next-generation computational model for responder behavior in this task, adhere to the following principles to maximize predictive accuracy, model fit (BIC), and parameter interpretability/recovery:
+
+1. **Globally Smooth, Reference-Dependent Utility**
+   - Construct your model as a smooth, monotonic function of the *relative* offer—the ratio of the participant's proposed share to their deserved share (e.g., splitperc_self / deserved_perc).
+   - All nonlinearities or transforms must be differentiable everywhere and globally monotonic; no discontinuities or regime changes.
+
+2. **Parameterization: Parsimony AND Power**
+   - Include up to two or three learnable parameters max, but only if all are demonstrably separable, have clear psychological interpretations, and impact the utility globally across all data.
+   - You MUST provide a succinct rationale for how each parameter affects predictions and for why their effects are strictly nonredundant.
+   - Strongly consider creative, globally-applied nonlinearity—e.g., a learnable exponent, softplus, or other activation applied either to the ratio itself or to the output of log-ratio/linear sum.
+   - If a bias/intercept is included, make clear its unique role and show it does not overlap functionally with the main fairness/shape parameters.
+
+3. **Innovation: Flexible Nonlinearity or Smooth Asymmetry**
+   - Encourage use of non-standard but monotonic transforms, such as:
+     - Raising the (splitperc_self / deserved_perc) to a learnable exponent (U = bias + beta * ((splitperc_self / deserved_perc)^rho - 1)), to flexibly shape sensitivity above/below fairness.
+     - A smooth, differentiable asymmetry parameter controlling loss/gain sensitivity (e.g., U = bias + beta * asinh(alpha * [splitperc_self / deserved_perc - 1])).
+     - A global transform applied to the output (e.g., tanh, softplus, or sigmoid of a scaled log-ratio + bias).
+     - Explicitly avoid technical parameters that are unrecoverable; any offset/epsilon/floor-type parameter should be included only if empirically justified and recoverable.
+   - All proposed transforms must be strictly monotonic and smooth—NO use of max, min, abs, or piecewise logic.
+
+4. **Normalization and Interpretability**
+   - All central calculations MUST be in normalized or percent units for offers/deserved shares.
+   - Specify, in the variable descriptions, the range, type, (learnable/status), and a brief note on interpretation.
+   - For each parameter, describe how varying it shifts the utility curve, and how its impact is kept independent from the others.
+
+5. **Parameter Recoverability**
+   - For every learnable parameter included, offer a brief justification for its expected identifiability given the model structure and observed data.
+
+6. **Formatting and Output**
+   - The model formula (and ONLY the formula) goes between <MODEL>...</MODEL> tags.
+   - Variables, including ranges, descriptions, learnable/data status, and (for learnable) prior distribution, must be formatted as specified in JSON between <VARIABLES>...</VARIABLES> tags.
+   - The predicted variable, one from the dataset, goes in <target_variable> tags.
+   - Concise model summary (structure, psychological logic, not task details) belongs in <SUMMARY>...</SUMMARY> tags.
+
+7. **Caution on Parameter Addition**
+   - Avoid technical or redundant parameters (e.g., a ""stabilization"" epsilon) unless it is empirically shown to improve model fit and is readily recoverable.
+   - Favor adding a global shape/nonlinearity parameter or asymmetry IF and ONLY IF you can explain and demonstrate how it increases both fit (expected BIC/accuracy) and parameter recovery.
+   - Do not introduce parameters that act only in pathological data regimes or can be compensated for by other parameters.
+
+8. **Creativity Encouraged**
+   - Go beyond the linear and log-ratio staples: propose a novel, smooth, monotonic, and interpretable global nonlinearity or asymmetry, ensuring compatibility with robust parameter recovery and fit.
+   - Examples (to inspire, not limit): learnable exponents, arctan/tanh-scaled log-ratio, softplus applied to normalized offer gaps, or gain/loss smoothness via sigmoid-multiplicative slopes.
+   - If you use a new nonlinearity, briefly explain its theoretical motivation and its practical advantage over standard log/linear specifications.
+
+Be concise, rigorous, and inventive. Your model must remain implementable with the given dataset and comply with the model and variable formatting standards above. Prioritize genuine improvements in BIC/accuracy or parameter recovery, and explain clearly how each parameter uniquely contributes.",,,0.7588244845659232,0.8488097808769006,,,,,,,,,,,,,0.41970119605457845,
+10,33.50264826184529,,,0.7902930402930404,U = bias + beta * log(splitperc_self / deserved_perc) * (1 + tanh(asym * (splitperc_self / deserved_perc - 1))),"A three-parameter, reference-dependent model for responder choices. Utility is defined as a sum of bias, fairness sensitivity (scaling the log-ratio of offered to deserved percent), and global, smooth loss/gain asymmetry via a tanh-modulated multiplier. The asymmetry parameter amplifies or compresses the impact of unfair (below-deserved) versus favorable offers in a directionally controlled, globally monotonic manner. All parameters are interpretable and empirically recoverable, with distinct psychological roles: bias for offer-independent acceptance, beta for fairness impact, and asym for loss/gain asymmetry in fairness violation. The model is perfectly smooth everywhere, with no regimes, and enables robust parameter recovery.",v3,"<think>
+The last run demonstrated quite strong predictive performance (BIC/accuracy), but parameter recovery was suboptimal for the power/exponent (fairness_exponent, r ≈ 0.42), and only moderate for beta (r ≈ 0.76). Bias parameter recovery was quite robust (r ≈ 0.85). This suggests that, while a flexible nonlinear model can fit data well, not all parameters are empirically recoverable—possibly due to redundancy or compensation between scaling and shape parameters, or limited data-range informativeness for the exponent in this fairness context.
+
+Given this, the next run needs to maximize both fit and true psychological interpretability/recovery, especially for shape/scale parameters. There is also room to further increase accuracy and reduce BIC if a single, globally-active but interpretable “asymmetry” or ""smooth loss aversion"" parameter is employed, ideally not overlapping with beta. Previous experience suggests that soft, differentiable loss/gain asymmetry applied to the log-ratio or to a normalized difference (e.g. via the tanh or sigmoid family) can be both interpretable and recoverable. 
+
+Three promising, creative, yet robust directions are:
+
+1. **Global Asymmetric Slope (Smooth Loss Aversion)**: Instead of a power/exponent, construct a model where deviations above vs. below the fairness norm are smoothly amplified by a learnable asymmetry or loss aversion parameter (e.g., via tanh or by multiplying the log-ratio by an asymmetry parameter when < 0, but strictly no if/max/abs). This can be realized by expressing the utility as a bias plus scaled log-ratio, the latter multiplied by a smooth learnable modifier as a function of sign—e.g., U = bias + beta * log(splitperc_self / deserved_perc) * (1 + asymmetry * tanh(γ * (splitperc_self/deserved_perc - 1))). This is globally smooth, monotonic, and enables separate identification of bias, fairness sensitivity, and asymmetry.
+
+2. **Globally-Warped Reference Function**: Instead of directly using a log or power, transform the normalized ratio with a sigmoid/softplus/tanh (e.g., U = bias + beta * tanh(gain * (splitperc_self / deserved_perc - 1))). Gain is a learnable parameter controlling the slope/psychophysical step size. This yields interpretable, globally active, and often highly recoverable shape effects.
+
+3. **Nonlinear Offset/Gain Mixture**: Use a generalized, smooth reference function, e.g. U = bias + beta * log(1 + gain*(splitperc_self/deserved_perc - 1)), where gain is a learnable smoothing parameter. This conveys both scaling and “stretch,” with gain and beta being non-redundant.
+
+Favor a model where **each parameter has strictly non-overlapping impact on the utility curve**: 
+- bias (intercept),
+- fairness sensitivity (beta, scaling main effect), 
+- asymmetry or nonlinearity parameter (stretching/skewing response above/below fairness, via smooth modulation).
+
+DO NOT permit piecewise functions (no max/if/step). All transforms must be differentiable everywhere. Three parameters may be used *if* all three are interpretable, non-redundant, and empirically recoverable. If shape or skew parameter recovery is empirically poor, opt for a globally active but simpler 2-parameter model.
+
+Make explicit the theoretical justification for the introduced nonlinearity or asymmetry. State which parameter controls overall reference sensitivity versus which acts as a perceptual “warp” versus which governs inherent acceptance tendency.
+
+Finally, encourage innovative but rigorous use of functions uncommon in basic prospect theory—e.g. arctanh, softsign, generalized logistic, or composed smooth nonlinearities. All must preserve global monotonicity with respect to received/fairness ratio. Output and documentation formatting must be precise and full, as previously.
+
+</think>
+
+---
+
+**Instructions for Run 10 Computational Modeling**
+
+Design a novel, reference-dependent, and psychologically interpretable computational model to predict responder acceptance behavior. Your design should optimize model fit (BIC), predictive accuracy, and, crucially, parameter recovery/identifiability for all learnable parameters. Please follow these detailed guidelines:
+
+1. **Reference Normalization and Global Monotonicity**
+   - Model utility as a smooth, monotonic function of the normalized offer: ratio of the participant's proposed share to their deserved share (e.g., splitperc_self / deserved_perc). 
+   - All transforms must be differentiable, globally monotonic, and free of regime shifts, piecewise, abs, or step logic.
+
+2. **Parameterization: Interpretability and Identifiability**
+   - Include at most three learnable parameters, only if all have clearly distinct psychological interpretations and their influence is non-overlapping.
+   - For each parameter, specify the theoretical logic and describe *exactly* how it shifts or reshapes the utility curve, and why it cannot be compensated for by other parameters.
+   - Provide a short justification for why every parameter will be empirically recoverable (i.e., produce separable, observable effects in the data).
+
+3. **Innovative, Smooth Nonlinearities or Asymmetries**
+   - Move beyond standard linear or log-ratio models. Strongly consider:
+     - Globally active *smooth loss/gain asymmetry* (e.g., via tanh or sigmoid modulation of fairness deviation).
+     - Smooth, differentiable nonlinearity that warps the fairness response, such as softplus, generalized sigmoid, or tanh applied to the ratio or deviation from fairness.
+     - Compose bias, scaling, and a shape/asymmetry parameter, ensuring all have distinct, non-redundant impacts.
+   - Avoid technical offset/floor parameters (e.g., epsilon) unless they are theoretically motivated and demonstrably recoverable.
+   - Do not allow parameter redundancy—e.g., that a strong bias and strong scaling could always compensate for a weak shape parameter.
+
+4. **Full Variable Documentation and Implementation**
+   - All calculations should be done in percent-normalized units (e.g., splitperc_self, deserved_perc).
+   - Each variable (including calculated/intermediate) must be fully described in JSON format as per the variable template.
+   - Each parameter should have a generous, finite numerical range and state whether it is learnable; recommendations for prior distributions may be included.
+   - Use parameter names that are Python-code safe and not reserved words.
+
+5. **Formatting and Output**
+   - The model’s full mathematical specification must be enclosed between <MODEL>...</MODEL> tags—no explanations, comments, or extraneous lines inside these tags.
+   - All variables and parameters must be formatted in a JSON block between <VARIABLES>...</VARIABLES> tags, including origin (learnable/data/calculated), and short descriptions.
+   - State the model’s target prediction variable from the dataset in <target_variable>accept</target_variable>.
+   - In <SUMMARY> tags, provide a concise, precise summary of model structure, interpretability, and parameter function (no generic task details).
+
+6. **Creativity and Justification**
+   - Propose at least one creative, smooth, and monotonic nonlinear or asymmetric transform—not just classic log/linear or simple exponents.
+   - Briefly justify (outside <MODEL> tags) how your chosen nonlinearity or asymmetry increases both fit and parameter recovery compared to previous (linear/power-log) models.
+   - Suggest if empirical parameter recovery or global interpretability could be improved by reducing rather than increasing parameter count.
+
+7. **Parameter Recoverability**
+   - For each learnable parameter, comment briefly (outside <MODEL> tags) on why it will be empirically identifiable and not redundant.
+   - If you employ a shape/skew parameter (e.g., asymmetry or gain), ensure its modulation changes the model’s predictions in ways orthogonal to bias or overall scaling.
+
+8. **Encouraged Creativity**
+   - Try smooth, flexible, but globally monotonic functions such as: tanh/softplus on normalized gaps, sigmoidal gain/loss asymmetries, generalized arctan/arctanh, or softly parameterized power/logistic stretches.
+
+9. **No Redundant or Pathological Parameters**
+   - Avoid adding technical parameters (e.g., small epsilon offsets for stabilization) unless empirically justified and demonstrably recoverable in practice.
+   - Do not use parameter combinations that are functionally redundant or only relevant in pathological data regimes.
+
+Prioritize out-of-the-box innovation, rigorous theoretical justification, and a clear mapping between each parameter and its psychological effect. Ensure documentation is implementation-ready and enables unambiguous recovery of all involved variables and parameters.
+
+Be inventive, concise, and strictly precise in all formatting and descriptions.",,,0.40562865929573094,0.8388449254909521,,,,,,,,,,,,,,0.6323771656016154
+8,33.78641784453424,,,0.8003663003663003,U = bias + fairness_sensitivity * log( splitperc_self / (deserved_perc + epsilon) ),"This model predicts responder behavior using a globally smooth, reference-dependent utility expressed as a bias plus fairness sensitivity times the log ratio between actual and deserved percent share (with a small learnable denominator offset for smoothness and robustness). The bias parameter governs global acceptance propensity, while fairness sensitivity controls the influence of fairness deviations. The learnable epsilon parameter ensures numeric stability and slight extra flexibility. The model is fully monotonic, highly interpretable, and ensures parameter recoverability through separable effects.",v3,"<think>
+Although the last model achieved very strong parameter recovery (beta: r = 0.959), it underperformed the overall best model from previous runs in both BIC and accuracy (BIC ~39.8 and accuracy ~0.65 versus BIC = 30.4 and accuracy ~0.78 for the best model, which used a bias + scaled log-ratio as a two-parameter model). This suggests that a pure single-parameter log-ratio, while optimal for recoverability, may be missing either a baseline intercept/bias effect or a more flexible form of nonlinearity.
+
+Further, history shows the best model used a small additive bias alongside the log-ratio, while still avoiding parameter collinearity by explicit normalization—and their summary notes the combination allows for ""continuous, reference-dependent loss aversion, minimizes parameter collinearity through explicit normalization, and is highly interpretable for both prediction and psychological inference.""
+
+Thus, for this round, instructions should:
+- Encourage inclusion of a bias/intercept IF and only IF it is mathematically separable from the main fairness sensitivity, and only after ensuring both parameters are directly interpretable and recoverable.
+- Prompt creative exploration of new, monotonic global nonlinearities—such as the use of a softplus or smooth absolute (e.g., log[1 + k·(offer/deserved - 1)]), or parameterized sigmoids—while still strictly avoiding discontinuities or piecewise forms.
+- Reiterate that all variables must be normalized (e.g., all shares as percent or relative to deserved), and transformations must be monotonic and smooth everywhere.
+- Suggest examining the possibility that a small, constrained additive bias or an alternative smoothly-sloped baseline (e.g., offset inside the log or as a pre-sigmoid additive) could further increase fit and accuracy while still maintaining excellent recovery.
+- Strongly encourage providing a clear rationale for how each parameter can be recovered and why the proposed innovation is likely to improve fit over the prior form.
+- Continue to discourage ""patches"" such as max(), if/else, or regime switches in favor of models with fully smooth gradients and separable parameter effects.
+- Optionally, recommend the implementation of a bias parameter with an explicit explanation for why it will not interfere with fairness sensitivity estimation.
+- Invite out-of-the-box variants, for instance: generalized log-ratio (log(offer/deserved + c)), ratio raised to a global exponent, or activation of a learnable nonlinearity on the log-ratio (e.g., sigmoid or softplus) before or after the main parameter.
+
+The overall goal: maintain or further improve recoverability while reducing BIC and boosting predictive accuracy, via either judicious introduction of a bias/intercept (if justified), a more flexible global nonlinearity, or both.
+</think>
+
+---
+
+**Instructions for Run 8 Computational Modeling**
+
+To design an improved responder choice model for this dataset, follow these principles to maximize data fit, parameter recoverability, and interpretability:
+
+1. **Globally-Smooth, Monotonic Reference-Dependent Model**
+   - Build utility as a monotonic, smoothly-varying function of the *ratio* between the actual offer and the fairness norm (such as offer/deserved_share, offer/pot_share, etc).
+   - Strongly prefer log-ratio or log-transformed ratio models, but do not limit yourself to strict log forms; consider other generalized monotonic, differentiable transforms.
+
+2. **Parameterization: Balance Simplicity and Flexibility**
+   - Include up to two *fully separable, interpretable* learnable parameters—generally, a global “fairness sensitivity” (scaling or shaping the reference effect) plus an optional bias/intercept term, maximum, or an alternative smooth baseline term.
+   - Any bias/intercept parameter must have a clear, direct effect on model output across all input values without introducing collinearity with the main shape parameter.
+   - You may propose novel alternatives to standard bias—e.g., adding an offset inside the log or as a global activation function on the output.
+
+3. **Encourage Innovative, Out-of-the-Box Nonlinearities**
+   - Consider smooth, monotonic nonlinearities beyond the log, such as:
+     - Power transforms or exponents applied to (offer/deserved_share)
+     - Activation functions (e.g., softplus, sigmoid, tanh) applied to the log-ratio or its scaled version
+     - A learnable smooth asymmetry parameter modifying slope above/below the fairness point, as long as it is not piecewise
+     - Log-ratio with a learnable “floor” parameter for extra robustness, provided all terms remain monotonic
+   - Clearly explain how the new transformation or parameter should improve both fit and identifiability.
+
+4. **Strict Bans on Discontinuities and Piecewise Functions**
+   - Do not use max(), min(), abs(), if-else, indicator functions, or other discontinuities anywhere in the model.
+   - Any asymmetry or loss aversion effect must be smoothly parametrized over the entire range, not only for “loss” or “gain” trials.
+
+5. **Normalization and Psychological Interpretability**
+   - All calculations must be in relative/normalized units (percent, share of pot, offer/deserved share).
+   - Each parameter should reflect a clear psychological interpretation (e.g., baseline generosity, reference sensitivity, or nonlinear aversion/gain).
+
+6. **Demonstrate Parameter Recoverability**
+   - Briefly describe, with each parameter, how varying it would shift predicted acceptance across the dataset and why this separates cleanly from the other parameters.
+
+7. **Precise Output Formatting**
+   - Mathematical model goes (and only the equation) between <MODEL>...</MODEL> tags.
+   - Variables—in specified JSON format—go between <VARIABLES>...</VARIABLES> tags.
+   - State prediction target in <target_variable> tags.
+   - Model summary belongs in <SUMMARY> tags—describe model structure and psychological logic only, not task details.
+
+8. **Prioritize Parsimony but Justify Flexibility**
+   - Avoid including extra parameters unless you have sound reason (supported by the model’s structure) that they will both enhance fit and remain recoverable and interpretable.
+   - Explicitly clarify how each included parameter avoids redundancy or non-identifiability.
+
+**Special Recommendations:**
+- If including a bias/intercept, concisely explain how it does not interfere with fairness sensitivity estimation but instead meaningfully improves BIC or accuracy.
+- Propose creative nonlinearities that enhance global fit without introducing inference confusion or overlap.
+- Above all, ensure every parameter is “live” across all observed data and improvements to fit do not come at the cost of parameter recovery.
+
+Be rigorous, creative, and succinct. The model must be directly implementable given the dataset and the formatting guidelines above.",,,,0.9252997532319668,,,,,,,,,,,0.8277023299050754,-0.08832702530531629,,
+1,34.97312196691393,,,0.7622100122100123,U = alpha * (split_self / combined_earning) - gamma * abs((split_self / combined_earning) - (token_self / (token_self + token_opp))) + beta,"This is a utility-based responder model that predicts acceptance of offers via a weighted sum of self-interest (own share relative to total pot) and aversion to deviation from contribution-based fairness, with an intercept for baseline acceptance tendency. The model is compact, interpretable, and uses three learnable parameters.",v3,"Be VERY considerate of high covariance between learnable parameters as the model. Have an appropriate number or learnable parameters, with a slight bias for less learnable paramters.
+
+First, reason step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact
+* What mathematical form could capture these interactions
+* What parameters would be needed to calibrate the model
+* How the model variables map to observable behavior",0.43130689890357166,0.5418046120041733,0.8728627935163402,,,,,,,,,,,,,,,
+2,35.757516677907745,,,0.8107448107448106,"utility = bias + beta_gain * split_self - beta_inequity * ((max(0, norm_self - split_self)) ** gamma)","The model predicts responder acceptance using a utility that combines a baseline bias, linear sensitivity to the personal monetary offer, and a nonlinear penalty for receiving less than a personalized, contribution-based fairness norm. Only fairness violations below this norm are penalized, and the penalty exponent enables sharp, nonlinear rejection of unfair offers. All variables are mapped directly from the trial structure, supporting interpretable and parameter-recoverable modeling of responder choices.",v3,"First, think step by step about:
+* The key psychological mechanisms involved
+* How these mechanisms interact (be explicit about alternative plausible mechanisms or sources of nonlinearity)
+* What mathematical form(s) and parameterizations could capture these interactions—including (but not limited to) nonlinearities, thresholds, multiplicative or divisive forms, or interaction terms
+* What parameters would be needed to calibrate the model (but aim for maximally independent parameters, with clearly distinct psychological roles)
+* How the model variables map to observable behavior (and consider if alternative operationalizations or normalizations would improve interpretability or identifiability)
+* How to balance parsimony and interpretability (bias towards fewer learnable parameters, but do not exclude important mechanisms)
+* How the parameter values could be recovered from behavior; explicitly consider whether your model may suffer from high parameter collinearity or overfitting
+
+Specific guidance:
+- Consider whether new (e.g., non-monotonic or piecewise) relationships between variables might better fit the data.
+- Try forms of nonlinearity (e.g., squaring, thresholding, sigmoid, divisive normalization), especially to capture strong shifts or asymptotes in responder behavior.
+- Consider interaction or penalty terms beyond additive effects (e.g., multiplicative, max/min, ratio, or softmin/softmax functions).
+- Be OPEN to using zero, one, two, or three learnable parameters (not always three!)—if justified by mechanisms.
+- Carefully justify inclusion and exclusion of each model term.
+- Consider including a stochasticity/noise parameter ONLY if it models true behavioral variability, not just mimics unexplained error.
+- Propose at least one subtle twist from the most standard, purely linear models for this task (even if later ruled out).
+
+Your output should:
+1. Briefly mention, in your reasoning, at least one alternative eligible psychological mechanism or form not immediately obvious from the task description.
+2. Once you’ve reasoned step by step, present a single, well-justified computational model as detailed previously.
+3. Provide the model mathematical formula between <MODEL> and </MODEL> tags, and variable descriptions between <VARIABLES> and </VARIABLES>, as specified in the output format.
+4. Specify the target variable within <target_variable> tags.
+
+Be clear, creative, and rigorous in defining how task variables are integrated into your model, and show extra care to reduce parameter correlation and enhance parameter recovery through thoughtful functional form selection and normalization.",,0.43174675396518525,,0.7601873143847561,0.6248425449166237,0.5618962141710866,,,,,,,,,,,,
+7,39.808349881314065,,,0.6514041514041514,utility = beta * log(split_self / ( (token_self / (token_self + token_opp)) * combined_earning ) ),"A fairness log-ratio model: The utility of accepting a proposed offer is proportional to the log of the ratio between the amount offered to the responder and their normative share, scaled by a single fairness sensitivity parameter. The model is smooth, monotonic, and parameter-lean, with all inputs normalized for psychological interpretability and maximal parameter recovery. No discontinuities or bias terms; all effects flow through the globally-active β parameter.",v3,"<think>
+Despite the interpretability and solid parameter recovery for the loss aversion parameter in the previous run, the model underperformed on both BIC and accuracy versus more concise log-ratio models (see the ""best run"" in the history with significantly better recovery and fit). The linear piecewise/prospect format, while familiar, isn't optimized for smooth parametric variation—especially in the region just around the fairness reference (rel_offer ≈ rel_deserved). This regime produces abrupt kinks and flat/ambiguous gradients, which can lead to estimation noise, particularly when participant data clusters around this norm.
+
+The history of best models shows the log-ratio family offers: (a) direct, reference-relative valuation; (b) clear parametric control (scaling via a single β or shape/loss aversion parameter); (c) monotonicity and smoothness, ensuring every trial—no matter where the proposal lands—provides information for parameter estimation. Models with nonlinear power/exponential transforms deliver similar benefits, provided the shape parameter is active everywhere (not confined to ""loss"" or ""gain"" regions only). Further, the best-recovered models avoided strictly additive bias/intercept parameters.
+
+To boost both fit and parameter recovery for the next round, instructions must:
+
+- Explicitly recommend a *log-ratio* or *generalized ratio-based* model as the base form, highlighting its empirical superiority in parameter recovery and BIC.
+- Encourage generalization by incorporating a *single, smoothly-acting, globally-active nonlinearity parameter*—for example, modifying the exponent or sensitivity of the log-ratio, or smoothly tuning reference-dependence.
+- Require *no abrupt kinks*, *piecewise switches*, or *max*/*indicator* operations. Transformations should maintain differentiability and parameter sensitivity across the offer reference boundary.
+- Emphasize normalization of all amounts (e.g., by “deserved” or “pot size”) to prevent collinearity, increase comparability, and support psychological interpretability.
+- Suggest that if loss aversion/asymmetry is modeled, it must smoothly modulate sensitivity below the norm (not switch regimes), such as through a continuous exponent, or by multiplying the log-ratio by a learnable “loss aversion” parameter everywhere (rather than only below the norm).
+- Stress the *removal or strong justification* of intercept/bias parameters, as past evidence suggests these add noise and hurt recovery.
+- Push towards fully monotonic and interpretable transforms, making calibration of each parameter separable in synthetic and real data.
+- Invite creative, out-of-the-box variants on these forms—such as applying a smooth sigmoid or power to the log-ratio, or scaling via a single learnable parameter that impacts unfairness nonlinearly, without causing non-identifiable overlaps.
+</think>
+
+---
+**Instructions for Run 7 Computational Modeling**
+
+When formulating your formal responder choice model, use the following principles to maximize fit, parameter recovery, and interpretability, intentionally moving beyond standard piecewise or thresholded models:
+
+1. **Adopt a Log-Ratio or Generalized Reference-Dependent Base**
+   - Model utility as a (possibly transformed) function of the *ratio* between the actual offer and a fairness norm (e.g., offer/deserved).
+   - Encourage using log or log-like functions (including exponentiated or power-law forms) for direct, reference-relative sensitivity; these have empirically yielded the highest recoverability.
+
+2. **Single, Globally-Active, Nonlinear Parameter**
+   - Incorporate only one main learnable parameter that smoothly modulates decision sensitivity or loss aversion *across the entire offer space* (not just above or below the reference point).
+   - This parameter might directly scale the log-ratio (e.g., β × log(offer/deserved)), apply a power (e.g., log(offer/deserved)^α), or enter as an exponent (e.g., (offer/deserved)^α – 1).
+   - Ensure changes in this parameter always correspond to monotonic changes in model predictions for every input.
+
+3. **Strictly No Piecewise, Max, or Discontinuous Terms**
+   - Disallow “if-else”, “max(0, …)”, indicator, or stepwise structures that partition the offer space.
+   - Any asymmetry or loss aversion should be implemented via a continuous parameter, such as an exponent or reweighting coefficient, that is active globally and produces a smooth response curve.
+
+4. **Psychological Clarity and Normalization**
+   - All computation should be made using normalized/relative variables (e.g., percent of pot offered, contribution shares, or offer/deserved ratios), never absolute values unless specifically justified.
+   - Give each parameter a clear, isolable psychological interpretation (e.g., “fairness sensitivity,” “nonlinear loss aversion”).
+
+5. **Parameter Limitation and Identifiability**
+   - Do not include additive bias/intercept terms or multiple sensitivity parameters unless it is mathematically clear that each controls a fully independent aspect of model output.
+   - Every parameter must be demonstrably recoverable through simulation: provide a brief verbal account of how variation in the parameter distinctly shifts predicted acceptance behavior throughout the data range.
+
+6. **Format and Output**
+   - Express your mathematical model precisely between <MODEL>…</MODEL> tags, containing *only* the equation.
+   - Provide variable descriptions as JSON in <VARIABLES>…</VARIABLES> tags, specifying variable roles (learnable/data/calculated), ranges, and sources.
+   - State your prediction target in <target_variable> tags.
+   - In <SUMMARY> tags, concisely describe model structure and psychological basis, avoiding generalities or repetition of task details.
+
+7. **Encourage Bold, Yet Justified Innovations**
+   - You may propose innovative extensions—like scaling log-ratio by a parameterized sigmoid, applying a global exponent to the reference-dependent deviation, or otherwise achieving interpretable, non-redundant nonlinearity.
+   - The model must remain succinct, structurally identifiable, and monotonic.
+
+**Special Emphasis:**
+- *No regime switches or thresholded penalties:* The effect of every parameter must be visible and learnable across the entire dataset.
+- *Favor log-ratio or smoothly transformed ratio-based models above all.* If proposing a novel nonlinearity, explain how it enhances recoverability and interpretability versus standard forms.
+- *Reject intercept or bias terms unless their contribution to fit cannot be absorbed by a sensitivity/shape parameter.*
+
+Be thorough and creative, but guarantee that all parameters are live, independent, interpretable, and yield improved recoverability across the observed offer range.",,,0.9587517761606432,,,,,,,,,,,,,,,
+5,43.91067068123458,,,0.6462148962148963,"U = slope * log(split_self / deserved) - penalty * max(0, deserved - split_self)","A two-parameter, reference-dependent utility model predicting offer acceptance. Utility combines a log-ratio term quantifying proportional deviation from the deserved share, and a single-sided, linear penalty applied exclusively when offers fall below the participant’s deserved amount. Each parameter modulates a distinct behavioral signature: overall fairness sensitivity (slope) and steepness of punishment for under-offers (penalty). The model prevents collinearity by activating the penalty only in disadvantageous cases, thus maximizing psychological interpretability and parameter recoverability while remaining parsimonious.",v3,"<think>
+Based on the previous run’s results—specifically, poor parameter recovery for the “penalty_below_threshold” and “sigma_cutoff” parameters, and only moderate accuracy—there’s clear evidence the threshold-based, hybrid “step+continuous” model struggled: it likely suffered from parameter redundancy/collinearity, and its regime-change mechanism was not sufficiently recoverable. This suggests that even though regime shifts are theoretically appealing, their implementation produced parameters whose roles overlapped or failed to manifest separable, robust effects in the observed data.
+
+Conversely, the best models to date have achieved superior parameter recovery and fit with concise, monotonic, reference-dependent forms (especially the two-parameter log-ratio model), likely because each parameter exercised clear, unique control over observable outputs.
+
+Instructions for the next round should:
+
+- Push for solutions that preserve or improve on the psychological interpretability and separability of the log-ratio model, but search for *robust and distinctive* sources of asymmetry, regime change, or decision “cliffs” *without* introducing multiple highly-overlapping parameters.
+- Caution strongly against multi-parameter threshold mechanisms unless the “regimes” can be made truly independent and recoverable (e.g., ensure an explicit sharp threshold parameter whose impact cannot be perfectly offset by others).
+- Encourage alternatives such as: 
+    - Simple, parameter-sparse asymmetric penalty functions (e.g., loss-aversion only for disadvantage; capped or saturating losses; hinge, ReLU, or one-sided power transforms), especially forms that only penalize “below norm.”
+    - Single-parameter soft-min or capped loss functions that still permit discontinuity but are easier to recover.
+    - Hybrid models that “gate” continuous utility by a single binary or probabilistic regime parameter, but restrict the number of parameters controlling this process to *one*.
+    - One-sided nonlinearities (e.g., exponential or squared penalty for below-fairness; zero above).
+- Suggest exploring direct interaction terms or composite predictors reflecting *how far* and *in what direction* the offer deviates from the fair norm, and making a clear psychological justification for each mathematical innovation.
+- Recommend revisiting and potentially slightly extending the best “log-ratio” model (for example, log relative to deserved with an added asymmetric penalty only for negative deviation), or a simple loss-averse/kinked model, but avoiding overly complex regime-changing models unless parameter identifiability is unambiguous.
+- Instruct the modeler to simulate plausible offer distributions and explicitly walk through how each added parameter would translate to *distinct* observable effects.
+- Urge that all parameters—especially threshold or penalty terms—be structured so that their influence is not washed out or redundantly absorbed by other parameters, to promote high recovery.
+
+Encourage:
+- Experimentation with “single-switch” models (one clear regime breakpoint), piecewise-linear with a soft “max”/“min” function, or non-linearities only below fairness norm.
+- Very concise mathematical forms: every parameter should have one clearly interpretable, dimensionally distinct job, and must yield distinct effects on predictions.
+
+Finally, stress that models should remain compatible with the dataset’s structure and, as always, maximize interpretability, parameter recovery, and predictive strength.
+</think>
+
+---
+
+**Instructions for Run 5 Computational Modeling**
+
+Before building your formal model, carefully follow these steps—prioritizing creative, robust solutions that maximize parameter recovery, interpretability, and prediction accuracy:
+
+1. **Map Psychological Mechanisms to Distinct Model Components**  
+   - List the cognitive drivers at play (e.g., self-interest, reference to fairness norm, aversion to disadvantage, categorical rejection, asymmetric thresholds).  
+   - Critically evaluate whether each process truly requires a dedicated parameter, or if it can be captured by a simpler, more recoverable structure.
+
+2. **Strive for Minimal, Distinct Parameterization**  
+   - Strongly prefer models in which *each* learnable parameter controls *only one* conceptually unique, non-overlapping effect (e.g., only the steepness of a penalty, only the position of a threshold).  
+   - Avoid models where two or more parameters influence the same region of prediction space; parameter redundancy kills recovery.
+
+3. **Innovate with Asymmetry and Discontinuous Sensitivity—But with Simplicity**  
+   - Try models that enforce *asymmetric* or *piecewise* effects (e.g., only penalizing under-allocation, or using a “kink” at fairness), but restrict this to *one* extra mechanism, controlled by a single parameter.
+   - Possible structures:
+     - Add a penalty term that activates only if the offer falls below the fairness norm (e.g., via a max(0, deserved – offer) or indicator).
+     - Use a “hinge,” ReLU, or squared-excess penalty, with a single parameter scaling its strength.
+     - Consider combining log-ratio utility with a single, saturating penalty term or a capped function for under-offering.
+     - Allow for *one* threshold or regime switch at a psychologically justified point—do not combine slope, position, and penalty parameters unless you can provide mathematical proof they can be separately recovered.
+
+4. **Explicitly Assess Each Parameter’s Recoverability**  
+   - For every learnable parameter, clearly justify why and how its effects will show up as *distinctive* changes in simulated or fitted data.
+   - Demonstrate—before formalizing your model—how your chosen form guards against parameter collinearity and indeterminacy.
+
+5. **Functional Form and Composite Predictors**  
+   - Consider creative, psychologically motivated composite predictors (e.g., log or ratio of offer/deserved, or gap from norm), but keep the number of “control knobs” minimal and separable.
+   - Test, in your reasoning, that for any regime- or threshold-like effect you include, no other parameter can trivially mimic its influence.
+
+6. **Formatting and Output**  
+   - Present the mathematical model in <MODEL>…</MODEL> tags;  
+   - Use <VARIABLES>…</VARIABLES> for JSON, fully defining each parameter and computed variable;  
+   - State the <target_variable> as required;  
+   - Give a concise, technical <SUMMARY> describing the formal structure, innovations, and separability of your model.
+
+7. **General Advice**  
+   - Be bold in functional form, but ruthless in parameter economy and identifiability.
+   - Consider revisiting or slightly extending strong prior models (e.g., log-ratio utility with one-sided penalty), rather than adding threshold/penalty parameters unless strictly necessary.
+   - Ensure models are directly and unambiguously computable from the provided dataset.
+
+**Special Nudge Toward Improvement:**  
+- You are *required* to introduce either: (a) an asymmetric or one-sided penalty mechanism for under-offered share, or (b) a single learnable threshold mechanism with *only one* parameter tightly controlling regime change, *not* overlapping with slope or penalty parameters.
+- If you employ log-ratio/continuous forms, you must combine these with a single, independently acting mechanism for regime change or nonlinearity, and explain its benefit.
+- For any non-standard structure, clearly simulate or walk through its distinctive behavioral signatures.
+
+Foster precision, minimality, and distinctiveness in your design—prioritize steps you can mathematically show will increase both prediction and parameter recovery over prior models.",,,,,,,,,,,,0.7320798079352976,0.40166939037590965,,,,,
+6,47.856807015570205,,,0.5659340659340659,"utility = 
+    rel_offer - rel_deserved                   if rel_offer >= rel_deserved
+    -lambda_param * (rel_deserved - rel_offer) if rel_offer <  rel_deserved","A reference-dependent, prospect-theory-inspired responder utility model in which acceptance utility equals the proportional deviation of the offered share from the participant's deserved share, with a single “loss aversion” parameter (lambda_param) that amplifies the penalty for receiving less than deserved. This strictly enforces a single, immediately active, and separable asymmetry in the utility of offers above and below fairness, maximizing parameter recoverability and interpretability while modeling responder sensitivity to fairness violations.",v3,"<think>
+From the prior run, it is evident that asymmetric, one-sided linear penalties for under-offering still led to parameter recovery limitations (notably for the “penalty” parameter), despite reasonable psychological interpretability. The most successful prior models (e.g., log-ratio forms) reached excellent parameter recovery when using concise, monotonic, fully multiplicative or reference-dependent effects, and not mixture or additive forms that are triggered only in narrow dynamic ranges. This suggests “piecewise” or “switching” models can introduce locally flat or collinear regions, hurting recoverability, especially where penalties are only active for a subset of trials.
+
+To improve, the next modeling run should:
+
+- Move away from additive, linear, or soft-threshold penalty terms that rely on an indicator or ReLU structure, as these tend to be ill-posed when offer distributions cluster near or far from the threshold, “washing out” parameter effects.
+- Prefer strictly monotonic, *smooth* but still asymmetric functions that supplant additive penalty terms. Examples: nonlinear transforms (e.g., exponential, smoothly rectifying powers), or continuous ratio- or log-ratio-based loss aversion, especially with a *single* shape or asymmetry parameter (e.g., a power or “loss aversion” parameter like in prospect theory).
+- Explicitly build *interaction* or *modulation* effects; for example, a model where log-ratio sensitivity steepens (or flattens) in the disadvantageous domain, using only one learnable nonlinearity or shape parameter.
+- Consider highly recoverable, interpretable nonlinearity from behavioral economics—e.g., prospect theory’s value function: v(x) = x^α if x >= 0, and –λ|x|^β if x < 0—with λ (“loss aversion”) as a single asymmetry parameter, or extend the log-ratio model so that utility = β * log(offer / deserved) when offer >= deserved, and –λ * |log(offer / deserved)|^α otherwise (single switching parameter, but smooth with no hard threshold).
+
+Encourage the following:
+- “Smooth regime” models (e.g., exponentiated or power-transformed deviation, or nonlinear reweighting of loss domain), always with *at most* one clearly learnable parameter governing asymmetry or nonlinearity.
+- Formulations where parameter effects can be visualized over the entire offer–deserved space and are never “off” for a range of trials.
+- Disallow redundant bias/intercept parameters unless strongly justified—prior art shows they often absorb variance inappropriately.
+- For “asymmetry,” strictly restrict to one shape/strength or one sharpness parameter, and show it transitions smoothly so its effect cannot be trivially substituted by another parameter.
+- If a threshold is used, make it hard (not soft) and make the remainder of the function completely invariant to this location—e.g., a single “kink” at offer=deserved with entirely distinct slopes above/below, or parameterized only by the difference in effect.
+
+Above all: maximize recoverability by preventing overlapping functional forms (no two parameters affect the same space or can compensate for one another anywhere in the observed data).
+</think>
+
+---
+**Instructions for Run 6 Computational Modeling**
+
+When constructing your formal model for responder choice, rigorously adhere to the following steps to outpace previous models in predictive accuracy, parameter recovery, and interpretability:
+
+1. **Psychological Mechanism–Parameter Mapping**
+    - Define the cognitive/psychological drivers (self-interest, proportionality to earned/contributed, loss aversion to under-offering, fairness reference).
+    - Each should only have a dedicated parameter if you can demonstrate its quantitative effect is unique, separable, and active across the observed offer space.
+
+2. **Parameterization Principles**
+    - Limit your model to *the smallest number* of learnable parameters that each have a mathematically non-redundant influence.
+    - No two parameters should act on the same outcome region or statistical moments of the data.
+    - Do not introduce intercepts/biases or regime switches unless they yield clearly interpretable independent effects and parameter recovery is guaranteed.
+
+3. **Functional Form Innovation**
+    - Prioritize *smooth, monotonic, asymmetric* nonlinearities instead of additive thresholded penalties.
+    - Strongly consider “Prospect-Theoretic” forms: for example, use a power or log transformation of the proportional offer deviation, with a single loss aversion/asymmetry parameter modulating the “below-norm” side.
+    - Optionally, introduce a multiplicative effect that magnifies the influence of unfairness below the fairness norm, via a shape or steepness parameter.
+    - You may choose a sharply kinked but fully piecewise-linear model, provided only a *single* parameter governs the slope on each side of the reference point and transitions are immediate (no overlapping regions of parameter effect).
+
+4. **Simulation-Backed Justification**
+    - Before formalizing your model, explicitly consider how *each* parameter’s variation manifests in synthetic or real data (i.e., simulate three to four plausible trials and describe how predictions differ as you change each parameter).
+    - Ensure that *across the observed data*, every parameter’s effect is “lit up” and detectable under variation in participant and offer variables.
+
+5. **Model Output and Formatting**
+    - Present the formal mathematical model in <MODEL>…</MODEL> tags with *only* the formula (no prose or comments).
+    - List all variable descriptions—including range, distributions, learnable/data/calculated status—in <VARIABLES>…</VARIABLES> JSON format as previously specified.
+    - State your target variable (likely <target_variable>accept</target_variable>).
+    - Summarize your model in <SUMMARY>…</SUMMARY> with a sharply technical, non-generic, and fully descriptive explanation.
+
+6. **Encouraged Model Types (Choose One Only):**
+    - *Prospect-Theoretic*: A reference-point utility where deviation above/below (offer/deserved) is transformed by power functions or log with different slopes/weights, with a *single* asymmetry (“loss aversion”) parameter.
+    - *Single-Regime-Kinked*: Utility as proportional slope above a fairness norm and another below, controlled by a single asymmetry parameter and no overlap.
+    - *Reference-Modulated Exponential/Piecewise*: A model where penalty for disadvantage is exponentially or power-law larger than reward, controlled by a shape parameter.
+
+7. **General Guidance**
+    - Only use parameter-rich forms when each parameter’s separate effect can be mathematically guaranteed in the full trial range.
+    - Avoid additive bias or “catch-all” terms unless critical; such terms reduce parameter identifiability.
+    - Prefer simplicity and continuous action of parameters across the full space of offers.
+
+**Special Emphasis:**
+- The model *must* feature a strictly single-parameter asymmetry for unfair offers, implemented via a behavioral-economics/Prospect-Theory-inspired function or a mathematically crisp, immediately active above/below-norm “kink.”
+- Do not return to additive one-sided penalties (max(0, …) × parameter) unless using a nonlinear transform that ensures parameter salience and recovery.
+- Novel proposals that achieve both a high degree of interpretability and structural parameter identifiability are encouraged.
+
+Be creative, but rigorously inspect separability and mathematical coverage—every parameter must have a reliably observable, independent signature in prediction space.",,,,,,,,,,,,,,0.780682412961407,,,,
+4,50.04379870076801,,,0.6926129426129426,"S_des = 100 * token_self / (token_self + token_opp)
+X = splitperc_self - accept_threshold * S_des
+U = weight_gap * (splitperc_self - S_des) + penalty_below_threshold * (1 / (1 + exp(sigma_cutoff * X)))","This model predicts responder acceptance as a hybrid of continuous and categorical processes: participants weigh the offered percentage against their deserved share (by contribution) with continuous sensitivity above a soft threshold, but incur a sharp penalty for offers falling below a learnable “minimum acceptable” threshold (expressed as a fraction of deserved share). The categorical penalty is implemented with a smooth sigmoid transition, allowing for both regime change and gradation. Parameterization ensures separable and interpretable roles for threshold position, penalty strength, continuous fairness sensitivity, and threshold sharpness, supporting improved identifiability and accurate recovery of step-like rejection patterns and continuous degrees of fairness aversion.",v3,"<think>
+The previous best model—a two-parameter log-ratio model—yielded very high parameter recovery and solid overall accuracy/BIC, leveraging reference-dependent utility via normalization (offered/deserved share, log transform). However, its functional form remains monotonic and continuous, and does not allow for the kinds of “regime changes,” discretion, or categorical rejections sometimes seen in game behavior (i.e., “below a certain threshold, always reject”—not easily captured by smooth log functions).
+
+To further enhance parameter identifiability and prediction, the next instructions should motivate trying models that:
+- Explicitly account for possible categorical/threshold or “hybrid” effects (i.e., combine continuous sensitivity with discontinuous regime changes).
+- Consider asymmetry: rejection may be *very* rapid just below fairness or may depend nonlinearly on the magnitude of under-offering (e.g., nonlinearity only below the fairness point).
+- Encourage the exploration of “step” or “piecewise” models—e.g., sharply changing utility below a reference, flat above—potentially with an additional parameter to capture the “rejection regime.”
+- Suggest functional forms where the acceptance probability saturates (e.g., softmax, min, or capped penalties) to better match observed switch-like responses.
+- Introduce interaction terms or composite variables, such as the sign and magnitude of the offered–deserved gap.
+- Urge careful justification if proposing more than two learnable parameters (e.g., only if clearly separable and interpretable), but do not strictly limit parameter count if separation can be justified.
+- Urge the modeler to reason, prior to specification, about potential limitations of log-ratio models and the possibility of “psychological cliffs” as evidenced in responder data.
+- Specifically demand that the new proposal cover at least one approach not reducible to the monotonic log or linear transforms recently used and encourage innovative hybridizations—e.g., logistic kernel or an explicit “minimum acceptance threshold” parameter.
+
+Encourage the modeler to assess and articulate, step by step, how their proposal would increase predictive fidelity and parameter recovery above a (strong) reference-dependent, two-parameter, log-ratio baseline. Reference how regime change, discontinuity, or asymmetry may yield more distinct and separable parameter effects in fitting, thus improving recovery/BIC. Additionally, if proposing a more complex model, require explicit justification and checks against parameter collinearity.
+
+Include a caution that novelty should not come at the expense of interpretability or parameter identifiability; always reason clearly about whether any added mechanism will produce reliably distinguishable behavioral patterns in simulated/fitted data.
+
+Encourage concise mathematical models—presenting new ideas with minimal jargon and maximal clarity.
+</think>
+
+---
+
+**Instructions for Run 4 Computational Modeling**
+
+Before constructing your model, systematically follow each step below and ensure your approach stretches beyond standard forms:
+
+1. **Identify Diverse Psychological Mechanisms**  
+   - Enumerate the potential cognitive drivers in responder decisions (e.g., self-interest, fairness norm, aversion to disadvantage, threshold-based rejection, regime-switching).  
+   - Explicitly consider whether behavior is better captured by *continuous* (e.g., log, linear) or *categorical/regime-changing* (e.g., step, threshold, piecewise) functions—or a hybrid thereof.
+
+2. **Innovate in Variable Construction and Functional Form**  
+   - Go beyond standard normalization: devise composite variables (e.g., sign-magnitude gap, ratio, percent deviation) that reveal underlying patterns or asymmetries.  
+   - If modeling thresholds or regime changes, implement these using mathematically explicit forms (e.g., indicator functions, piecewise definitions, soft/hard thresholds).
+   - Consider asymmetrical treatment of under- vs. over-reward (e.g., a penalty only for offers below a reference, or sharper slope below fairness).
+   - You must include at least one non-monotonic or regime-change/threshold element in your model formulation (e.g., utility drops discontinuously when the offer falls below a computed norm).
+
+3. **Refine Parameterization for Recovery and Interpretability**  
+   - If you introduce additional parameters, justify their unique psychological roles and explain in advance why their effects will be distinguishable and recoverable from data.
+   - Where possible, limit the number of learnable parameters—*unless* more are genuinely needed to capture unique effects or stepwise/regime shifts.
+   - Attentively assess the risk of collinearity among parameters, and adjust your form to maximize unique influence on observable data.
+
+4. **Explicitly Simulate and Argue for Model Advantages**  
+   - In your reasoning, compare your model’s expressive power to a reference-dependent log-ratio utility.
+   - State clearly and specifically *why and how* your model will yield increased parameter recovery and prediction accuracy (e.g., by capturing sharp decision boundaries, explicit aversion to unfairness, or psychological “cliffs” missed by previous models).
+
+5. **Formatting and Output Requirements**  
+   - Use the precise tag format for your output:  
+     - <MODEL>…</MODEL> for your model’s formula (mathematical notation only).  
+     - <VARIABLES>…</VARIABLES> for detailed JSON variable definitions (meaning, range, learnability, source, etc.).  
+     - <target_variable>…</target_variable> to declare the output.  
+     - <SUMMARY>…</SUMMARY> to concisely describe the theoretical structure and innovations of your model.
+
+6. **General Advice**  
+   - Favor models maximizing interpretability and separable parameter effects over mere novelty.
+   - Justify each model component rigorously—do not add features unless they offer distinct explanatory or predictive value.
+   - Be explicit and concrete: if proposing a regime-change mechanism, define its mathematical structure, not just its intuition.
+   - Ensure the model can be directly and unambiguously computed from the provided dataset.
+
+**Special Nudge Toward Creativity:**  
+- You are required to include at least one of the following innovations: explicit threshold or step function, piecewise regime change, asymmetric treatment of unfairness, or an interaction term (e.g., penalty that intensifies for offers especially far below a norm).
+- If you choose to stick with a broadly log-ratio or continuous function, you *must* combine it with a regime-switch, indicator, or piecewise structure.
+
+Be rigorous, precise, and out-of-the-box in your model specification and justification.",,,,,,,,0.36186763225766533,0.6022408778599504,0.005429043822243011,-0.01540077517193757,,,,,,,

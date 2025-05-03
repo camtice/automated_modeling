@@ -1,0 +1,42 @@
+
+
+Be bold—introduce two distinct fairness weights. Your goal is a compact (≤4 learnable parameters), interpretable logistic utility model that sharply improves BIC (≥5‐point drop), accuracy, and parameter recoveries (r > 0.80 for every parameter).
+
+1. Psychological Drivers & Transformations  
+   • Self‐interest: z_score of own share.  
+   • Asymmetric fairness: build two orthogonalized fairness metrics—envy (when share<0.5) and guilt (when share>0.5).  
+   • Orthogonalize by regressing raw_dis and raw_adv separately on z_share and z‐scoring residuals.
+
+2. Model Form & Constraints  
+   • <MODEL>…</MODEL> must specify:  
+     – α: intercept  
+     – β: weight on z_share  
+     – γ_envy: weight on standardized envy residual  
+     – γ_guilt: weight on standardized guilt residual  
+   • No more than four learnable parameters.  
+   • Bound each in [–2,2] to aid recovery.  
+   • Use logistic link (temperature=1):  
+     P_accept = 1 / (1 + exp(–U)).
+
+3. Standardization & Orthogonalization  
+   • z_share = (split_self/combined_earning – μ_share)/σ_share over responder trials.  
+   • raw_dis = max(0, 0.5 – share);  raw_adv = max(0, share – 0.5).  
+   • Fit raw_dis ∼ z_share, take residuals, z‐score → res_dis_z.  
+   • Same for raw_adv → res_adv_z.
+
+4. Parameter Recovery & Validation  
+   • Simulate ≥500 datasets sampling true parameters uniformly from [–2,2].  
+   • Re‐fit model to each simulated dataset.  
+   • Require Pearson r > 0.80 for all four parameters.  
+   • Use 5‐fold cross‐validation on actual data to report accuracy.  
+   • Report average BIC for control and treatment; aim ≥5‐point reduction vs baseline.
+
+5. Variable Specification (<VARIABLES>…</VARIABLES>)  
+   • For each learnable parameter: description, bounds [–2,2], uniform prior, source=learnable.  
+   • For calculated predictors: document standardization and residualization steps.  
+   • Declare <target_variable>accept</target_variable>.
+
+6. Summary (<SUMMARY>…</SUMMARY>)  
+   • Emphasize separate envy vs guilt sensitivities and self‐interest.  
+   • Highlight orthogonalization to eliminate collinearity.  
+   • Explain how tighter bounds and distinct fairness weights will boost identifiability, lower BIC, and improve recovery and accuracy.

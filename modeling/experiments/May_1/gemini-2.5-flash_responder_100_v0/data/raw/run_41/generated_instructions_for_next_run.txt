@@ -1,0 +1,46 @@
+Instructions for Run 42 of 100:
+
+The unwavering primary objective is achieving parameter recovery >= 0.7 for *all* learnable parameters. This remains the critical benchmark for model usability. While improved BIC and accuracy are valuable secondary goals, they must not come at the expense of robust parameter recovery.
+
+The previous run (Run 41) explored a piecewise linear model (`U = beta_gain * gain_above_fair - beta_loss * loss_below_fair`) hypothesizing that separating sensitivity to gains and losses would enhance identifiability. Although this model achieved a relatively low BIC (187.15), indicating good fit, it completely failed parameter recovery for both `beta_gain` (r = -0.083) and `beta_loss` (r = 0.012). This demonstrates that despite theoretical separation, the linear structure applied to piecewise deviations did not allow for independent estimation of these parameters from the available data.
+
+The core challenge persists: designing a mathematical structure for utility using exactly **2 learnable parameters** that ensures both parameters have distinct, identifiable influences on responder decisions (`trial_role == 1`). Linear combinations or simple piecewise applications of deviation terms have repeatedly shown issues with simultaneous parameter recovery.
+
+For this run, let's pivot to a different structural approach that relates the proposed share to the fair share using a **ratio** instead of a difference. This departs from the previous models and might offer a novel path to parameter identifiability.
+
+Design a computational model that predicts the utility of accepting an offer based on the *ratio* of the proposed percentage share to the fair percentage share.
+
+*   **Promising Structural Direction (Ratio-based):** Consider using the ratio `split_perc_self / fair_perc_self` as a key input driver for utility. This frame treats fairness not as an anchor point for deviations, but as a reference denominator. Structure the utility (`U`) as a linear function of this ratio, plus a baseline utility.
+    *   Calculate the necessary intermediate variables:
+        *   `sum_tokens = token_self + token_opp`
+        *   `fair_perc_self = IF(sum_tokens > 0, (token_self / sum_tokens) * 100.0, 50.0)` (Note: this calculation already handles the case where `sum_tokens` is 0, setting `fair_perc_self` to 50.0, thus avoiding division by zero in the ratio if `fair_perc_self` is in the denominator).
+    *   Structure the utility (`U`) based on the ratio and your two learnable parameters. A promising form is:
+        `U = beta_ratio_sens * (split_perc_self / fair_perc_self) + beta_baseline`
+    *   This structure models utility as increasing linearly with the ratio of the proposed share to the fair share (scaled by `beta_ratio_sens`), offset by a constant baseline utility (`beta_baseline`). This attempts to separate the sensitivity to the *relative proportion* of the offer (`beta_ratio_sens`) from the general propensity to accept offers (`beta_baseline`).
+
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self`, `token_self`, `token_opp` as data variables.
+    *   Calculate `sum_tokens` and `fair_perc_self` as described above.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+
+*   **Model Formula:** Define the utility (`U`) based on `split_perc_self`, `fair_perc_self`, and your 2 learnable parameters using the ratio structure suggested. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**.
+    *   `beta_ratio_sens`: Sensitivity to the `split_perc_self / fair_perc_self` ratio. Should likely be positive (higher ratio -> higher utility). Suggest generous bounds like [0.0, 20.0].
+    *   `beta_baseline`: Baseline utility (intercept). Can be positive or negative. Represents utility when the ratio is zero (e.g., offering 0%). Suggest generous bounds like [-20.0, 20.0].
+    Choose descriptive names suitable for Python code. Define clear, generous, finite numerical bounds for both.
+
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self`, etc.) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`, etc.).
+
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by the *ratio* of the proposed share to the fair share, and how this structure aims to improve parameter identifiability compared to models based on the *difference* or piecewise deviations from fair.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that robust parameter identifiability *within* the constraints of **exactly 2 learnable parameters** is the absolute priority. Your goal is to find a mathematical structure where both parameters can be uniquely and reliably estimated from the data by ensuring their influences are clearly distinguishable. This ratio-based approach is a significant departure from previous attempts and might offer the necessary structural separation. If this structure also fails parameter recovery, be prepared to think even further outside the box for the next iteration – perhaps utility is not linear in the ratio or difference, perhaps fairness acts as a categorical modifier or a non-linear threshold, or maybe different inputs are needed entirely.

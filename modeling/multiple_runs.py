@@ -303,7 +303,6 @@ def run_multiple_evaluations(config_path: Optional[str] = None):
 
     # --- Main Evaluation Loop ---
     progress_bar = tqdm(range(n_runs), desc="Running evaluations", unit="run")
-    os.environ["INSPECT_QUIET"] = "1"
 
     for i in progress_bar:
         run_number = i + 1
@@ -361,160 +360,188 @@ def run_multiple_evaluations(config_path: Optional[str] = None):
                 dataset_path=dataset_path,
                 system_prompt=system_prompt,
             )
-            log_list = eval(task, trace=False, progress=False)
-            log = log_list[0]
 
-            # --- Process Results ---
-            if log.samples and log.samples[0].metadata:
-                md = log.samples[0].metadata
+            # Enable trace only for the second run (or adjust condition as needed)
+            enable_trace = True
+            logging.info(f"Running eval with trace={enable_trace}")
 
-                bic_value = md.get("average_bic")
-                bic_control = md.get("bic_Control")
-                bic_cocaine = md.get("bic_Cocaine")
-                model_spec = md.get("model_specification", "")
-                model_summary = md.get("model_summary", "")
-                recovery_correlations = md.get("parameter_recovery", {}).get(
-                    "correlations", {}
-                )
-                recovery_summary_str = md.get("recovery_summary", "")
-                overall_accuracy = md.get("overall_accuracy")
-                complete_model_interaction = md.get("complete_model_interaction")
+            try:
+                # Pass trace parameter to eval
+                log_list = eval(task, trace=enable_trace, progress=False)
+                log = log_list[0]
 
-                current_run_results = {
-                    "specification": model_spec,
-                    "summary": model_summary,
-                    "bic": bic_value,
-                    "bic_control": bic_control,
-                    "bic_cocaine": bic_cocaine,
-                    "recovery_info": recovery_summary_str,
-                    "accuracy": overall_accuracy,
-                }
-                previous_models_data.append(current_run_results)
+                # --- Process Results ---
+                # Check log status immediately after eval
+                if log.status != "success":
+                     logging.error(f"Run {run_number} eval failed. Status: {log.status}, Error: {log.error}")
+                     # Add handling for failed status, maybe continue or raise
 
-                # Move plots
-                plots_source_dir = Path(
-                    initial_config.get("paths", {}).get(
-                        "plot_output", "param_recovery_plots"
+                if log.samples and log.samples[0].metadata:
+                    md = log.samples[0].metadata
+
+                    bic_value = md.get("average_bic")
+                    bic_control = md.get("bic_Control")
+                    bic_cocaine = md.get("bic_Cocaine")
+                    model_spec = md.get("model_specification", "")
+                    model_summary = md.get("model_summary", "")
+                    recovery_correlations = md.get("parameter_recovery", {}).get(
+                        "correlations", {}
                     )
-                )
-                if plots_source_dir.exists():
-                    try:
-                        for file in os.listdir(plots_source_dir):
-                            shutil.move(
-                                str(plots_source_dir / file), str(plots_dir / file)
-                            )
-                        if not os.listdir(plots_source_dir):
-                            os.rmdir(plots_source_dir)
-                    except Exception as plot_err:
-                        logging.warning(
-                            f"Could not move/remove plot directory {plots_source_dir}: {plot_err}"
+                    recovery_summary_str = md.get("recovery_summary", "")
+                    overall_accuracy = md.get("overall_accuracy")
+                    complete_model_interaction = md.get("complete_model_interaction")
+
+                    current_run_results = {
+                        "specification": model_spec,
+                        "summary": model_summary,
+                        "bic": bic_value,
+                        "bic_control": bic_control,
+                        "bic_cocaine": bic_cocaine,
+                        "recovery_info": recovery_summary_str,
+                        "accuracy": overall_accuracy,
+                    }
+                    previous_models_data.append(current_run_results)
+
+                    # Move plots
+                    plots_source_dir = Path(
+                        initial_config.get("paths", {}).get(
+                            "plot_output", "param_recovery_plots"
                         )
-                else:
-                    logging.info(
-                        f"Plot source directory '{plots_source_dir}' not found, skipping move."
                     )
+                    if plots_source_dir.exists():
+                        try:
+                            for file in os.listdir(plots_source_dir):
+                                shutil.move(
+                                    str(plots_source_dir / file), str(plots_dir / file)
+                                )
+                            if not os.listdir(plots_source_dir):
+                                os.rmdir(plots_source_dir)
+                        except Exception as plot_err:
+                            logging.warning(
+                                f"Could not move/remove plot directory {plots_source_dir}: {plot_err}"
+                            )
+                    else:
+                        logging.info(
+                            f"Plot source directory '{plots_source_dir}' not found, skipping move."
+                        )
 
-                # Create row for results table
-                row_data = {
-                    "run_number": run_number,
-                    "average_bic": bic_value,
-                    "bic_control": bic_control,
-                    "bic_cocaine": bic_cocaine,
-                    "overall_accuracy": overall_accuracy,
-                    "model_specification": model_spec,
-                    "model_summary": model_summary,
-                    "version": version,
-                    "instructions_used": instructions_for_next_run,
-                }
-                for param, data in recovery_correlations.items():
-                    r_value = data.get("r")
-                    row_data[f"{param}_recovery"] = r_value
-                results_list.append(row_data)
+                    # Create row for results table
+                    row_data = {
+                        "run_number": run_number,
+                        "average_bic": bic_value,
+                        "bic_control": bic_control,
+                        "bic_cocaine": bic_cocaine,
+                        "overall_accuracy": overall_accuracy,
+                        "model_specification": model_spec,
+                        "model_summary": model_summary,
+                        "version": version,
+                        "instructions_used": instructions_for_next_run,
+                    }
+                    for param, data in recovery_correlations.items():
+                        r_value = data.get("r")
+                        row_data[f"{param}_recovery"] = r_value
+                    results_list.append(row_data)
 
-                # Save individual run metadata
-                with open(run_dir / "metadata.json", "w") as f:
-                    json.dump(md, f, indent=2, default=str)
+                    # Save individual run metadata
+                    with open(run_dir / "metadata.json", "w") as f:
+                        json.dump(md, f, indent=2, default=str)
 
-                # Update progress bar and print summary
-                recovery_str = ", ".join(
-                    [
-                        f"{p}={v['r']:.2f}" if v.get("r") is not None else f"{p}=N/A"
-                        for p, v in recovery_correlations.items()
-                    ]
-                )
-                bic_str = f"BIC={bic_value:.2f}" if bic_value is not None else "BIC=N/A"
-                if bic_control is not None:
-                    bic_str += f", Ctrl={bic_control:.2f}"
-                if bic_cocaine is not None:
-                    bic_str += f", Coc={bic_cocaine:.2f}"
-                acc_str = (
-                    f", Acc={overall_accuracy:.2f}"
-                    if overall_accuracy is not None
-                    else ""
-                )
-                model_info = (
-                    f"Run {run_number}: {bic_str}{acc_str}, Recov: {recovery_str}"
-                )
-                progress_bar.set_postfix_str(model_info, refresh=True)
-                print(f"\nRun {run_number} complete - {model_info}")
+                    # Update progress bar and print summary
+                    recovery_str = ", ".join(
+                        [
+                            f"{p}={v['r']:.2f}" if v.get("r") is not None else f"{p}=N/A"
+                            for p, v in recovery_correlations.items()
+                        ]
+                    )
+                    bic_str = f"BIC={bic_value:.2f}" if bic_value is not None else "BIC=N/A"
+                    if bic_control is not None:
+                        bic_str += f", Ctrl={bic_control:.2f}"
+                    if bic_cocaine is not None:
+                        bic_str += f", Coc={bic_cocaine:.2f}"
+                    acc_str = (
+                        f", Acc={overall_accuracy:.2f}"
+                        if overall_accuracy is not None
+                        else ""
+                    )
+                    model_info = (
+                        f"Run {run_number}: {bic_str}{acc_str}, Recov: {recovery_str}"
+                    )
+                    progress_bar.set_postfix_str(model_info, refresh=True)
+                    print(f"\nRun {run_number} complete - {model_info}")
 
-            else:
-                logging.warning(f"No sample metadata found for run {run_number}")
+                else:
+                    logging.warning(f"No sample metadata found for run {run_number}")
+                    results_list.append(
+                        {
+                            "run_number": run_number,
+                            "average_bic": None,
+                            "model_specification": "No metadata",
+                            "version": version,
+                        }
+                    )
+                    progress_bar.set_postfix_str(
+                        f"Run {run_number}: No metadata", refresh=True
+                    )
+                    print(f"\nRun {run_number} complete - No metadata found")
+                    current_run_results = None
+
+                # --- Update Instructions for Next Run ---
+                if update_instructions_enabled and current_run_results and (i < n_runs - 1):
+                    try:
+                        instructions_for_next_run = asyncio.run(
+                            update_instructions(
+                                llm_name=llm_name,
+                                previous_instructions=instructions_for_next_run,
+                                run_results=current_run_results,
+                                complete_model_interaction=complete_model_interaction,
+                                run_number=run_number,
+                                n_runs=n_runs,
+                                previous_runs=previous_models_data,
+                                num_previous_runs_to_include=run_config["prompt_updater"][
+                                    "num_previous_runs_to_include"
+                                ],
+                            )
+                        )
+                        with open(
+                            run_dir / "generated_instructions_for_next_run.txt", "w"
+                        ) as f:
+                            f.write(instructions_for_next_run)
+                    except RuntimeError as e:
+                        logging.error(
+                            f"RuntimeError during instruction update for run {run_number + 1}: {e}",
+                            exc_info=True,
+                        )
+                        logging.warning(
+                            "Halting execution due to instruction update error."
+                        )
+                        raise
+                    except Exception as e:
+                        logging.error(
+                            f"Exception during instruction update for run {run_number + 1}: {e}",
+                            exc_info=True,
+                        )
+                        logging.warning(
+                            "Halting execution due to instruction update error."
+                        )
+                        raise
+                elif i < n_runs - 1:
+                    logging.info(f"Skipping instruction update for run {run_number + 1}.")
+
+            except Exception as e:
+                logging.error(f"Critical error in run {run_number}: {e}", exc_info=True)
                 results_list.append(
                     {
                         "run_number": run_number,
                         "average_bic": None,
-                        "model_specification": "No metadata",
+                        "model_specification": f"Error: {e}",
                         "version": version,
                     }
                 )
-                progress_bar.set_postfix_str(
-                    f"Run {run_number}: No metadata", refresh=True
+                progress_bar.set_postfix_str(f"Run {run_number}: Error", refresh=True)
+                print(f"\nRun {run_number} failed - Error: {e}")
+                logging.warning(
+                    f"Skipping instruction update for run {run_number + 1} due to error."
                 )
-                print(f"\nRun {run_number} complete - No metadata found")
-                current_run_results = None
-
-            # --- Update Instructions for Next Run ---
-            if update_instructions_enabled and current_run_results and (i < n_runs - 1):
-                try:
-                    instructions_for_next_run = asyncio.run(
-                        update_instructions(
-                            llm_name=llm_name,
-                            previous_instructions=instructions_for_next_run,
-                            run_results=current_run_results,
-                            complete_model_interaction=complete_model_interaction,
-                            run_number=run_number,
-                            n_runs=n_runs,
-                            previous_runs=previous_models_data,
-                            num_previous_runs_to_include=run_config["prompt_updater"][
-                                "num_previous_runs_to_include"
-                            ],
-                        )
-                    )
-                    with open(
-                        run_dir / "generated_instructions_for_next_run.txt", "w"
-                    ) as f:
-                        f.write(instructions_for_next_run)
-                except RuntimeError as e:
-                    logging.error(
-                        f"RuntimeError during instruction update for run {run_number + 1}: {e}",
-                        exc_info=True,
-                    )
-                    logging.warning(
-                        "Halting execution due to instruction update error."
-                    )
-                    raise
-                except Exception as e:
-                    logging.error(
-                        f"Exception during instruction update for run {run_number + 1}: {e}",
-                        exc_info=True,
-                    )
-                    logging.warning(
-                        "Halting execution due to instruction update error."
-                    )
-                    raise
-            elif i < n_runs - 1:
-                logging.info(f"Skipping instruction update for run {run_number + 1}.")
 
         except Exception as e:
             logging.error(f"Critical error in run {run_number}: {e}", exc_info=True)

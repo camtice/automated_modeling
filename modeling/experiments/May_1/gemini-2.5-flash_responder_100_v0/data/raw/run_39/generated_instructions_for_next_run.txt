@@ -1,0 +1,36 @@
+Instructions for Run 40 of 100:
+
+The primary objective remains achieving parameter recovery >= 0.7 for *all* learnable parameters. This is non-negotiable for a usable model. Improved BIC and accuracy are important secondary goals.
+
+The previous run (Run 39) utilized the additive structure `U = beta_intercept + beta_split_perc * split_perc_self - beta_loss_penalty * loss_below_fair`. This model achieved the best BIC (244.32) and accuracy (0.794) seen so far, demonstrating good predictive power. However, parameter recovery remained poor (`beta_intercept: r = -0.067`, `beta_split_perc: r = 0.684`, `beta_loss_penalty: r = 0.283`). Crucially, the recovery for `beta_intercept` and `beta_loss_penalty` was well below the 0.7 threshold, rendering the model unusable despite its predictive performance.
+
+The poor recovery of the `beta_intercept` suggests it is highly collinear with other terms or that its influence is not well-identified separately from the effects captured by `split_perc_self` and `loss_below_fair`. The `beta_loss_penalty` also struggled, indicating its influence is not distinct enough in that specific additive structure.
+
+For this run, design a computational model for responder decisions (`trial_role == 1`) that predicts the utility of accepting an offer. Your model should utilize the proposed share percentage (`split_perc_self`) and a calculated fair percentage for the participant (`fair_perc_self`) based on token contributions as key inputs.
+
+*   **Parameter Identifiability is Paramount:** The central challenge remains designing a mathematical structure (formula for `U`) using these inputs and exactly **2 learnable parameters** such that these parameters have distinct and identifiable influences on utility. Building on previous attempts, particularly the piecewise approaches and the need to avoid the intercept term, consider models where utility is centered around the 'fair share' concept.
+*   **Promising Structural Direction (Focus on Deviation from Fair):** Based on the failure of the intercept and the partial success of loss-related parameters in previous runs, a promising direction is a 2-parameter model that calculates utility based on the deviation from the fair share, explicitly allowing for potentially different sensitivities to deviations above and below fair, but using only *two* core parameters. Consider a structure like:
+    `U = beta_linear_relative * deviation_from_fair - beta_extra_loss * max(0.0, -deviation_from_fair)`
+    Where:
+    *   `deviation_from_fair` is calculated as `split_perc_self - fair_perc_self`.
+    *   `max(0.0, -deviation_from_fair)` is equivalent to `max(0.0, fair_perc_self - split_perc_self)`, representing the 'loss below fair'.
+    This structure models utility as linearly dependent on the deviation from fair (`beta_linear_relative`), with an *additional* penalty (`beta_extra_loss`) applied specifically when the offer is below fair. Utility is implicitly zero when the offer is exactly fair (`split_perc_self == fair_perc_self`). This approach removes the problematic intercept and tries to make the influence of a general deviation (`beta_linear_relative`) and the specific loss penalty (`beta_extra_loss`) more separable, which should aid parameter recovery compared to previous structures.
+*   **Key Inputs & Calculated Variables:**
+    *   Use `split_perc_self` directly as a data variable.
+    *   Calculate `sum_tokens` as `token_self + token_opp`.
+    *   Calculate `fair_perc_self` as `(token_self / sum_tokens) * 100.0` if `sum_tokens > 0`, and `50.0` if `sum_tokens == 0`.
+    *   Calculate `deviation_from_fair` as `split_perc_self - fair_perc_self`.
+    *   Calculate `loss_below_fair` as `max(0.0, fair_perc_self - split_perc_self)`.
+    *   Ensure these calculated variables are included in your <MODEL> tag calculations and <VARIABLES> descriptions.
+*   **Model Formula:** Define the utility (`U`) based on `deviation_from_fair` and `loss_below_fair` (or equivalents), and your 2 learnable parameters. Structure the formula as described above or a similar deviation-based 2-parameter model that removes the intercept. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+*   **Learnable Parameters:** Your model *must* have exactly **2 learnable parameters**. Choose descriptive names suitable for Python code (e.g., `beta_linear_relative`, `beta_extra_loss`). Define clear, generous, finite numerical bounds (e.g., [-10, 10] for a scaling parameter, [0, 20] for a penalty parameter that should typically be positive).
+*   **Calculated Variables:** Ensure all calculated variables used in the model (`sum_tokens`, `fair_perc_self`, `deviation_from_fair`, `loss_below_fair`, etc.) are included in your <VARIABLES> descriptions with `source: "calculated"`. Include descriptions for all data variables used as inputs (`token_self`, `token_opp`, `split_perc_self`, etc.).
+*   **Model Specification:** Provide the formal mathematical formula between <MODEL> tags. Include the calculation steps for necessary derived variables before the final formula for `U`. Use clear mathematical notation.
+*   **Variable Descriptions:** Provide variable descriptions in JSON format between <VARIABLES> tags for *all* variables used in the <MODEL> formula (data, calculated, learnable). Include source, range (with inclusive flags), distribution (if applicable), and learnable status.
+*   **Target Variable:** Specify "accept" as the target variable using <target_variable> tags.
+*   **Summary:** Provide a concise summary between <SUMMARY> tags, describing your model. Explain the core idea of how utility is determined by the deviation from the fair share and how your chosen 2-parameter mathematical structure aims to improve parameter identifiability compared to previous structures by removing the intercept and separating the roles of the parameters.
+
+Available Data Variables:
+- trial_type, trial_role, token_opp, token_self, combined_earning, split_opp, split_self, splitperc_opp, split_perc_self, accept, accepted_amount, accepted_perc, proposed_perc, proposed_amount.
+
+Please think through this step by step, then provide your model specification and variable descriptions. Remember that out-of-the-box thinking *within* the constraints of **exactly 2 learnable parameters** and robust parameter identifiability is encouraged. Your goal is to find a mathematical structure that allows both parameters to be uniquely and reliably estimated from the data.

@@ -1,0 +1,52 @@
+
+
+New Instructions for Run 18:
+
+1. Candidate Families (≤3 Learnable Parameters, fixed τ=1)  
+   a. Piecewise Inequity Aversion (3 params):  
+      U = α + β_neg·neg_dev_std + β_pos·pos_dev_std  
+      • neg_dev = max(0.5 – z_share, 0)  
+      • pos_dev = max(z_share – 0.5, 0)  
+      • Standardize neg_dev, pos_dev → neg_dev_std, pos_dev_std  
+   b. Quadratic‐Orthonormal (3 params):  
+      U = α + β₁·dev_std + β₂·dev_sq_orth  
+      • dev = |z_share–0.5|; dev_std = zscore(dev)  
+      • dev_sq = dev_std²; dev_sq_orth = dev_sq – proj(dev_sq, dev_std)  
+   c. Power‐Transform (2 params):  
+      U = α + β·dev_std^κ, κ∈[0.5,2] learnable  
+   d. Exp–Power Hybrid (3 params):  
+      U = α + β·dev_std^κ · (1 – exp(–λ·dev_std)), κ∈[0.5,2], λ∈[0.5,5]  
+
+2. Feature Pipeline  
+   • z_share = split_self / combined_earning (skip trials where combined_earning=0)  
+   • Center at 0.5 → dev features (neg_dev, pos_dev, dev)  
+   • Standardize each feature (zero mean, unit SD on training set)  
+   • Build dev_sq, orthonormalize via Gram–Schmidt  
+
+3. Choice Rule  
+   • Fixed-temperature logistic link:  
+     P_accept = 1 / (1 + exp(–U))  
+
+4. Priors & Parameter Bounds  
+   • α, β, β₁, β₂, β_neg, β_pos ∼ Normal(0,0.05) truncated to [–0.2,0.2]  
+   • κ ∼ Uniform(0.5,2]  
+   • λ ∼ Uniform(0.5,5]  
+
+5. Two‐Stage Recovery & Identification  
+   Stage 1: Simulate 3,000 datasets from priors → MAP fits → require all Pearson r ≥ 0.85  
+   Stage 2: If any r < 0.85, drop the smallest‐impact parameter (by variance explained), retest; if still fails, drop that family  
+
+6. Model Selection & Validation  
+   • 5‐fold cross‐validation → report out‐of‐sample accuracy, BIC, LOO‐CV  
+   • Posterior predictive check: compare empirical vs. predicted P_accept in 6 quantile bins  
+   • Select final model: ΔBIC ≥ 4 vs. runner‐up, all r ≥ 0.85, accuracy ≥ +10% over 2‐param baseline  
+
+7. Deliverables  
+   • <MODEL>…</MODEL>: exact utility formula only  
+   • <VARIABLES>…</VARIABLES>: all features & parameters with ranges, priors, learnable flags  
+   • <target_variable>accept</target_variable>  
+
+8. Summary (<SUMMARY>…</SUMMARY>)  
+   • State the family chosen, describe each term, emphasize shrinkage settings, fixed τ, recovery threshold (r ≥ 0.85), any parameters pruned  
+
+Encouragement: You may propose novel ≤3‐parameter transforms (e.g. dev·log(1+dev), thresholded splines, tanh‐scaled dev) or bespoke asymmetries, but always apply orthonormalization or piecewise separation to ensure identifiability and meet the stringent recovery & selection criteria.
