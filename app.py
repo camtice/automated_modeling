@@ -161,14 +161,17 @@ def load_experiment_metadata(exp_version):
                     with open(run_metadata_path) as f:
                         run_metadata = json.load(f)
                         # Add BIC scores and overall accuracy from metadata to DataFrame
-                        if "average_bic" in run_metadata:
-                            df.loc[df["run_number"] == run_number, "average_bic"] = (
-                                run_metadata["average_bic"]
-                            )
-                        if "overall_accuracy" in run_metadata:
-                            df.loc[
-                                df["run_number"] == run_number, "overall_accuracy"
-                            ] = run_metadata["overall_accuracy"]
+                        # Use .get with default None to handle missing keys gracefully
+                        avg_bic = run_metadata.get("average_bic")
+                        overall_acc = run_metadata.get("overall_accuracy")
+                        print(f"Run {run_number}: Found avg_bic={avg_bic}, overall_acc={overall_acc} in metadata.json") # Logging
+
+                        if avg_bic is not None:
+                            df.loc[df["run_number"] == run_number, "average_bic"] = avg_bic
+                        if overall_acc is not None:
+                            df.loc[df["run_number"] == run_number, "overall_accuracy"] = overall_acc
+
+                        # Process BIC group values
                         for key in run_metadata:
                             if key.startswith("bic_"):
                                 df.loc[df["run_number"] == run_number, key] = (
@@ -338,8 +341,16 @@ def get_all_experiments():
     # Sort everything alphabetically
     sorted_experiments = sorted(experiments, key=lambda x: (x["folder"], x["name"]))
 
-    # Get unique folder names for folder-based filtering
-    folders = sorted(set(exp["folder"] for exp in experiments if exp["folder"]))
+    # Get unique folder names for folder-based filtering sorted by most recent creation
+    folder_set = set(exp["folder"] for exp in experiments if exp["folder"])
+    folder_ctimes: list[tuple[str, float]] = []
+    for folder in folder_set:
+        folder_path = os.path.join(EXPERIMENTS_DIR, folder)
+        ctime = os.path.getctime(folder_path) if os.path.exists(folder_path) else 0
+        folder_ctimes.append((folder, ctime))
+    # Sort folders by creation time descending (most recent first)
+    folder_ctimes.sort(key=lambda x: x[1], reverse=True)
+    folders = [folder for (folder, _) in folder_ctimes]
 
     return sorted_experiments, folders, folder_structure
 
@@ -374,17 +385,21 @@ def index():
             if os.path.exists(run_metadata_path):
                 with open(run_metadata_path) as f:
                     run_metadata = json.load(f)
-                    # Add overall_accuracy if not already present from load_experiment_metadata
+                    # Add overall_accuracy if not already present and exists in metadata
                     if (
                         "overall_accuracy" in run_metadata
-                        and "overall_accuracy" not in model
+                        and "overall_accuracy" not in model # Check if not already added
+                        and model.get("overall_accuracy") is None # Double check if None
                     ):
                         model["overall_accuracy"] = run_metadata["overall_accuracy"]
-                    # Add group parameter averages if they exist
+                        print(f"Run {run_number}: Added overall_accuracy={model['overall_accuracy']} from metadata.json to model dict") # Logging
+
+                    # Add group parameter averages if they exist in metadata
                     if "group_parameter_averages" in run_metadata:
                         model["group_parameter_averages"] = run_metadata[
                             "group_parameter_averages"
                         ]
+                        print(f"Run {run_number}: Added group_parameter_averages from metadata.json to model dict") # Logging
                     # Optionally add other specific metadata you might want directly on the model dict
                     # e.g., model['average_bic'] = run_metadata.get('average_bic')
 
