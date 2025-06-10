@@ -247,6 +247,31 @@ def get_plot_paths(exp_version, run_number):
     return plots_dir, plot_files
 
 
+def get_validation_plot_paths(exp_version, run_number):
+    """Get all model validation plots for a specific run."""
+    validation_plots_dir = os.path.join(
+        EXPERIMENTS_DIR,
+        exp_version,
+        "data",
+        "raw",
+        f"run_{run_number}",
+        "plots",
+        "model_validation",
+    )
+    scatter_plot = None
+    hist_plots = []
+
+    if os.path.exists(validation_plots_dir):
+        # Sort to ensure consistent order
+        for file in sorted(os.listdir(validation_plots_dir)):
+            if file == "participant_validation_scatter.png":
+                scatter_plot = os.path.join("model_validation", file)
+            elif file.startswith("group_validation_hist_") and file.endswith(".png"):
+                hist_plots.append(os.path.join("model_validation", file))
+
+    return scatter_plot, hist_plots
+
+
 def load_yaml_config(filepath):
     """Load a YAML configuration file."""
     try:
@@ -435,6 +460,11 @@ def model_detail(run_number):
         # Get plot paths
         plots_dir, plot_files = get_plot_paths(exp_version, run_number)
 
+        # Get model validation plot paths
+        validation_scatter_plot, validation_hist_plots = get_validation_plot_paths(
+            exp_version, run_number
+        )
+
         # Load run-specific metadata
         run_metadata_path = os.path.join(
             EXPERIMENTS_DIR,
@@ -458,6 +488,8 @@ def model_detail(run_number):
             metadata=metadata,
             plot_files=plot_files,
             run_number=run_number,
+            validation_scatter_plot=validation_scatter_plot,
+            validation_hist_plots=validation_hist_plots,
         )
     except Exception as e:
         abort(500, description=str(e))
@@ -511,4 +543,4 @@ def handle_exception(e):
 validate_experiment_dir()
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5001)

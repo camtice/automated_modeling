@@ -812,6 +812,8 @@ def parameter_recovery_solver():
 
                 return synthetic_data
 
+            import pdb; pdb.set_trace()
+
             except Exception as e:
                 raise ValueError(f"Error generating synthetic data: {str(e)}")
 
@@ -941,6 +943,173 @@ def parameter_recovery_solver():
 
     return solve
 
+
+@solver
+def model_validation_solver():
+    async def solve(state: TaskState, generate: Generate) -> TaskState:
+        try:
+            logging.info("Starting model validation...")
+
+            # Get necessary data from state
+            fitting_results = state.metadata.get("fitting_results", [])
+            simulation_code = state.metadata.get("simulation_code")
+            target_variable = state.metadata.get("target_variable")
+            prediction_type = CONFIG["comp_model_specifications"]["type"]
+            var_desc = state.metadata.get("variable_descriptions", {})
+
+            if not all([fitting_results, simulation_code, target_variable]):
+                logging.warning("Missing necessary data for model validation. Skipping.")
+                state.output.completion = "Skipped model validation: Missing fitting results, simulation code, or target variable."
+                return state
+
+            # Read the full dataset once
+            df = pd.read_csv(CONFIG["paths"]["dataset"])
+
+            # Create plots folder
+            plots_dir = Path(CONFIG["paths"]["plot_output"]) / "model_validation"
+            plots_dir.mkdir(parents=True, exist_ok=True)
+
+            # --- Helper function for simulation ---
+            def run_simulation(participant_trials, learned_params):
+                try:
+                    local_vars = {"math": math, "random": random}
+                    exec(simulation_code, local_vars)
+                    simulate_model_func = local_vars.get("simulate_model")
+                    if not simulate_model_func:
+                        raise ValueError("simulate_model function not found in simulation_code")
+
+                    model_predictions = simulate_model_func(participant_trials, **learned_params)
+
+                    if prediction_type.lower() == "utility":
+                        # For utility models, convert to binary decision
+                        simulated_outcomes = []
+                        for pred in model_predictions:
+                            p_accept = stable_logistic(pred)
+                            decision = 1 if random.random() < p_accept else 0
+                            simulated_outcomes.append(decision)
+                        return simulated_outcomes
+                    else: # 'numerical_variable_estimation'
+                        # For numerical models, the prediction is the outcome
+                        return model_predictions
+
+                except Exception as e:
+                    logging.error(f"Error during simulation run: {e}")
+                    return None
+
+            # --- Perform validation for each participant ---
+            participant_results = []
+            for fit_res in fitting_results:
+                participant_id = fit_res.get("participant_id")
+                if participant_id is None:
+                    continue
+                
+                participant_df = df[df["ID"] == participant_id]
+                if participant_df.empty:
+                    continue
+
+                participant_trials = participant_df.to_dict("records")
+                true_outcomes = participant_df[target_variable].tolist()
+
+                learnable_params = {k: v for k, v in var_desc.items() if v.get("learnable")}
+                learned_params = {p: fit_res[p] for p in learnable_params if p in fit_res}
+
+                if len(learned_params) != len(learnable_params):
+                    logging.warning(f"Skipping participant {participant_id}: Mismatch in learned parameters.")
+                    continue
+
+                simulated_outcomes = run_simulation(participant_trials, learned_params)
+
+                if simulated_outcomes and len(true_outcomes) == len(simulated_outcomes):
+                    group = fit_res.get("group")
+                    participant_results.append({
+                        "participant_id": participant_id,
+                        "group": group,
+                        "true_outcomes": true_outcomes,
+                        "simulated_outcomes": simulated_outcomes,
+                        "true_mean": statistics.mean(true_outcomes) if true_outcomes else 0,
+                        "simulated_mean": statistics.mean(simulated_outcomes) if simulated_outcomes else 0
+                    })
+
+            if not participant_results:
+                 state.output.completion = "Model validation failed: No results generated for any participant."
+                 state.metadata["validation_error"] = "No participant results for validation."
+                 return state
+
+            # --- Per-participant level plotting ---
+            true_means = [r["true_mean"] for r in participant_results]
+            simulated_means = [r["simulated_mean"] for r in participant_results]
+            
+            plt.figure(figsize=(8, 8))
+            plt.scatter(true_means, simulated_means, alpha=0.7)
+            # Add y=x line
+            min_val = min(min(true_means), min(simulated_means)) if true_means and simulated_means else 0
+            max_val = max(max(true_means), max(simulated_means)) if true_means and simulated_means else 1
+            plt.plot([min_val, max_val], [min_val, max_val], 'r--', label='y=x')
+            
+            plot_title_prefix = "Proportion of " if prediction_type.lower() == 'utility' else "Mean of "
+            plt.xlabel(f"True {plot_title_prefix}{target_variable}")
+            plt.ylabel(f"Simulated {plot_title_prefix}{target_variable}")
+            plt.title("Per-Participant Model Validation")
+            plt.legend()
+            
+            corr, p_val = pearsonr(true_means, simulated_means) if len(true_means) > 1 else (float('nan'), float('nan'))
+            plt.text(0.05, 0.95, f'r = {corr:.3f}\np = {p_val:.3f}', transform=plt.gca().transAxes,
+                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+            participant_plot_path = plots_dir / "participant_validation_scatter.png"
+            plt.savefig(str(participant_plot_path))
+            plt.close()
+
+            # --- Per-group level plotting ---
+            group_plot_paths = {}
+            if CONFIG["group_analysis"]["enabled"]:
+                group_column = CONFIG["group_analysis"]["group_column"]
+                groups = df[group_column].unique()
+
+                for group in groups:
+                    if pd.isna(group):
+                        continue
+                    
+                    group_results = [r for r in participant_results if r["group"] == group]
+                    if not group_results:
+                        continue
+
+                    true_group_means = [r["true_mean"] for r in group_results]
+                    simulated_group_means = [r["simulated_mean"] for r in group_results]
+                    
+                    plt.figure(figsize=(10, 6))
+                    # Use density=True for normalization if group sizes vary
+                    plt.hist(true_group_means, bins=10, alpha=0.7, label='True Means', color='blue', density=True)
+                    plt.hist(simulated_group_means, bins=10, alpha=0.7, label='Simulated Means', color='orange', density=True)
+                    plt.xlabel(f"Participant Mean {target_variable}")
+                    plt.ylabel("Density")
+                    plt.title(f"Group-level Validation for '{group}'")
+                    plt.legend()
+                    
+                    group_plot_path = plots_dir / f"group_validation_hist_{group}.png"
+                    plt.savefig(str(group_plot_path))
+                    plt.close()
+                    group_plot_paths[group] = str(group_plot_path)
+
+            # --- Store results in metadata ---
+            state.metadata["model_validation"] = {
+                "participant_plot": str(participant_plot_path),
+                "group_plots": group_plot_paths,
+                "correlation": {"r": corr, "p": p_val}
+            }
+            
+            completion_message = f"Model validation completed. Participant-level correlation r={corr:.3f}. Plots saved in {plots_dir}."
+            state.output.completion = completion_message
+            logging.info(completion_message)
+
+        except Exception as e:
+            logging.error(f"Error during model validation: {str(e)}", exc_info=True)
+            state.metadata["validation_error"] = str(e)
+            state.output.completion = f"Error in model validation: {str(e)}"
+        
+        return state
+
+    return solve
 
 def calculate_bic(log_likelihood: float, n_trials: int, k_params: int) -> float:
     """
@@ -1232,6 +1401,19 @@ Prediction Type: {prediction_type}"""
                 # Also store recovery info in a more accessible format for multiple_runs.py
                 state.metadata["recovery_summary"] = recovery_str.strip()
 
+            # Get model validation information if available
+            model_validation = state.metadata.get("model_validation", {})
+            if model_validation:
+                validation_corr = model_validation.get("correlation", {})
+                r_value = validation_corr.get("r")
+                if r_value is not None and not math.isnan(r_value):
+                    validation_str = "\n\nModel Validation (True vs. Simulated Target):"
+                    validation_str += (
+                        f"\n- Per-participant correlation: r = {r_value:.3f}"
+                    )
+                    current_model += validation_str
+                    state.metadata["validation_summary"] = validation_str.strip()
+
             # Update the previous_models list with the complete model information
             previous_models = state.metadata.get("previous_models", [])
             previous_models.append(current_model)
@@ -1283,56 +1465,3 @@ def verify() -> Scorer:
         )
 
     return score
-
-
-# @task
-# def design_model(
-#     task_description: str = TASK_DESCRIPTION,
-#     output_description: str = MODEL_OUTPUT_DESCRIPTION,
-#     dataset_path: str = CONFIG["paths"]["dataset"],
-# ) -> Task:
-#     """
-#     Task to generate a computational model specification based on descriptions.
-
-#     Args:
-#         task_description: Detailed description of the task/problem to solve
-#         output_description: Description of desired model outputs and characteristics
-#         dataset_path: Path to CSV file containing the dataset structure
-#     """
-#     # Get dataset information
-#     dataset_info = ""
-#     info = get_dataset_info(dataset_path)
-#     if "error" not in info:
-#         dataset_info = "\nDataset Structure:\n"
-#         dataset_info += "Variables available:\n"
-#         for var, dtype in info["data_types"].items():
-#             dataset_info += f"- {var} ({dtype})\n"
-#         dataset_info += f"\nNumber of observations: {info['n_rows']}"
-
-#     # Format task description with dataset info
-#     formatted_task = task_description.format(dataset_info=dataset_info)
-
-#     return Task(
-#         sandbox="docker",
-#         dataset=[
-#             Sample(
-#                 input="Generate model specification",
-#                 target="",  # No specific target since this is a generative task
-#                 metadata={
-#                     "task_description": formatted_task,
-#                     "output_description": output_description,
-#                     "dataset_info": dataset_info,
-#                 },
-#             )
-#         ],
-#         solver=[
-#             system_message(CONFIG["system"]["prompt"]),  # Use system prompt from CONFIG
-#             model_design_solver(),
-#             simulate_model_solver(),
-#             parameter_fitting_solver(),
-#             parameter_recovery_solver(),
-#             bic_solver(),
-#             final_model_summary_solver(),
-#         ],
-#         scorer=verify(),
-#     )

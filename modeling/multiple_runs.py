@@ -12,6 +12,7 @@ from initial_generation import (
     parameter_fitting_solver,
     parameter_recovery_solver,
     bic_solver,
+    model_validation_solver,
     final_model_summary_solver,
     verify,
     load_config as load_initial_config,
@@ -97,6 +98,7 @@ def design_model_local(
             parameter_fitting_solver(),
             parameter_recovery_solver(),
             bic_solver(),
+            model_validation_solver(),
             final_model_summary_solver(),
         ],
         scorer=verify(),
@@ -486,7 +488,7 @@ def run_multiple_evaluations(config_path: Optional[str] = None):
                     current_run_results = None
 
                 # --- Update Instructions for Next Run ---
-                if update_instructions_enabled and current_run_results and (0 < i < n_runs - 1):
+                if update_instructions_enabled and current_run_results and (i < n_runs - 1):
                     try:
                         instructions_for_next_run = asyncio.run(
                             update_instructions(

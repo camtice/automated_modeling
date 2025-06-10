@@ -36,9 +36,20 @@ async def update_instructions(
         previous_runs = previous_runs[-num_previous_runs_to_include:]
 
     try:
-        # Prepare prompt inputs from results
-        bic_val_str = f"{run_results['bic']:.2f}"
-        acc_val_str = f"{run_results['accuracy']:.3f}"
+        # Prepare prompt inputs from results, safely handling missing metrics
+        bic_val = run_results.get("bic")
+        if isinstance(bic_val, (int, float)):
+            bic_val_str = f"{bic_val:.2f}"
+        else:
+            logging.warning(f"BIC value missing or invalid: {bic_val}")
+            bic_val_str = "N/A"
+
+        acc_val = run_results.get("accuracy")
+        if isinstance(acc_val, (int, float)):
+            acc_val_str = f"{acc_val:.3f}"
+        else:
+            logging.warning(f"Accuracy value missing or invalid: {acc_val}")
+            acc_val_str = "N/A"
         rec_summary = run_results["recovery_info"]
         previous_runs_json = json.dumps(
             previous_runs, indent=2, default=str
@@ -47,7 +58,7 @@ async def update_instructions(
         # Construct the prompt for the LLM
         instruction_update_prompt = f"""You are an assistant helping refine instructions for a computational modeling LLM task. The LLM you are helping is stateless, i.e. it will not have access to it's previous interactions, so any information aside from the intial task and technical model descriptions will need to be provided in the your instructions.
 
-        Based on the results of the previous run and the instructions used for that run, generate improved instructions for the *next* run. Aim to guide the main modeling LLM towards better performance (e.g., lower BIC, better parameter recovery, and higher accuracy). Please keep in mind that if any of the learnable parameters have a parameter recovery value of less than ~0.7, then the model is unusable. You will first be given the total context for the previous run, then reminded specifically of the instructions used for that run that you should update.
+        Based on the results of the previous run and the instructions used for that run, generate improved instructions for the *next* run. Aim to guide the main modeling LLM towards better performance (e.g., lower BIC, better parameter recovery, and higher accuracy). Please keep in mind that if any of the learnable parameters have a parameter recovery value of less than ~0.7, then the model is unusable. You will first be given the total context for the previous run, then reminded specifically of the instructions used for that run that you should update. There is no need to include any formatting details, as these will be given to the recieving model in addition to your response. You're only responsible for the 
 
 Here are a list of some recent previous models and their results for context:
 <previous_runs>
@@ -100,7 +111,8 @@ Generate *only* the text for the new instructions below for run {run_number + 1}
 
     except Exception as e:
         logging.error(f"Failed to update instructions: {e}", exc_info=True)
-        raise e
+        # On failure, return previous instructions to avoid breaking the run loop
+        return previous_instructions
 
 
 def return_best_run(previous_runs: list[Dict[str, Any]]):

@@ -315,91 +315,154 @@
             </div>
 
             <!-- Performance Tab -->
-            <div class="tab-pane fade" id="performance" role="tabpanel">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h4 class="h6">BIC Scores</h4>
-                                {% if metadata.get('average_bic') is not none %}
-                                    <div class="mb-3">
-                                        <p class="mb-2"><strong>Overall:</strong> {{ metadata.get('average_bic')|safe_float }}</p>
-                                        
-                                        <div class="mt-2">
-                                            <p class="mb-2"><strong>Group-specific:</strong></p>
-                                            {% for key, value in metadata.items() %}
-                                                {% if key.startswith('bic_') and key != 'bic_error' %}
-                                                    <p class="mb-1 ms-3">{{ key[4:] }}: {{ value|safe_float }}</p>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">BIC results not found in metadata.</p>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <h4 class="h6">Parameter Recovery Scores</h4>
-                                {% if metadata.group_analysis %}
-                                    {% for group in metadata.group_analysis.groups %}
+            <div class="tab-pane fade" id="performance" role="tabpanel" aria-labelledby="performance-tab">
+                <div class="mt-4">
+                    <!-- Fitting Metrics -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Fitting Metrics</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h4 class="h6">BIC Scores</h4>
+                                    {% if metadata.get('average_bic') is not none %}
                                         <div class="mb-3">
-                                            <h5 class="h6 text-muted">{{ group|title }}</h5>
+                                            <p class="mb-2"><strong>Overall:</strong> {{ metadata.get('average_bic')|safe_float }}</p>
+                                            
+                                            <div class="mt-2">
+                                                <p class="mb-2"><strong>Group-specific:</strong></p>
+                                                {% for key, value in metadata.items() %}
+                                                    {% if key.startswith('bic_') and key != 'bic_error' %}
+                                                        <p class="mb-1 ms-3">{{ key[4:] }}: {{ value|safe_float }}</p>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">BIC results not found in metadata.</p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <h4 class="h6">Parameter Recovery Scores</h4>
+                                    {% if metadata.group_analysis %}
+                                        {% for group in metadata.group_analysis.groups %}
+                                            <div class="mb-3">
+                                                <h5 class="h6 text-muted">{{ group|title }}</h5>
+                                                {% for key, value in model_info.items() %}
+                                                    {% if key.endswith('_recovery_' ~ group) and value is not none and value > 0 %}
+                                                        {% set param = key.replace('_recovery_' ~ group, '') %}
+                                                        <div>
+                                                            <strong>{{ param|title }}:</strong> 
+                                                            {{ value|safe_float }}
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% endfor %}
+                                        <div class="mb-3">
+                                            <h5 class="h6 text-muted">Overall</h5>
                                             {% for key, value in model_info.items() %}
-                                                {% if key.endswith('_recovery_' ~ group) and value is not none and value > 0 %}
-                                                    {% set param = key.replace('_recovery_' ~ group, '') %}
+                                                {% if key.endswith('_recovery') and '_recovery_' not in key and value is not none and value > 0 %}
                                                     <div>
-                                                        <strong>{{ param|title }}:</strong> 
+                                                        <strong>{{ key.replace('_recovery', '')|title }}:</strong> 
                                                         {{ value|safe_float }}
                                                     </div>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
-                                    {% endfor %}
-                                    <div class="mb-3">
-                                        <h5 class="h6 text-muted">Overall</h5>
+                                    {% else %}
                                         {% for key, value in model_info.items() %}
-                                            {% if key.endswith('_recovery') and not '_recovery_' in key and value is not none and value > 0 %}
+                                            {% if key.endswith('_recovery') and value is not none and value > 0 %}
                                                 <div>
                                                     <strong>{{ key.replace('_recovery', '')|title }}:</strong> 
                                                     {{ value|safe_float }}
                                                 </div>
                                             {% endif %}
                                         {% endfor %}
-                                    </div>
-                                {% else %}
-                                    {% for key, value in model_info.items() %}
-                                        {% if key.endswith('_recovery') and value is not none and value > 0 %}
-                                            <div>
-                                                <strong>{{ key.replace('_recovery', '')|title }}:</strong> 
-                                                {{ value|safe_float }}
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
+                                    {% endif %}
+                                </div>
                             </div>
-                        </div>
-                        
-                        <!-- Add Group Parameter Averages section -->
-                        {% if metadata.group_parameter_averages %}
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <h4 class="h6">Group Parameter Averages</h4>
-                                <div class="row">
-                                    {% for group, params in metadata.group_parameter_averages.items() %}
-                                    <div class="col-md-6 mb-3">
-                                        <h5 class="h6 text-muted">{{ group|title }}</h5>
-                                        {% for param, avg in params.items() %}
-                                        <div>
-                                            <strong>{{ param|title }}:</strong> 
-                                            {{ avg|safe_float }}
+                            
+                            <!-- Add Group Parameter Averages section -->
+                            {% if metadata.group_parameter_averages %}
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h4 class="h6">Group Parameter Averages</h4>
+                                    <div class="row">
+                                        {% for group, params in metadata.group_parameter_averages.items() %}
+                                        <div class="col-md-6 mb-3">
+                                            <h5 class="h6 text-muted">{{ group|title }}</h5>
+                                            {% for param, avg in params.items() %}
+                                            <div>
+                                                <strong>{{ param|title }}:</strong> 
+                                                {{ avg|safe_float }}
+                                            </div>
+                                            {% endfor %}
                                         </div>
                                         {% endfor %}
                                     </div>
-                                    {% endfor %}
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
+                    </div>
+
+                    <!-- Parameter Recovery -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Parameter Recovery Plots</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if plot_files %}
+                            <div class="row">
+                                {% for plot in plot_files %}
+                                <div class="col-md-6 mb-3">
+                                    <img src="{{ url_for('serve_plot', exp_version=exp_version, run_number=run_number, filename=plot) }}"
+                                        class="img-fluid" alt="Parameter Recovery Plot">
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p>No parameter recovery plots available for this run.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Model Validation -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Model Validation Plots</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if validation_scatter_plot or validation_hist_plots %}
+                            <!-- Participant-level validation -->
+                            {% if validation_scatter_plot %}
+                            <h6 class="text-muted">Participant-level Validation</h6>
+                            <div class="row">
+                                <div class="col-md-8 offset-md-2 mb-3">
+                                    <img src="{{ url_for('serve_plot', exp_version=exp_version, run_number=run_number, filename=validation_scatter_plot) }}"
+                                        class="img-fluid" alt="Participant Validation Scatter Plot">
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Group-level validation -->
+                            {% if validation_hist_plots %}
+                            <h6 class="text-muted mt-4">Group-level Validation</h6>
+                            <div class="row">
+                                {% for plot in validation_hist_plots %}
+                                <div class="col-md-6 mb-3">
+                                    <img src="{{ url_for('serve_plot', exp_version=exp_version, run_number=run_number, filename=plot) }}"
+                                        class="img-fluid" alt="Group Validation Histogram">
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <p>No model validation plots available for this run.</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
