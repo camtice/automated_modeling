@@ -812,8 +812,6 @@ def parameter_recovery_solver():
 
                 return synthetic_data
 
-            import pdb; pdb.set_trace()
-
             except Exception as e:
                 raise ValueError(f"Error generating synthetic data: {str(e)}")
 
@@ -969,6 +967,15 @@ def model_validation_solver():
             plots_dir = Path(CONFIG["paths"]["plot_output"]) / "model_validation"
             plots_dir.mkdir(parents=True, exist_ok=True)
 
+            def _mean_ignore_nan(values):
+                """Helper to compute mean ignoring NaN values."""
+                if not values:
+                    return float('nan')
+                clean_values = [v for v in values if v is not None and not (isinstance(v, float) and math.isnan(v))]
+                if not clean_values:
+                    return float('nan')
+                return statistics.mean(clean_values)
+
             # --- Helper function for simulation ---
             def run_simulation(participant_trials, learned_params):
                 try:
@@ -1026,8 +1033,8 @@ def model_validation_solver():
                         "group": group,
                         "true_outcomes": true_outcomes,
                         "simulated_outcomes": simulated_outcomes,
-                        "true_mean": statistics.mean(true_outcomes) if true_outcomes else 0,
-                        "simulated_mean": statistics.mean(simulated_outcomes) if simulated_outcomes else 0
+                        "true_mean": _mean_ignore_nan(true_outcomes),
+                        "simulated_mean": _mean_ignore_nan(simulated_outcomes)
                     })
 
             if not participant_results:
@@ -1036,29 +1043,45 @@ def model_validation_solver():
                  return state
 
             # --- Per-participant level plotting ---
-            true_means = [r["true_mean"] for r in participant_results]
-            simulated_means = [r["simulated_mean"] for r in participant_results]
-            
-            plt.figure(figsize=(8, 8))
-            plt.scatter(true_means, simulated_means, alpha=0.7)
-            # Add y=x line
-            min_val = min(min(true_means), min(simulated_means)) if true_means and simulated_means else 0
-            max_val = max(max(true_means), max(simulated_means)) if true_means and simulated_means else 1
-            plt.plot([min_val, max_val], [min_val, max_val], 'r--', label='y=x')
-            
-            plot_title_prefix = "Proportion of " if prediction_type.lower() == 'utility' else "Mean of "
-            plt.xlabel(f"True {plot_title_prefix}{target_variable}")
-            plt.ylabel(f"Simulated {plot_title_prefix}{target_variable}")
-            plt.title("Per-Participant Model Validation")
-            plt.legend()
-            
-            corr, p_val = pearsonr(true_means, simulated_means) if len(true_means) > 1 else (float('nan'), float('nan'))
-            plt.text(0.05, 0.95, f'r = {corr:.3f}\np = {p_val:.3f}', transform=plt.gca().transAxes,
-                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            all_true_means = [r["true_mean"] for r in participant_results]
+            all_simulated_means = [r["simulated_mean"] for r in participant_results]
 
-            participant_plot_path = plots_dir / "participant_validation_scatter.png"
-            plt.savefig(str(participant_plot_path))
-            plt.close()
+            valid_pairs = [
+                (t, s) for t, s in zip(all_true_means, all_simulated_means)
+                if t is not None and s is not None and not (math.isnan(t) or math.isnan(s))
+            ]
+
+            participant_plot_path = None
+            corr, p_val = float('nan'), float('nan')
+
+            if valid_pairs:
+                true_means, simulated_means = zip(*valid_pairs)
+            
+                plt.figure(figsize=(8, 8))
+                plt.scatter(true_means, simulated_means, alpha=0.7)
+                # Add y=x line
+                min_val = min(min(true_means), min(simulated_means)) if true_means and simulated_means else 0
+                max_val = max(max(true_means), max(simulated_means)) if true_means and simulated_means else 1
+                plt.plot([min_val, max_val], [min_val, max_val], 'r--', label='y=x')
+                
+                plot_title_prefix = "Proportion of " if prediction_type.lower() == 'utility' else "Mean of "
+                plt.xlabel(f"True {plot_title_prefix}{target_variable}")
+                plt.ylabel(f"Simulated {plot_title_prefix}{target_variable}")
+                plt.title("Per-Participant Model Validation")
+                plt.legend()
+                
+                if len(true_means) > 1:
+                    corr, p_val = pearsonr(true_means, simulated_means)
+                
+                plt.text(0.05, 0.95, f'r = {corr:.3f}\np = {p_val:.3f}', transform=plt.gca().transAxes,
+                         verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+                participant_plot_path = plots_dir / "participant_validation_scatter.png"
+                plt.savefig(str(participant_plot_path))
+                plt.close()
+            else:
+                logging.warning("No valid data pairs to plot for participant-level validation.")
+
 
             # --- Per-group level plotting ---
             group_plot_paths = {}
@@ -1074,13 +1097,19 @@ def model_validation_solver():
                     if not group_results:
                         continue
 
-                    true_group_means = [r["true_mean"] for r in group_results]
-                    simulated_group_means = [r["simulated_mean"] for r in group_results]
+                    true_group_means = [r["true_mean"] for r in group_results if r.get("true_mean") is not None and not math.isnan(r["true_mean"])]
+                    simulated_group_means = [r["simulated_mean"] for r in group_results if r.get("simulated_mean") is not None and not math.isnan(r["simulated_mean"])]
                     
+                    if not true_group_means and not simulated_group_means:
+                        logging.warning(f"No valid data to plot for group '{group}'.")
+                        continue
+
                     plt.figure(figsize=(10, 6))
-                    # Use density=True for normalization if group sizes vary
-                    plt.hist(true_group_means, bins=10, alpha=0.7, label='True Means', color='blue', density=True)
-                    plt.hist(simulated_group_means, bins=10, alpha=0.7, label='Simulated Means', color='orange', density=True)
+                    if true_group_means:
+                        plt.hist(true_group_means, bins=10, alpha=0.7, label='True Means', color='blue', density=True)
+                    if simulated_group_means:
+                        plt.hist(simulated_group_means, bins=10, alpha=0.7, label='Simulated Means', color='orange', density=True)
+                    
                     plt.xlabel(f"Participant Mean {target_variable}")
                     plt.ylabel("Density")
                     plt.title(f"Group-level Validation for '{group}'")
@@ -1093,9 +1122,9 @@ def model_validation_solver():
 
             # --- Store results in metadata ---
             state.metadata["model_validation"] = {
-                "participant_plot": str(participant_plot_path),
+                "participant_plot": str(participant_plot_path) if participant_plot_path else None,
                 "group_plots": group_plot_paths,
-                "correlation": {"r": corr, "p": p_val}
+                "correlation": {"r": corr if not math.isnan(corr) else None, "p": p_val if not math.isnan(p_val) else None}
             }
             
             completion_message = f"Model validation completed. Participant-level correlation r={corr:.3f}. Plots saved in {plots_dir}."
@@ -1110,6 +1139,7 @@ def model_validation_solver():
         return state
 
     return solve
+
 
 def calculate_bic(log_likelihood: float, n_trials: int, k_params: int) -> float:
     """
