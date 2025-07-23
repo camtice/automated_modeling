@@ -166,17 +166,18 @@ def load_experiment_metadata(exp_version):
                         overall_acc = run_metadata.get("overall_accuracy")
                         print(f"Run {run_number}: Found avg_bic={avg_bic}, overall_acc={overall_acc} in metadata.json") # Logging
 
+                        # Create boolean mask once for efficiency
+                        run_mask = df["run_number"] == run_number
+                        
                         if avg_bic is not None:
-                            df.loc[df["run_number"] == run_number, "average_bic"] = avg_bic
+                            df.loc[run_mask, "average_bic"] = avg_bic
                         if overall_acc is not None:
-                            df.loc[df["run_number"] == run_number, "overall_accuracy"] = overall_acc
+                            df.loc[run_mask, "overall_accuracy"] = overall_acc
 
                         # Process BIC group values
                         for key in run_metadata:
                             if key.startswith("bic_"):
-                                df.loc[df["run_number"] == run_number, key] = (
-                                    run_metadata[key]
-                                )
+                                df.loc[run_mask, key] = run_metadata[key]
 
                 # Then process group metrics
                 run_metrics = {"bic": {}, "parameters": {}}
@@ -191,11 +192,13 @@ def load_experiment_metadata(exp_version):
                 # Add group metrics to the main DataFrame
                 for group in unique_groups:
                     if "parameters" in run_metrics:
+                        # Create boolean mask once for efficiency
+                        run_mask = df["run_number"] == run_number
                         for param, values in run_metrics["parameters"].items():
                             if group in values:
                                 recovery_value = values.get(group)
                                 df.loc[
-                                    df["run_number"] == run_number,
+                                    run_mask,
                                     f"{param}_recovery_{group}",
                                 ] = (
                                     recovery_value
@@ -413,8 +416,7 @@ def index():
                     # Add overall_accuracy if not already present and exists in metadata
                     if (
                         "overall_accuracy" in run_metadata
-                        and "overall_accuracy" not in model # Check if not already added
-                        and model.get("overall_accuracy") is None # Double check if None
+                        and model.get("overall_accuracy") is None # Check if not already set
                     ):
                         model["overall_accuracy"] = run_metadata["overall_accuracy"]
                         print(f"Run {run_number}: Added overall_accuracy={model['overall_accuracy']} from metadata.json to model dict") # Logging

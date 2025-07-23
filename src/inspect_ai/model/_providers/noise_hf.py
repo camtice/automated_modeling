@@ -169,7 +169,13 @@ class NoiseHuggingFaceAPI(ModelAPI):
 
     def __del__(self):
         """Ensure resources are cleaned up when the object is deleted."""
-        self.close()
+        try:
+            self.close()
+        except Exception:
+            # Suppress exceptions in destructor to prevent program termination
+            # This is a best practice as exceptions in __del__ can cause
+            # unpredictable behavior and mask other important errors
+            pass
 
     def close(self):
         """Clean up resources."""
